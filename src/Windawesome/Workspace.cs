@@ -150,7 +150,7 @@ namespace Windawesome
 			count = 0;
 		}
 
-		public Workspace(ILayout layout, IList<Bar> bars, IList<bool> topBars = null, IList<bool> barsVisible = null,
+		public Workspace(ILayout layout, IList<Bar> bars, IList<bool> topBars = null, IList<bool> showBars = null,
 			string name = "", bool showWindowsTaskbar = false)
 		{
 			windows = new LinkedList<Window>();
@@ -167,7 +167,7 @@ namespace Windawesome
 			this.layout = layout;
 			this.bars = bars.ToArray();
 			this.topBars = topBars == null ? bars.Select(_ => true).ToArray() : topBars.ToArray();
-			this.showBars = barsVisible == null ? bars.Select(_ => true).ToArray() : barsVisible.ToArray();
+			this.showBars = showBars == null ? bars.Select(_ => true).ToArray() : showBars.ToArray();
 			this.name = name;
 			this.showWindowsTaskbar = showWindowsTaskbar;
 

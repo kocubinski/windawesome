@@ -242,7 +242,8 @@ IF NOT EXIST "$(TargetDir)Plugins" md "$(TargetDir)Plugins"
 xcopy /Y "$(SolutionDir)Widgets" "$(TargetDir)Widgets"
 xcopy /Y "$(SolutionDir)Layouts" "$(TargetDir)Layouts"
 xcopy /Y "$(SolutionDir)Config" "$(TargetDir)Config"
-xcopy /Y "$(SolutionDir)Plugins" "$(TargetDir)Plugins"</PostBuildEvent>
+xcopy /Y "$(SolutionDir)Plugins" "$(TargetDir)Plugins"
+xcopy /Y "$(SolutionDir)Docs" "$(TargetDir)"</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
