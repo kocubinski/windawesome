@@ -1,0 +1,210 @@
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Text.RegularExpressions;
+using IronPython.Hosting;
+using IronRuby;
+using Microsoft.Scripting.Hosting;
+
+namespace Windawesome
+{
+	public class Config
+	{
+		internal void LoadPlugins(Windawesome windawesome)
+		{
+			string layoutsDirName = "Layouts";
+			string widgetsDirName = "Widgets";
+			string pluginsDirName = "Plugins";
+			string configDirName = "Config";
+
+			if (!Directory.Exists(layoutsDirName))
+			{
+				Directory.CreateDirectory(layoutsDirName);
+			}
+			if (!Directory.Exists(widgetsDirName))
+			{
+				Directory.CreateDirectory(widgetsDirName);
+			}
+			if (!Directory.Exists(pluginsDirName))
+			{
+				Directory.CreateDirectory(pluginsDirName);
+			}
+			if (!Directory.Exists(configDirName))
+			{
+				Directory.CreateDirectory(configDirName);
+			}
+
+			var files =
+				Directory.EnumerateFiles(layoutsDirName).Select(fileName => new FileInfo(fileName)) .Concat(
+				Directory.EnumerateFiles(widgetsDirName).Select(fileName => new FileInfo(fileName))).Concat(
+				Directory.EnumerateFiles(pluginsDirName).Select(fileName => new FileInfo(fileName))).Concat(
+				Directory.EnumerateFiles(configDirName) .Select(fileName => new FileInfo(fileName)));
+
+			PluginLoader.LoadAll(windawesome, this, files);
+		}
+
+		public IPlugin[] plugins;
+		public Bar[] bars;
+		public ILayout[] layouts;
+		public int workspacesCount;
+		public Workspace[] workspaces;
+		public int startingWorkspace = 1;
+		public ProgramRule[] programRules;
+		public int borderWidth = -1;
+		public int paddedBorderWidth = -1;
+
+		private class PluginLoader
+		{
+			private static ScriptEngine pythonEngine;
+			private static ScriptEngine rubyEngine;
+
+			internal PluginLoader()
+			{
+				pythonEngine = null;
+				rubyEngine = null;
+			}
+
+			private static ScriptEngine PythonEngine
+			{
+				get
+				{
+					if (pythonEngine == null)
+					{
+						pythonEngine = Python.CreateEngine();
+						InitializeScriptEngine(pythonEngine);
+					}
+					return pythonEngine;
+				}
+			}
+
+			private static ScriptEngine RubyEngine
+			{
+				get
+				{
+					if (rubyEngine == null)
+					{
+						rubyEngine = Ruby.CreateEngine();
+						InitializeScriptEngine(rubyEngine);
+					}
+					return rubyEngine;
+				}
+			}
+
+			private static void InitializeScriptEngine(ScriptEngine engine)
+			{
+				var searchPaths = engine.GetSearchPaths().ToList();
+				searchPaths.Add(System.Environment.CurrentDirectory);
+				engine.SetSearchPaths(searchPaths);
+
+				AppDomain.CurrentDomain.GetAssemblies()
+					.ForEach(assembly => engine.Runtime.LoadAssembly(assembly));
+			}
+
+			private static ScriptEngine GetEngineForFile(FileInfo file)
+			{
+				switch (file.Extension)
+				{
+					case ".ir":
+					case ".rb":
+						return RubyEngine;
+					case ".ipy":
+					case ".py":
+						return PythonEngine;
+					case ".dll":
+						Assembly.LoadFrom(file.FullName);
+						break;
+				}
+
+				return null;
+			}
+
+			internal static void LoadAll(Windawesome windawesome, Config config, IEnumerable<FileInfo> files)
+			{
+				ScriptScope scope = null;
+				ScriptEngine previousLanguage = null;
+				foreach (var file in files)
+				{
+					var engine = GetEngineForFile(file);
+					if (engine != null)
+					{
+						if (scope == null)
+						{
+							scope = engine.CreateScope();
+							scope.SetVariable("windawesome", windawesome);
+							scope.SetVariable("config", config);
+						}
+						else if (previousLanguage != engine)
+						{
+							var oldScope = scope;
+							scope = engine.CreateScope();
+							oldScope.GetItems().ForEach(variable => scope.SetVariable(variable.Key, variable.Value));
+							previousLanguage.Runtime.Globals.GetItems().ForEach(variable => scope.SetVariable(variable.Key, variable.Value));
+						}
+
+						scope = engine.ExecuteFile(file.FullName, scope);
+						previousLanguage = engine;
+					}
+				}
+			}
+		}
+	}
+
+	public enum State : int
+	{
+		SHOWN  = 0,
+		HIDDEN = 1,
+		AS_IS  = 2
+	}
+
+	public class ProgramRule
+	{
+		internal readonly Regex className;
+		internal readonly Regex displayName;
+		internal readonly bool isManaged;
+		internal readonly int windowCreatedDelay;
+		internal readonly bool switchToOnCreated;
+		internal readonly Rule[] rules;
+
+		internal bool IsMatch(string cName, string dName)
+		{
+			return className.IsMatch(cName) && displayName.IsMatch(dName);
+		}
+
+		public ProgramRule(string className = ".*", string displayName = ".*", bool isManaged = true,
+			int windowCreatedDelay = 350, bool switchToOnCreated = true, IList<Rule> rules = null)
+		{
+			this.className = new Regex(className, RegexOptions.Compiled);
+			this.displayName = new Regex(displayName, RegexOptions.Compiled);
+			this.isManaged = isManaged;
+			this.windowCreatedDelay = windowCreatedDelay;
+			this.switchToOnCreated = switchToOnCreated;
+			if (isManaged)
+			{
+				this.rules = rules == null ? new Rule[] { new Rule() } : rules.ToArray();
+			}
+		}
+
+		public class Rule
+		{
+			public Rule(int workspace = 0, bool isFloating = false, bool showInTabs = true,
+				State titlebar = State.AS_IS, State inTaskbar = State.AS_IS, State windowBorders = State.AS_IS)
+			{
+				this.workspace = workspace;
+				this.isFloating = isFloating;
+				this.showInTabs = showInTabs;
+				this.titlebar = titlebar;
+				this.inTaskbar = inTaskbar;
+				this.windowBorders = windowBorders;
+			}
+
+			internal readonly int workspace;
+			internal readonly bool isFloating;
+			internal readonly bool showInTabs;
+			internal readonly State titlebar;
+			internal readonly State inTaskbar;
+			internal readonly State windowBorders;
+		}
+	}
+}
