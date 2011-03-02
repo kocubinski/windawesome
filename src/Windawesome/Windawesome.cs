@@ -522,28 +522,30 @@ namespace Windawesome
 
 		public static Bitmap GetWindowSmallIconAsBitmap(IntPtr hWnd)
 		{
-			IntPtr hIcon = NativeMethods.GetClassLongPtr(hWnd, NativeMethods.GCL_HICONSM);
-
+			IntPtr hIcon;
 			Bitmap bitmap = null;
+
+			NativeMethods.SendMessageTimeout(
+				hWnd,
+				NativeMethods.WM_GETICON,
+				NativeMethods.ICON_SMALL,
+				IntPtr.Zero,
+				NativeMethods.SMTO.SMTO_BLOCK | NativeMethods.SMTO.SMTO_ABORTIFHUNG,
+				1000, out hIcon);			
+
 			if (hIcon == IntPtr.Zero)
 			{
 				NativeMethods.SendMessageTimeout(
 					hWnd,
-					NativeMethods.WM_GETICON,
-					NativeMethods.ICON_SMALL,
+					NativeMethods.WM_QUERYDRAGICON,
+					UIntPtr.Zero,
 					IntPtr.Zero,
-					NativeMethods.SMTO.SMTO_BLOCK |	NativeMethods.SMTO.SMTO_ABORTIFHUNG,
+					NativeMethods.SMTO.SMTO_BLOCK | NativeMethods.SMTO.SMTO_ABORTIFHUNG,
 					1000, out hIcon);
 
 				if (hIcon == IntPtr.Zero)
 				{
-					NativeMethods.SendMessageTimeout(
-						hWnd,
-						NativeMethods.WM_QUERYDRAGICON,
-						UIntPtr.Zero,
-						IntPtr.Zero,
-						NativeMethods.SMTO.SMTO_BLOCK |	NativeMethods.SMTO.SMTO_ABORTIFHUNG,
-						1000, out hIcon);
+					hIcon = NativeMethods.GetClassLongPtr(hWnd, NativeMethods.GCL_HICONSM);
 
 					if (hIcon == IntPtr.Zero)
 					{

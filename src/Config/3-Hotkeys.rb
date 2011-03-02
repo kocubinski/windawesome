@@ -109,16 +109,16 @@ subscribe modifiers.Control | modifiers.Alt | modifiers.Shift, key.Q do
 	windawesome.remove_application_from_current_workspace Windawesome::NativeMethods.get_foreground_window
 end
 
-subscribe modifiers.Alt | modifiers.Shift, key.T do
+subscribe modifiers.Alt | modifiers.Shift, key.L do
 	windawesome.current_workspace.layout.toggle_layout_axis if windawesome.current_workspace.layout.layout_name == "Tile"
 end
 
-subscribe modifiers.Alt | modifiers.Shift, key.Tab do
-	windawesome.current_workspace.layout.toggle_master_area_axis if windawesome.current_workspace.layout.layout_name == "Tile"
+subscribe modifiers.Alt | modifiers.Shift, key.S do
+	windawesome.current_workspace.layout.toggle_stack_area_axis if windawesome.current_workspace.layout.layout_name == "Tile"
 end
 
-subscribe modifiers.Control | modifiers.Alt | modifiers.Shift, key.Tab do
-	windawesome.current_workspace.layout.toggle_stack_area_axis if windawesome.current_workspace.layout.layout_name == "Tile"
+subscribe modifiers.Control | modifiers.Alt | modifiers.Shift, key.S do
+	windawesome.current_workspace.layout.toggle_master_area_axis if windawesome.current_workspace.layout.layout_name == "Tile"
 end
 
 subscribe modifiers.Alt | modifiers.Shift, key.Down do
