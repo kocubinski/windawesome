@@ -73,6 +73,15 @@ config.programRules = Enumerable.ToArray[ProgramRule]([
 		switchToOnCreated = False,
 		rules = [ProgramRule.Rule(workspace = 5, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
 	),
+	ProgramRule(className = "^ConsoleWindowClass$", rules = [ProgramRule.Rule(isFloating = True)]), # Interix terminal
+	ProgramRule(className = "^Internet Explorer_Hidden$", displayName = "", isManaged = False), # what the hell
+	ProgramRule(className = "^Edit$", displayName = "", isManaged = False), # some stupid window of Adobe Reader
+	ProgramRule(className = "^ShockwaveFlashFullScreen$", displayName = "^Adobe Flash Player$", isManaged = False), # Adobe Flash Player when full screen
+	ProgramRule(displayName = "^Windows 7 Manager - Junk File Cleaner$", isManaged = False),
+	ProgramRule(displayName = "^Windows 7 Manager - Registry Cleaner$", isManaged = False),
+	ProgramRule(displayName = ".*Windows 7 Manager.*", rules = [ProgramRule.Rule(workspace = 1)]),
+	ProgramRule(className = "^MsiDialogCloseClass$", isManaged = False),
+	ProgramRule(className = "^MsiDialogNoCloseClass$", isManaged = False),
 	ProgramRule(
 		className = "^#32770$", # all dialogs
 		rules = [ProgramRule.Rule(isFloating = True)] # should be floating
@@ -85,20 +94,5 @@ config.programRules = Enumerable.ToArray[ProgramRule]([
 		styleContains = WS.WS_POPUP,
 		isManaged = False
 	),
-	ProgramRule(
-		className = "^MsiDialogCloseClass$",
-		isManaged = False
-	),
-	ProgramRule(
-		className = "^MsiDialogNoCloseClass$",
-		isManaged = False
-	),
-	ProgramRule(className = "^ConsoleWindowClass$", rules = [ProgramRule.Rule(isFloating = True)]), # Interix terminal
-	ProgramRule(className = "^Internet Explorer_Hidden$", displayName = "", isManaged = False), # what the hell
-	ProgramRule(className = "^Edit$", displayName = "", isManaged = False), # some stupid window of Adobe Reader
-	ProgramRule(className = "^ShockwaveFlashFullScreen$", displayName = "^Adobe Flash Player$", isManaged = False), # Adobe Flash Player when full screen
-	ProgramRule(displayName = "^Windows 7 Manager - Junk File Cleaner$", isManaged = False),
-	ProgramRule(displayName = "^Windows 7 Manager - Registry Cleaner$", isManaged = False),
-	ProgramRule(displayName = ".*Windows 7 Manager.*", rules = [ProgramRule.Rule(workspace = 1)]),
 	ProgramRule() # there SHOULD be a catch-all rule in the end!
 ])
