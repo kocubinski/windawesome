@@ -162,21 +162,33 @@ namespace Windawesome
 	{
 		internal readonly Regex className;
 		internal readonly Regex displayName;
+		internal readonly NativeMethods.WS styleContains;
+		internal readonly NativeMethods.WS styleNotContains;
+		internal readonly NativeMethods.WS_EX styleExContains;
+		internal readonly NativeMethods.WS_EX styleExNotContains;
 		internal readonly bool isManaged;
 		internal readonly int windowCreatedDelay;
 		internal readonly bool switchToOnCreated;
 		internal readonly Rule[] rules;
 
-		internal bool IsMatch(string cName, string dName)
+		internal bool IsMatch(string cName, string dName, NativeMethods.WS style, NativeMethods.WS_EX exStyle)
 		{
-			return className.IsMatch(cName) && displayName.IsMatch(dName);
+			return className.IsMatch(cName) && displayName.IsMatch(dName) &&
+				(style & styleContains) == style && (style & styleNotContains) == 0 &&
+				(exStyle & styleExContains) == exStyle && (exStyle & styleExNotContains) == 0;
 		}
 
-		public ProgramRule(string className = ".*", string displayName = ".*", bool isManaged = true,
-			int windowCreatedDelay = 350, bool switchToOnCreated = true, IList<Rule> rules = null)
+		public ProgramRule(string className = ".*", string displayName = ".*",
+			NativeMethods.WS styleContains = (NativeMethods.WS) uint.MaxValue, NativeMethods.WS styleNotContains = 0,
+			NativeMethods.WS_EX styleExContains = (NativeMethods.WS_EX) uint.MaxValue, NativeMethods.WS_EX styleExNotContains = 0,
+			bool isManaged = true, int windowCreatedDelay = 350, bool switchToOnCreated = true, IList<Rule> rules = null)
 		{
 			this.className = new Regex(className, RegexOptions.Compiled);
 			this.displayName = new Regex(displayName, RegexOptions.Compiled);
+			this.styleContains = styleContains;
+			this.styleNotContains = styleNotContains;
+			this.styleExContains = styleExContains;
+			this.styleExNotContains = styleExNotContains;
 			this.isManaged = isManaged;
 			this.windowCreatedDelay = windowCreatedDelay;
 			this.switchToOnCreated = switchToOnCreated;

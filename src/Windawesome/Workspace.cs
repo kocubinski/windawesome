@@ -774,7 +774,8 @@ namespace Windawesome
 		private NativeMethods.WINDOWPLACEMENT windowPlacement;
 		private readonly NativeMethods.WINDOWPLACEMENT originalWindowPlacement;
 
-		internal Window(IntPtr hWnd, string className, string caption, int workspacesCount, bool is64BitProcess)
+		internal Window(IntPtr hWnd, string className, string caption, int workspacesCount, bool is64BitProcess,
+			NativeMethods.WS originalStyle, NativeMethods.WS_EX originalExStyle)
 		{
 			this.hWnd = hWnd;
 			this.className = className;
@@ -785,14 +786,12 @@ namespace Windawesome
 			windowPlacement = NativeMethods.WINDOWPLACEMENT.Default;
 			SavePosition();
 
-			NativeMethods.WS originalStyle = NativeMethods.GetWindowStyleLongPtr(hWnd);
 			titlebarStyle = 0;
 			titlebarStyle |= originalStyle & NativeMethods.WS.WS_CAPTION;
 			titlebarStyle |= originalStyle & NativeMethods.WS.WS_MINIMIZEBOX;
 			titlebarStyle |= originalStyle & NativeMethods.WS.WS_MAXIMIZEBOX;
 			titlebarStyle |= originalStyle & NativeMethods.WS.WS_SYSMENU;
 
-			NativeMethods.WS_EX originalExStyle = NativeMethods.GetWindowExStyleLongPtr(hWnd);
 			titlebarExStyle = 0;
 			titlebarExStyle |= originalExStyle & NativeMethods.WS_EX.WS_EX_DLGMODALFRAME;
 			titlebarExStyle |= originalExStyle & NativeMethods.WS_EX.WS_EX_CLIENTEDGE;

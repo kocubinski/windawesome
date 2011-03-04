@@ -1,5 +1,6 @@
 from System.Linq import Enumerable
 from Windawesome import ProgramRule, State
+from Windawesome.NativeMethods import WS
 
 config.programRules = Enumerable.ToArray[ProgramRule]([
 	ProgramRule(
@@ -32,11 +33,6 @@ config.programRules = Enumerable.ToArray[ProgramRule]([
 	),
 	ProgramRule(
 		displayName = ".*SA Dictionary 2010.*",
-		windowCreatedDelay = 100,
-		rules = [ProgramRule.Rule(isFloating = True)]
-	),
-	ProgramRule(
-		className = "^CalcFrame$", # Calculator
 		windowCreatedDelay = 100,
 		rules = [ProgramRule.Rule(isFloating = True)]
 	),
@@ -82,6 +78,14 @@ config.programRules = Enumerable.ToArray[ProgramRule]([
 		rules = [ProgramRule.Rule(isFloating = True)] # should be floating
 	),
 	ProgramRule(
+		styleNotContains = WS.WS_MAXIMIZEBOX,
+		rules = [ProgramRule.Rule(isFloating = True)]
+	),
+	ProgramRule(
+		styleContains = WS.WS_POPUP,
+		isManaged = False
+	),
+	ProgramRule(
 		className = "^MsiDialogCloseClass$",
 		isManaged = False
 	),
@@ -89,7 +93,6 @@ config.programRules = Enumerable.ToArray[ProgramRule]([
 		className = "^MsiDialogNoCloseClass$",
 		isManaged = False
 	),
-	ProgramRule(className = "^Console_2_Main$", rules = [ProgramRule.Rule(isFloating = True)]), # Console
 	ProgramRule(className = "^ConsoleWindowClass$", rules = [ProgramRule.Rule(isFloating = True)]), # Interix terminal
 	ProgramRule(className = "^Internet Explorer_Hidden$", displayName = "", isManaged = False), # what the hell
 	ProgramRule(className = "^Edit$", displayName = "", isManaged = False), # some stupid window of Adobe Reader

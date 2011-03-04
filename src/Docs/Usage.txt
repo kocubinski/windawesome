@@ -33,6 +33,10 @@ A program rule tells Windawesome how to treat any newly created window - this ca
 
 className - the window class name, a regular expression
 displayName - the window display name, a regular expression
+styleContains - the window styles that must be present in the window's style
+styleNotContains - the window styles that must NOT be present in the window's style
+styleExContains - the extended window styles that must be present in the window's extended style
+styleExNotContains - the extended window styles that must NOT be present in the window's extended style
 isManaged - whether Windawesome should care about that window
 windowCreatedDelay - the time, in milliseconds, to wait before taking any action after the window has been created. If Windawesome has problems with newly created windows, try setting this to a higher value
 switchToOnCreated - if true, Windawesome switches to this application even if it is not on the current workspace (i.e. it switches to the first workspace where it can find it)

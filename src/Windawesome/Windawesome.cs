@@ -241,8 +241,10 @@ namespace Windawesome
 			{
 				string className = NativeMethods.GetWindowClassName(hWnd);
 				string displayName = NativeMethods.GetText(hWnd);
+				var style = NativeMethods.GetWindowStyleLongPtr(hWnd);
+				var exStyle = NativeMethods.GetWindowExStyleLongPtr(hWnd);
 
-				var programRule = config.programRules.First(r => r.IsMatch(className, displayName));
+				var programRule = config.programRules.First(r => r.IsMatch(className, displayName, style, exStyle));
 				if (!programRule.isManaged)
 				{
 					return false;
@@ -281,7 +283,7 @@ namespace Windawesome
 				}
 
 				var windowTemplate = new Window(hWnd, className, displayName, workspacesCount,
-					Environment.Is64BitOperatingSystem && NativeMethods.Is64BitProcess(hWnd));
+					Environment.Is64BitOperatingSystem && NativeMethods.Is64BitProcess(hWnd), style, exStyle);
 
 				foreach (var rule in matchingRules)
 				{
