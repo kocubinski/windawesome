@@ -64,7 +64,6 @@ namespace Windawesome
 		{
 			Form form = new Form();
 
-			form.Name = "Windawesome Bar";
 			form.StartPosition = FormStartPosition.Manual;
 			form.FormBorderStyle = FormBorderStyle.FixedToolWindow;
 			form.AutoValidate = AutoValidate.Disable;

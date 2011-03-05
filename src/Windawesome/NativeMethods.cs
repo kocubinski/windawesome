@@ -20,7 +20,7 @@ namespace Windawesome
 				ForceForegroundWindow = hWnd =>
 					{
 						ForceForegroundWindow64(hWnd);
-						Windawesome.RunTask(() => BringWindowToTop(hWnd));
+						Windawesome.PostAction(() => BringWindowToTop(hWnd));
 					};
 				UnsubclassWindow = UnsubclassWindow64;
 				RunApplicationNonElevated = RunApplicationNonElevated64;
@@ -38,7 +38,7 @@ namespace Windawesome
 				ForceForegroundWindow = hWnd =>
 					{
 						ForceForegroundWindow32(hWnd);
-						Windawesome.RunTask(() => BringWindowToTop(hWnd));
+						Windawesome.PostAction(() => BringWindowToTop(hWnd));
 					};
 				UnsubclassWindow = UnsubclassWindow32;
 				RunApplicationNonElevated = RunApplicationNonElevated32;

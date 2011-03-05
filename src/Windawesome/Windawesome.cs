@@ -3,22 +3,24 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Runtime.InteropServices;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace Windawesome
 {
-	public partial class Windawesome : Form
+	public class Windawesome : NativeWindow
 	{
 		private readonly Config config;
 		private readonly Dictionary<IntPtr, LinkedList<Tuple<Workspace, Window>>> applications; // hWnd to a list of workspaces and windows
-		private readonly MultiHashSet<IntPtr> hiddenApplications;
+		private readonly HashMultiSet<IntPtr> hiddenApplications;
 		private readonly uint shellMessageNum;
+		private static readonly uint postActionMessageNum;
+		private static readonly Queue<Action> postedActions;
 		private static readonly Dictionary<int, HandleMessageDelegate> messageHandlers;
 		private static readonly NativeMethods.NONCLIENTMETRICS originalNonClientMetrics;
 		private readonly bool changedNonClientMetrics = false;
 		private readonly bool finishedInitializing = false;
 
+		internal static IntPtr handle;
 		internal static int[] workspaceBarsEquivalentClasses;
 
 		public delegate bool HandleMessageDelegate(ref Message m);
@@ -27,8 +29,6 @@ namespace Windawesome
 		public static readonly bool isRunningElevated;
 		public static readonly bool isAtLeastVista;
 		public static readonly bool isAtLeast7;
-		private static TaskScheduler taskScheduler;
-
 		public static readonly Size smallIconSize;
 
 		#region Events
@@ -41,6 +41,9 @@ namespace Windawesome
 
 		public delegate void WindowFlashingEventHandler(LinkedList<Tuple<Workspace, Window>> list);
 		public static event WindowFlashingEventHandler WindowFlashing;
+
+		internal delegate void WindawesomeExitingEventHandler();
+		internal static event WindawesomeExitingEventHandler WindawesomeExiting;
 
 		public static void OnLayoutUpdated()
 		{
@@ -66,6 +69,11 @@ namespace Windawesome
 			}
 		}
 
+		private static void OnWindawesomeExiting()
+		{
+			WindawesomeExiting();
+		}
+
 		#endregion
 
 		public Workspace CurrentWorkspace
@@ -89,11 +97,20 @@ namespace Windawesome
 				ref originalNonClientMetrics, 0);
 
 			smallIconSize = SystemInformation.SmallIconSize;
+
+			postedActions = new Queue<Action>(5);
+			postActionMessageNum = NativeMethods.RegisterWindowMessage("POST_ACTION_MESSAGE");
 		}
 		
 		internal Windawesome()
 		{
-			taskScheduler = TaskScheduler.FromCurrentSynchronizationContext();
+			var cp = new CreateParams();
+			cp.Caption = "";
+			cp.ClassName = "Message";
+			cp.Parent = (IntPtr) (-3); // HWND_MESSAGE
+			this.CreateHandle(cp);
+
+			handle = this.Handle;
 
 			config = new Config();
 			config.LoadPlugins(this);
@@ -107,7 +124,7 @@ namespace Windawesome
 			FindWorkspaceBarsEquivalentClasses();
 			
 			applications = new Dictionary<IntPtr, LinkedList<Tuple<Workspace, Window>>>(30);
-			hiddenApplications = new MultiHashSet<IntPtr>();
+			hiddenApplications = new HashMultiSet<IntPtr>();
 
 			// add all windows to their respective workspace
 			NativeMethods.EnumWindows((hWnd, _) => AddWindowToWorkspace(hWnd) || true, IntPtr.Zero);
@@ -118,7 +135,7 @@ namespace Windawesome
 			// switches to the default starting workspace
 			config.workspaces[0].SwitchTo();
 
-			this.FormClosed += Windawesome_FormClosed;
+			Windawesome.WindawesomeExiting += Windawesome_WindawesomeExiting;
 
 			// add a handler for when the working area changes
 			Microsoft.Win32.SystemEvents.UserPreferenceChanged += SystemEvents_UserPreferenceChanged;
@@ -141,12 +158,13 @@ namespace Windawesome
 			}
 			if (changedNonClientMetrics)
 			{
-				NativeMethods.SystemParametersInfo(NativeMethods.SPI_SETNONCLIENTMETRICS, metrics.cbSize,
-					ref metrics, NativeMethods.SPIF_SENDCHANGE);
+				System.Threading.Tasks.Task.Factory.StartNew(() =>
+					NativeMethods.SystemParametersInfo(NativeMethods.SPI_SETNONCLIENTMETRICS, metrics.cbSize,
+						ref metrics, NativeMethods.SPIF_SENDCHANGE));
 			}
 
 			// register a shell hook
-			NativeMethods.RegisterShellHookWindow(this.Handle);
+			NativeMethods.RegisterShellHookWindow(handle);
 			shellMessageNum = NativeMethods.RegisterWindowMessage("SHELLHOOK");
 
 			finishedInitializing = true;
@@ -164,13 +182,13 @@ namespace Windawesome
 					// how to reproduce: start any program that triggers a UAC prompt or start
 					// IrfanView 4.25 with some picture, enter full-screen with "Return" and then exit
 					// with "Return" again
-					this.BeginInvoke((Action) (() => config.workspaces[0].ShowHideWindowsTaskbar()));
-					this.BeginInvoke((Action) (() => config.workspaces[0].ShowHideWindowsTaskbar()));
+					PostAction(() => config.workspaces[0].ShowHideWindowsTaskbar());
+					PostAction(() => config.workspaces[0].ShowHideWindowsTaskbar());
 				}
 			}
 		}
 
-		private void Windawesome_FormClosed(object sender, FormClosedEventArgs e)
+		private void Windawesome_WindawesomeExiting()
 		{
 			Microsoft.Win32.SystemEvents.UserPreferenceChanged -= SystemEvents_UserPreferenceChanged;
 
@@ -178,7 +196,7 @@ namespace Windawesome
 			KeyboardHook.Dispose();
 
 			// unregister shell hook
-			NativeMethods.DeregisterShellHookWindow(this.Handle);
+			NativeMethods.DeregisterShellHookWindow(handle);
 
 			// roll back any changes to Windows
 			config.workspaces.Skip(1).ForEach(workspace => workspace.RevertToInitialValues());
@@ -230,7 +248,8 @@ namespace Windawesome
 
 		public void Quit()
 		{
-			this.Close();
+			OnWindawesomeExiting();
+			this.DestroyHandle();
 		}
 
 		#endregion
@@ -267,7 +286,7 @@ namespace Windawesome
 				{
 					if (programRule.switchToOnCreated)
 					{
-						this.BeginInvoke((Action) (() => SwitchToApplication(hWnd)));
+						PostAction(() => SwitchToApplication(hWnd));
 					}
 					else
 					{
@@ -458,7 +477,7 @@ namespace Windawesome
 		{
 			if (isRunningElevated)
 			{
-				this.BeginInvoke((Action) (() => NativeMethods.RunApplicationNonElevated(path, arguments)));
+				PostAction(() => NativeMethods.RunApplicationNonElevated(path, arguments));
 			}
 			else
 			{
@@ -468,14 +487,14 @@ namespace Windawesome
 
 		public void RunOrShowApplication(string className, string path, string displayName = null, string arguments = "")
 		{
-			var application = NativeMethods.FindWindow(className, displayName);
-			if (application == IntPtr.Zero)
+			var hWnd = NativeMethods.FindWindow(className, displayName);
+			if (hWnd == IntPtr.Zero)
 			{
 				RunApplication(path, arguments);
 			}
 			else
 			{
-				SwitchToApplication(application);
+				SwitchToApplication(hWnd);
 			}
 		}
 
@@ -589,42 +608,40 @@ namespace Windawesome
 			return bitmap;
 		}
 
-		public static void RunTask(Action action)
+		public static void PostAction(Action action)
 		{
-			Task.Factory.StartNew(action, System.Threading.CancellationToken.None, TaskCreationOptions.None, taskScheduler);
+			postedActions.Enqueue(action);
+			NativeMethods.PostMessage(handle, postActionMessageNum, UIntPtr.Zero, IntPtr.Zero);
 		}
 
 		#endregion
 
 		#region Message Loop Stuff
 
-		internal void OnShellHookMessage(IntPtr wParam, IntPtr lParam)
+		private void OnShellHookMessage(IntPtr wParam, IntPtr lParam)
 		{
 			switch ((NativeMethods.ShellEvents) wParam)
 			{
 				case NativeMethods.ShellEvents.HSHELL_WINDOWCREATED: // window created or restored from tray
+					if (!applications.ContainsKey(lParam))
 					{
-						LinkedList<Tuple<Workspace, Window>> list;
-						if (applications.TryGetValue(lParam, out list))
-						{
-							if (!config.workspaces[0].ContainsWindow(lParam))
-							{
-								// because sometimes Windows shows random windows on some window's creation...
+						AddWindowToWorkspace(lParam);
+					}
+					else
+					{
+						// there is a problem with some windows showing up when others are created
+						// how to reproduce: start BitComet 1.26 on some workspace, switch to another one
+						// and start explorer.exe (the file manager)
 
-								// how to reproduce: start BitComet 1.26 on some workspace, switch to another one
-								// and start explorer.exe (the file manager)
-								hiddenApplications.Add(list.First.Value.Item2.hWnd);
-								list.First.Value.Item2.Hide();
-							}
-						}
-						else
-						{
-							AddWindowToWorkspace(lParam);
-						}
+						// another problem is that some windows continuously keep showing when hidden
+						// how to reproduce: TortoiseSVN. About box. Click check for updates. This window
+						// keeps showing up when changing workspaces
+						NativeMethods.SendNotifyMessage(handle, shellMessageNum,
+							(UIntPtr) NativeMethods.ShellEvents.HSHELL_WINDOWACTIVATED, lParam);
 					}
 					break;
 				case NativeMethods.ShellEvents.HSHELL_WINDOWDESTROYED: // window destroyed or minimized to tray
-					if (hiddenApplications.Remove(lParam) == MultiHashSet<IntPtr>.RemoveResult.NOT_FOUND)
+					if (hiddenApplications.Remove(lParam) == HashMultiSet<IntPtr>.RemoveResult.NOT_FOUND)
 					{
 						// remove window from all workspaces
 						LinkedList<Tuple<Workspace, Window>> list;
@@ -637,7 +654,7 @@ namespace Windawesome
 					break;
 				case NativeMethods.ShellEvents.HSHELL_WINDOWACTIVATED: // window activated
 				case NativeMethods.ShellEvents.HSHELL_RUDEAPPACTIVATED:
-					//if (!hiddenApplications.Contains(lParam))
+					if (!hiddenApplications.Contains(lParam))
 					{
 						if (lParam != IntPtr.Zero)
 						{
@@ -687,18 +704,18 @@ namespace Windawesome
 								OnWindowTitleOrIconChanged(t.Item1, t.Item2, text);
 							}
 						}
-						//else
-						//{
-						//    AddWindowToWorkspace(lParam);
-						//}
+						else
+						{
+							AddWindowToWorkspace(lParam);
+						}
 						break;
 					}
 				case NativeMethods.ShellEvents.HSHELL_WINDOWREPLACING:
-					NativeMethods.PostMessage(this.Handle, shellMessageNum,
+					NativeMethods.PostMessage(handle, shellMessageNum,
 						(UIntPtr) NativeMethods.ShellEvents.HSHELL_WINDOWCREATED, lParam);
 					break;
 				case NativeMethods.ShellEvents.HSHELL_WINDOWREPLACED:
-					NativeMethods.PostMessage(this.Handle, shellMessageNum,
+					NativeMethods.PostMessage(handle, shellMessageNum,
 						(UIntPtr) NativeMethods.ShellEvents.HSHELL_WINDOWDESTROYED, lParam);
 					break;
 			}
@@ -724,6 +741,11 @@ namespace Windawesome
 				m.Result = IntPtr.Zero;
 				return ;
 			}
+			else if (m.Msg == postActionMessageNum)
+			{
+				postedActions.Dequeue()();
+				return ;
+			}
 			else if (messageHandlers.TryGetValue(m.Msg, out messageDelegate))
 			{
 				bool res = false;
@@ -744,7 +766,7 @@ namespace Windawesome
 		#endregion
 	}
 
-	public class MultiHashSet<T> : IEnumerable<T>
+	public class HashMultiSet<T> : IEnumerable<T>
 	{
 		private Dictionary<T, BoxedInt> set;
 		private sealed class BoxedInt
@@ -757,7 +779,7 @@ namespace Windawesome
 			}
 		}
 
-		public MultiHashSet(IEqualityComparer<T> comparer = null)
+		public HashMultiSet(IEqualityComparer<T> comparer = null)
 		{
 			set = new Dictionary<T, BoxedInt>(comparer);
 		}

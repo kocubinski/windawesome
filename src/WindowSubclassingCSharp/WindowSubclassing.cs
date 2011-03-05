@@ -9,7 +9,7 @@ namespace Windawesome
 	{
 		private readonly Tuple<string, string>[] ignoredPrograms; // (className, displayName)
 		private Windawesome windawesome;
-		private MultiHashSet<Window>[] subclassedWindows;
+		private HashMultiSet<Window>[] subclassedWindows;
 
 		private static readonly uint START_WINDOW_PROC_MESSAGE;
 		private static readonly uint STOP_WINDOW_PROC_MESSAGE;
@@ -55,7 +55,7 @@ namespace Windawesome
 				{
 					if (Environment.Is64BitProcess && window.is64BitProcess)
 					{
-						if (subclassedWindows[workspace.ID - 1].Add(window) == MultiHashSet<Window>.AddResult.ADDED_FIRST)
+						if (subclassedWindows[workspace.ID - 1].Add(window) == HashMultiSet<Window>.AddResult.ADDED_FIRST)
 						{
 							NativeMethods.SubclassWindow64(windawesome.Handle, window.hWnd);
 						}
@@ -66,7 +66,7 @@ namespace Windawesome
 					}
 					else if (!Environment.Is64BitOperatingSystem)
 					{
-						if (subclassedWindows[workspace.ID - 1].Add(window) == MultiHashSet<Window>.AddResult.ADDED_FIRST)
+						if (subclassedWindows[workspace.ID - 1].Add(window) == HashMultiSet<Window>.AddResult.ADDED_FIRST)
 						{
 							NativeMethods.SubclassWindow32(windawesome.Handle, window.hWnd);
 						}
@@ -82,11 +82,11 @@ namespace Windawesome
 		private void Workspace_WorkspaceApplicationRemoved(Workspace workspace, Window window)
 		{
 			var result = subclassedWindows[workspace.ID - 1].Remove(window);
-			if (result == MultiHashSet<Window>.RemoveResult.REMOVED_LAST)
+			if (result == HashMultiSet<Window>.RemoveResult.REMOVED_LAST)
 			{
 				NativeMethods.UnsubclassWindow(window.hWnd);
 			}
-			else if (result == MultiHashSet<Window>.RemoveResult.REMOVED)
+			else if (result == HashMultiSet<Window>.RemoveResult.REMOVED)
 			{
 				NativeMethods.SendNotifyMessage(window.hWnd, STOP_WINDOW_PROC_MESSAGE, UIntPtr.Zero, IntPtr.Zero);
 			}
@@ -144,11 +144,11 @@ namespace Windawesome
 			Workspace.WorkspaceLayoutChanged += Workspace_WorkspaceLayoutChanged;
 			this.windawesome = windawesome;
 
-			subclassedWindows = new MultiHashSet<Window>[config.workspacesCount];
+			subclassedWindows = new HashMultiSet<Window>[config.workspacesCount];
 			var equalityComparer = new WindowEqualityComparer();
 			for (int i = 0; i < config.workspacesCount; i++)
 			{
-				subclassedWindows[i] = new MultiHashSet<Window>(equalityComparer);
+				subclassedWindows[i] = new HashMultiSet<Window>(equalityComparer);
 			}
 		}
 

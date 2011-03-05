@@ -39,10 +39,10 @@ namespace Windawesome
 		{
 			internal WindawesomeApplicationContext(Windawesome windawesome)
 			{
-				windawesome.FormClosed += new FormClosedEventHandler(windawesome_FormClosed);
+				Windawesome.WindawesomeExiting += Windawesome_WindawesomeExiting;
 			}
 
-			void windawesome_FormClosed(object sender, FormClosedEventArgs e)
+			void Windawesome_WindawesomeExiting()
 			{
 				this.ExitThread();
 			}
