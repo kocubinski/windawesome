@@ -627,7 +627,7 @@ namespace Windawesome
 					{
 						AddWindowToWorkspace(lParam);
 					}
-					else
+					else if (!config.workspaces[0].ContainsWindow(lParam))
 					{
 						// there is a problem with some windows showing up when others are created
 						// how to reproduce: start BitComet 1.26 on some workspace, switch to another one
