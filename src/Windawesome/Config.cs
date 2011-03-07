@@ -113,7 +113,15 @@ namespace Windawesome
 					case ".py":
 						return PythonEngine;
 					case ".dll":
-						Assembly.LoadFrom(file.FullName);
+						var assembly = Assembly.LoadFrom(file.FullName);
+						if (rubyEngine != null)
+						{
+							rubyEngine.Runtime.LoadAssembly(assembly);
+						}
+						if (pythonEngine != null)
+						{
+							pythonEngine.Runtime.LoadAssembly(assembly);
+						}
 						break;
 				}
 

@@ -128,6 +128,8 @@ WindowSubclassing - I tried to make a plugin which would subclass all windows an
 
 LoggerPlugin - a plugin which logs in a file what windows are created/destroyed/minimized/activated/restored and what workspaces are activated. Useful if you have problems with some programs to see what window classes are created so you can ignore them in your config files.
 
+ShortcutsManager - allows you to use keyboard shortcuts. If you use only non-left or right modifier keys (Control, Alt, etc), it uses RegisterHotKey function which will fail if there is already a global shortcut with this key and these modifiers. If, however, you have one or more shortcuts that have a left or right-only modifier (LControl, RAlt, etc), then it registers a low-level keyboard hook which will work fine with colliding mappings if you return false from your handler. I do suggest, however, that you use only non-left/right shortcuts (Control, Shift, etc) and use non-colliding mappings.
+
 
 
 Usage tips:

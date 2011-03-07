@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("Windawesome")]
-[assembly: AssemblyDescription("Dynamic Window Manager for Windows")]
+[assembly: AssemblyTitle("Windawesome ShortcutsManager Plugin")]
+[assembly: AssemblyDescription("Plugin for keyboard shortcuts for Windawesome WM")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Boris Petrov")]
-[assembly: AssemblyProduct("Windawesome")]
+[assembly: AssemblyProduct("Windawesome ShortcutsManager Plugin")]
 [assembly: AssemblyCopyright("Copyright © 2011")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -20,7 +20,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("8b54cfff-9ef6-450f-8d22-5ce2c322c2d1")]
+[assembly: Guid("32df9c5e-9c0f-465b-8778-d3391234e897")]
 
 // Version information for an assembly consists of the following four values:
 //
@@ -32,5 +32,5 @@ using System.Runtime.InteropServices;
 // You can specify all the values or you can default the Build and Revision Numbers 
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("1.0.3.0")]
-[assembly: AssemblyFileVersion("1.0.3.0")]
+[assembly: AssemblyVersion("1.0.0.0")]
+[assembly: AssemblyFileVersion("1.0.0.0")]

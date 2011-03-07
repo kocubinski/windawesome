@@ -249,22 +249,6 @@ namespace Windawesome
 
 		#endregion
 
-		#region IsWindow/IsIconic/OpenIcon
-
-		[DllImport("user32.dll")]
-		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool IsWindow([Optional] IntPtr hWnd);
-
-		[DllImport("user32.dll")]
-		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool IsIconic(IntPtr hwnd);
-
-		[DllImport("user32.dll")]
-		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool OpenIcon(IntPtr hWnd); // restore window
-
-		#endregion
-
 		#region GetWindowText/GetClassName
 
 		public static string GetText(IntPtr hWnd)
@@ -304,6 +288,10 @@ namespace Windawesome
 		public const int GCL_HICONSM = -34;
 
 		#endregion
+
+		[DllImport("user32.dll")]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		public static extern bool IsIconic(IntPtr hwnd);
 
 		[DllImport("user32.dll")]
 		public static extern IntPtr GetDesktopWindow();
@@ -431,11 +419,11 @@ namespace Windawesome
 
 		[DllImport("User32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool ShowWindow(IntPtr hwnd, SW nCmdShow);
+		public static extern bool ShowWindow(IntPtr hWnd, SW nCmdShow);
 
 		[DllImport("User32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool ShowWindowAsync(IntPtr hwnd, SW nCmdShow);
+		public static extern bool ShowWindowAsync(IntPtr hWnd, SW nCmdShow);
 
 		public enum SW : int
 		{
@@ -768,6 +756,32 @@ namespace Windawesome
 
 		[DllImport("user32.dll")]
 		public static extern uint GetWindowThreadProcessId(IntPtr hWnd, [Optional, Out] out int lpdwProcessId);
+
+		[DllImport("user32.dll")]
+		public static extern short GetKeyState(System.Windows.Forms.Keys nVirtKey);
+
+		#region RegisterHotKey/UnregisterHotKey
+
+		[DllImport("user32.dll")]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		public static extern bool RegisterHotKey([Optional] IntPtr hWnd, int id, MOD fsModifiers, System.Windows.Forms.Keys vk);
+
+		[DllImport("user32.dll")]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		public static extern bool UnregisterHotKey([Optional] IntPtr hWnd, int id);
+
+		public enum MOD : uint
+		{
+			MOD_ALT = 0x1,
+			MOD_CONTROL = 0x2,
+			MOD_SHIFT = 0x4,
+			MOD_WIN = 0x8,
+			MOD_NOREPEAT = 0x4000
+		}
+
+		public const int WM_HOTKEY = 0x312;
+
+		#endregion
 
 		public static readonly IntPtr IntPtrOne = (IntPtr) 1;
 

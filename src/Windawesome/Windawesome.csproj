@@ -159,7 +159,6 @@
     <Compile Include="ILayout.cs" />
     <Compile Include="IPlugin.cs" />
     <Compile Include="IWidget.cs" />
-    <Compile Include="KeyboardHook.cs" />
     <Compile Include="LayoutWidget.cs" />
     <Compile Include="LoggerPlugin.cs" />
     <Compile Include="SystemTrayWidget.cs" />

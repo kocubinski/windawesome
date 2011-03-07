@@ -1,6 +1,6 @@
 from System.Drawing import Font, Color
 from System.Linq import Enumerable
-from Windawesome import ILayout, TileLayout, FullScreenLayout, FloatingLayout, IPlugin, WindowSubclassing, Workspace, Bar, LayoutWidget, WorkspacesWidget, ApplicationTabsWidget, SystemTrayWidget, CPUMonitorWidget, LoggerPlugin
+from Windawesome import ILayout, TileLayout, FullScreenLayout, FloatingLayout, IPlugin, WindowSubclassing, Workspace, Bar, LayoutWidget, WorkspacesWidget, ApplicationTabsWidget, SystemTrayWidget, CPUMonitorWidget, LoggerPlugin, ShortcutsManager
 from System import Tuple
 
 config.borderWidth = 1
@@ -40,5 +40,6 @@ config.plugins = Enumerable.ToArray[IPlugin]([
 	#	Tuple[str, str]("rctrl_renwnd32", ".*")
 	#]),
 	#LoggerPlugin(logWorkspaceSwitching = True, logWindowMinimization = True, logWindowRestoration = True,
-	#	logActivation = True)
+	#	logActivation = True),
+	ShortcutsManager()
 ])

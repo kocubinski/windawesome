@@ -1,13 +1,13 @@
 
 def subscribe(modifiers, key)
-	Windawesome::KeyboardHook.subscribe modifiers, key, lambda {
+	Windawesome::ShortcutsManager.subscribe modifiers, key, lambda {
 		ret = yield
 		return true if ret == nil
 		ret
 	}
 end
 
-modifiers = Windawesome::KeyboardHook::KeyModifiers
+modifiers = Windawesome::ShortcutsManager::KeyModifiers
 key = System::Windows::Forms::Keys
 
 # quit Windawesome
@@ -81,7 +81,7 @@ subscribe modifiers.Alt | modifiers.Shift, key.D do
 end
 
 # toggle windows taskbar
-subscribe modifiers.Win, key.Space do
+subscribe modifiers.Control, key.Space do
 	windawesome.toggle_taskbar_visibility
 end
 

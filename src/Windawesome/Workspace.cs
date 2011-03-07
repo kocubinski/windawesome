@@ -386,7 +386,7 @@ namespace Windawesome
 			NativeMethods.SW showHide = showWindowsTaskbar ? NativeMethods.SW.SW_SHOWNA : NativeMethods.SW.SW_HIDE;
 
 			NativeMethods.ShowWindow(taskbarHandle, showHide);
-			if (Windawesome.isAtLeast7)
+			if (Windawesome.isAtLeastVista)
 			{
 				NativeMethods.ShowWindow(startButtonHandle, showHide);
 			}

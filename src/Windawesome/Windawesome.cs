@@ -20,11 +20,11 @@ namespace Windawesome
 		private readonly bool changedNonClientMetrics = false;
 		private readonly bool finishedInitializing = false;
 
-		internal static IntPtr handle;
 		internal static int[] workspaceBarsEquivalentClasses;
 
 		public delegate bool HandleMessageDelegate(ref Message m);
 
+		public static IntPtr handle { get; private set; }
 		public static int previousWorkspace { get; private set; }
 		public static readonly bool isRunningElevated;
 		public static readonly bool isAtLeastVista;
@@ -191,9 +191,6 @@ namespace Windawesome
 		private void Windawesome_WindawesomeExiting()
 		{
 			Microsoft.Win32.SystemEvents.UserPreferenceChanged -= SystemEvents_UserPreferenceChanged;
-
-			// unregister keyboard hook
-			KeyboardHook.Dispose();
 
 			// unregister shell hook
 			NativeMethods.DeregisterShellHookWindow(handle);
@@ -517,7 +514,8 @@ namespace Windawesome
 			{
 				if (window.isMinimized)
 				{
-					NativeMethods.OpenIcon(hWnd);
+					// OpenIcon does not restore the window to its previous size (e.g. maximized)
+					NativeMethods.ShowWindowAsync(hWnd, NativeMethods.SW.SW_RESTORE);
 				}
 
 				NativeMethods.ForceForegroundWindow(hWnd);
