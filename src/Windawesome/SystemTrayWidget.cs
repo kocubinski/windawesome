@@ -64,7 +64,7 @@ namespace Windawesome
 			IconRemoved	 += SystemTrayWidget_IconRemoved;
 
 			foreach (var icon in SystemTray.GetButtons(SystemTray.trayHandle))
-			{				
+			{
 				var pictureBox = CreatePictureBox(icon);
 				var toolTip = CreateToolTip(pictureBox, icon.tooltip);
 				icons[new Tuple<int, uint>((int) icon.hWnd, icon.id)] = new Tuple<SystemTray.TrayIcon, PictureBox, ToolTip>(icon, pictureBox, toolTip);
@@ -135,7 +135,7 @@ namespace Windawesome
 				bar.OnWidgetControlsChanged(this, new PictureBox[] { trayIcon.Item2 }, new PictureBox[0]);
 			}
 		}
-		
+
 		private static bool OnSystemTrayMessage(ref Message m)
 		{
 			var copyDataStruct = (NativeMethods.COPYDATASTRUCT) Marshal.PtrToStructure(m.LParam, typeof(NativeMethods.COPYDATASTRUCT));

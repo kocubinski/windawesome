@@ -81,7 +81,7 @@ subscribe modifiers.Alt | modifiers.Shift, key.D do
 end
 
 # toggle windows taskbar
-subscribe modifiers.Control, key.Space do
+subscribe modifiers.Alt | modifiers.Control, key.Space do
 	windawesome.toggle_taskbar_visibility
 end
 

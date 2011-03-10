@@ -379,7 +379,8 @@ namespace Windawesome
 			WS_MAXIMIZEBOX = 0x10000,
 			WS_TILED = WS_OVERLAPPED,
 			WS_ICONIC = WS_MINIMIZE,
-			WS_SIZEBOX = WS_THICKFRAME
+			WS_SIZEBOX = WS_THICKFRAME,
+			WS_OVERLAPPEDWINDOW = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX
 		}
 
 		[Flags]
@@ -576,31 +577,8 @@ namespace Windawesome
 
 		#endregion
 
-		#region GetParent/SetParent
-
-		[DllImport("User32.dll")]
-		public static extern IntPtr GetParent(IntPtr hWnd);
-
 		[DllImport("user32.dll")]
 		public static extern IntPtr SetParent(IntPtr hWndChild, [Optional] IntPtr hWndNewParent);
-
-		#endregion
-
-		#region RedrawWindow
-
-		[DllImport("user32.dll")]
-		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool RedrawWindow(IntPtr hWnd, IntPtr lprcUpdate, IntPtr hrgnUpdate, RDW flags);
-
-		public enum RDW : uint
-		{
-			RDW_INVALIDATE = 0x1,
-			RDW_UPDATENOW = 0x100,
-			RDW_ALLCHILDREN = 0x80,
-			RDW_FRAME = 1024
-		}
-
-		#endregion
 
 		// icon stuff
 
@@ -747,7 +725,7 @@ namespace Windawesome
 		private static extern bool UnregisterSystemTrayHook64();
 
 		#endregion
-		
+
 		[DllImport("shell32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
 		public static extern bool IsUserAnAdmin();
@@ -1470,7 +1448,7 @@ namespace Windawesome
 		[DllImport("user32.dll", CharSet = CharSet.Auto)]
 		[return: MarshalAs(UnmanagedType.Bool)]
 		public static extern bool SystemParametersInfo(uint uiAction, int uiParam, ref NONCLIENTMETRICS pvParam, uint fWinIni);
-		
+
 		[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
 		public struct LOGFONT
 		{

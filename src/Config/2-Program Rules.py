@@ -29,6 +29,7 @@ config.programRules = Enumerable.ToArray[ProgramRule]([
 	ProgramRule(
 		displayName = "^BitComet.*",
 		windowCreatedDelay = 1000,
+		switchToOnCreated = False,
 		rules = [ProgramRule.Rule(workspace = 9, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
 	),
 	ProgramRule(
@@ -72,6 +73,10 @@ config.programRules = Enumerable.ToArray[ProgramRule]([
 		windowCreatedDelay = 2000,
 		switchToOnCreated = False,
 		rules = [ProgramRule.Rule(workspace = 5, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
+	),
+	ProgramRule(
+		className = "^XLMAIN$", # Excel
+		rules = [ProgramRule.Rule(redrawOnShow = True)]
 	),
 	ProgramRule(className = "^ConsoleWindowClass$", rules = [ProgramRule.Rule(isFloating = True)]), # Interix terminal
 	ProgramRule(className = "^Internet Explorer_Hidden$", displayName = "", isManaged = False), # what the hell

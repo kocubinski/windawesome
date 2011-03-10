@@ -71,7 +71,7 @@ namespace Windawesome
 			this.flashWorkspaces = flashWorkspaces;
 			anyFlashWorkspaces |= flashWorkspaces;
 		}
-		
+
 		private void workspaceLabel_Click(object sender, EventArgs e)
 		{
 			windawesome.SwitchToWorkspace(Array.IndexOf(workspaceLabels, sender as Label) + 1);

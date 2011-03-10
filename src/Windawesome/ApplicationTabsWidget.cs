@@ -163,7 +163,7 @@ namespace Windawesome
 				var newPanel = CreatePanel(window);
 
 				applicationPanels[workspaceID].Add(window.hWnd, newPanel);
-				
+
 				if (isShown && workspace.isCurrentWorkspace)
 				{
 					ApplicationTabsWidget_WindowActivated(window.hWnd);

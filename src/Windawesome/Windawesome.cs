@@ -101,7 +101,7 @@ namespace Windawesome
 			postedActions = new Queue<Action>(5);
 			postActionMessageNum = NativeMethods.RegisterWindowMessage("POST_ACTION_MESSAGE");
 		}
-		
+
 		internal Windawesome()
 		{
 			var cp = new CreateParams();
@@ -122,7 +122,7 @@ namespace Windawesome
 
 			workspaceBarsEquivalentClasses = new int[config.workspacesCount];
 			FindWorkspaceBarsEquivalentClasses();
-			
+
 			applications = new Dictionary<IntPtr, LinkedList<Tuple<Workspace, Window>>>(30);
 			hiddenApplications = new HashMultiSet<IntPtr>();
 
@@ -131,7 +131,7 @@ namespace Windawesome
 
 			// initialize all workspaces
 			config.workspaces.Skip(1).ForEach(ws => ws.Initialize(ws.ID == config.startingWorkspace));
-			
+
 			// switches to the default starting workspace
 			config.workspaces[0].SwitchTo();
 
@@ -180,7 +180,7 @@ namespace Windawesome
 					// as well as shows the taskbar when a full-screen application is exited... twice. :)
 
 					// how to reproduce: start any program that triggers a UAC prompt or start
-					// IrfanView 4.25 with some picture, enter full-screen with "Return" and then exit
+					// IrfanView 4.28 with some picture, enter full-screen with "Return" and then exit
 					// with "Return" again
 					PostAction(() => config.workspaces[0].ShowHideWindowsTaskbar());
 					PostAction(() => config.workspaces[0].ShowHideWindowsTaskbar());
@@ -267,17 +267,6 @@ namespace Windawesome
 				}
 
 				IEnumerable<ProgramRule.Rule> matchingRules = programRule.rules;
-				var workspacesCount = programRule.rules.Length;
-				// matchingRules.workspaces could be { 0, 1 } and you could be at workspace 1.
-				// Then, "hWnd" would be added twice if it were not for this check
-				if (workspacesCount > 1 && matchingRules.FirstOrDefault(r => r.workspace == 0) != null &&
-					matchingRules.FirstOrDefault(r => r.workspace == config.workspaces[0].ID) != null)
-				{
-					matchingRules = matchingRules.Where(r => r.workspace == 0);
-				}
-
-				var list = new LinkedList<Tuple<Workspace, Window>>();
-				applications[hWnd] = list;
 
 				if (finishedInitializing)
 				{
@@ -298,6 +287,18 @@ namespace Windawesome
 					System.Threading.Thread.Sleep(programRule.windowCreatedDelay);
 				}
 
+				var workspacesCount = programRule.rules.Length;
+				// matchingRules.workspaces could be { 0, 1 } and you could be at workspace 1.
+				// Then, "hWnd" would be added twice if it were not for this check
+				if (workspacesCount > 1 && matchingRules.FirstOrDefault(r => r.workspace == 0) != null &&
+					matchingRules.FirstOrDefault(r => r.workspace == config.workspaces[0].ID) != null)
+				{
+					matchingRules = matchingRules.Where(r => r.workspace == 0);
+				}
+
+				var list = new LinkedList<Tuple<Workspace, Window>>();
+				applications[hWnd] = list;
+
 				var windowTemplate = new Window(hWnd, className, displayName, workspacesCount,
 					Environment.Is64BitOperatingSystem && NativeMethods.Is64BitProcess(hWnd), style, exStyle);
 
@@ -309,7 +310,8 @@ namespace Windawesome
 							showInTabs = rule.showInTabs,
 							titlebar = rule.titlebar,
 							inTaskbar = rule.inTaskbar,
-							windowBorders = rule.windowBorders
+							windowBorders = rule.windowBorders,
+							redrawOnShow = rule.redrawOnShow
 						};
 					list.AddLast(new Tuple<Workspace, Window>(config.workspaces[rule.workspace], window));
 					config.workspaces[rule.workspace].WindowCreated(window);
@@ -345,6 +347,9 @@ namespace Windawesome
 			// repositions all windows in all workspaces
 			config.workspaces.Skip(1).Where(ws => !ws.isCurrentWorkspace).ForEach(ws => ws.hasChanges = true);
 			config.workspaces[0].Reposition();
+
+			// redraw all windows in current workspace
+			config.workspaces[0].GetWindows().ForEach(w => w.Redraw());
 		}
 
 		public void ChangeApplicationToWorkspace(IntPtr hWnd, int workspace)
@@ -550,7 +555,7 @@ namespace Windawesome
 				NativeMethods.ICON_SMALL,
 				IntPtr.Zero,
 				NativeMethods.SMTO.SMTO_BLOCK | NativeMethods.SMTO.SMTO_ABORTIFHUNG,
-				1000, out hIcon);			
+				1000, out hIcon);
 
 			if (hIcon == IntPtr.Zero)
 			{

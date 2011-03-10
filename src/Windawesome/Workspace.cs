@@ -16,6 +16,7 @@ namespace Windawesome
 		public readonly string name;
 		public bool showWindowsTaskbar { get; private set; }
 		public bool isCurrentWorkspace { get; private set; }
+		public readonly bool repositionOnSwitchedTo;
 
 		private static int count;
 		private static bool isWindowsTaskbarShown;
@@ -151,7 +152,7 @@ namespace Windawesome
 		}
 
 		public Workspace(ILayout layout, IList<Bar> bars, IList<bool> topBars = null, IList<bool> showBars = null,
-			string name = "", bool showWindowsTaskbar = false)
+			string name = "", bool showWindowsTaskbar = false, bool repositionOnSwitchedTo = false)
 		{
 			windows = new LinkedList<Window>();
 			managedWindows = new LinkedList<Window>();
@@ -170,6 +171,7 @@ namespace Windawesome
 			this.showBars = showBars == null ? bars.Select(_ => true).ToArray() : showBars.ToArray();
 			this.name = name;
 			this.showWindowsTaskbar = showWindowsTaskbar;
+			this.repositionOnSwitchedTo = repositionOnSwitchedTo;
 
 			barPositions = new Rectangle[this.bars.Length];
 		}
@@ -276,7 +278,7 @@ namespace Windawesome
 				removedSharedWindows.Clear();
 			}
 
-			if (hasChanges)
+			if (hasChanges || repositionOnSwitchedTo)
 			{
 				// Repositions if there is/are new/deleted windows
 				Reposition();
@@ -300,7 +302,7 @@ namespace Windawesome
 
 			sharedWindows.ForEach(window => window.SavePosition());
 
-			HideWindows();			
+			HideWindows();
 
 			OnWorkspaceChangedFrom(this);
 		}
@@ -330,11 +332,11 @@ namespace Windawesome
 
 			ShowWindows();
 		}
-		
+
 		private void SetSharedWindowChanges(Window window)
 		{
 			window.Initialize();
-			if (!hasChanges)
+			if ((!hasChanges && !repositionOnSwitchedTo) || window.isFloating)
 			{
 				window.RestorePosition();
 			}
@@ -352,11 +354,24 @@ namespace Windawesome
 						NativeMethods.SWP.SWP_SHOWWINDOW |
 						NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
 					prevWindowHandle = window.hWnd;
+
+					if (window.redrawOnShow)
+					{
+						window.Redraw();
+					}
 				}
 			}
 			else
 			{
-				windows.ForEach(w => NativeMethods.ShowWindow(w.hWnd, NativeMethods.SW.SW_SHOWNA));
+				foreach (var window in windows)
+				{
+					NativeMethods.ShowWindow(window.hWnd, NativeMethods.SW.SW_SHOWNA);
+
+					if (window.redrawOnShow)
+					{
+						window.Redraw();
+					}
+				}
 			}
 		}
 
@@ -633,29 +648,41 @@ namespace Windawesome
 		internal void ToggleWindowFloating(IntPtr hWnd)
 		{
 			var window = GetWindow(hWnd);
-			WindowDestroyed(window, false);
-			window.isFloating = !window.isFloating;
-			WindowCreated(window);
+			if (window != null)
+			{
+				WindowDestroyed(window, false);
+				window.isFloating = !window.isFloating;
+				WindowCreated(window);
+			}
 		}
 
 		internal void ToggleShowHideWindowInTaskbar(IntPtr hWnd)
 		{
 			var window = GetWindow(hWnd);
-			window.ToggleShowHideInTaskbar();
+			if (window != null)
+			{
+				window.ToggleShowHideInTaskbar();
+			}
 		}
 
 		internal void ToggleShowHideWindowTitlebar(IntPtr hWnd)
 		{
 			var window = GetWindow(hWnd);
-			window.ToggleShowHideTitlebar();
-			layout.WindowTitlebarToggled(window, managedWindows, workingArea);
+			if (window != null)
+			{
+				window.ToggleShowHideTitlebar();
+				layout.WindowTitlebarToggled(window, managedWindows, workingArea);
+			}
 		}
 
 		internal void ToggleShowHideWindowBorder(IntPtr hWnd)
 		{
 			var window = GetWindow(hWnd);
-			window.ToggleShowHideWindowBorder();
-			layout.WindowBorderToggled(window, managedWindows, workingArea);
+			if (window != null)
+			{
+				window.ToggleShowHideWindowBorder();
+				layout.WindowBorderToggled(window, managedWindows, workingArea);
+			}
 		}
 
 		internal void Initialize(bool startingWorkspace)
@@ -767,9 +794,12 @@ namespace Windawesome
 		public string caption { get; internal set; }
 		public readonly string className;
 		public readonly bool is64BitProcess;
+		public bool redrawOnShow { get; internal set; }
 
 		private readonly NativeMethods.WS titlebarStyle;
-		private readonly NativeMethods.WS_EX titlebarExStyle;
+
+		private readonly NativeMethods.WS borderStyle;
+		private readonly NativeMethods.WS_EX borderExStyle;
 
 		private NativeMethods.WINDOWPLACEMENT windowPlacement;
 		private readonly NativeMethods.WINDOWPLACEMENT originalWindowPlacement;
@@ -792,10 +822,14 @@ namespace Windawesome
 			titlebarStyle |= originalStyle & NativeMethods.WS.WS_MAXIMIZEBOX;
 			titlebarStyle |= originalStyle & NativeMethods.WS.WS_SYSMENU;
 
-			titlebarExStyle = 0;
-			titlebarExStyle |= originalExStyle & NativeMethods.WS_EX.WS_EX_DLGMODALFRAME;
-			titlebarExStyle |= originalExStyle & NativeMethods.WS_EX.WS_EX_CLIENTEDGE;
-			titlebarExStyle |= originalExStyle & NativeMethods.WS_EX.WS_EX_STATICEDGE;
+			borderStyle = 0;
+			borderStyle |= originalStyle & NativeMethods.WS.WS_SIZEBOX;
+
+			borderExStyle = 0;
+			borderExStyle |= originalExStyle & NativeMethods.WS_EX.WS_EX_DLGMODALFRAME;
+			borderExStyle |= originalExStyle & NativeMethods.WS_EX.WS_EX_CLIENTEDGE;
+			borderExStyle |= originalExStyle & NativeMethods.WS_EX.WS_EX_STATICEDGE;
+			borderExStyle |= originalExStyle & NativeMethods.WS_EX.WS_EX_WINDOWEDGE;
 
 			originalWindowPlacement = windowPlacement;
 		}
@@ -811,7 +845,9 @@ namespace Windawesome
 			is64BitProcess = window.is64BitProcess;
 
 			titlebarStyle = window.titlebarStyle;
-			titlebarExStyle = window.titlebarExStyle;
+
+			borderStyle = window.borderStyle;
+			borderExStyle = window.borderExStyle;
 
 			if (fullCopy)
 			{
@@ -830,9 +866,35 @@ namespace Windawesome
 			NativeMethods.WS prevStyle = style;
 			NativeMethods.WS_EX prevExStyle = exStyle;
 
-			ShowHideInTaskbar(ref exStyle);
-			ShowHideTitlebar(ref style, ref exStyle);
-			ShowHideWindowBorder(ref style);
+			switch (inTaskbar)
+			{
+				case State.SHOWN:
+					exStyle = (exStyle | NativeMethods.WS_EX.WS_EX_APPWINDOW) & ~NativeMethods.WS_EX.WS_EX_TOOLWINDOW;
+					break;
+				case State.HIDDEN:
+					exStyle = (exStyle & ~NativeMethods.WS_EX.WS_EX_APPWINDOW) | NativeMethods.WS_EX.WS_EX_TOOLWINDOW;
+					break;
+			}
+			switch (titlebar)
+			{
+				case State.SHOWN:
+					style |= titlebarStyle;
+					break;
+				case State.HIDDEN:
+					style &= ~titlebarStyle;
+					break;
+			}
+			switch (windowBorders)
+			{
+				case State.SHOWN:
+					style	|= borderStyle;
+					exStyle |= borderExStyle;
+					break;
+				case State.HIDDEN:
+					style	&= ~borderStyle;
+					exStyle &= ~borderExStyle;
+					break;
+			}
 
 			bool redraw = false;
 			if (style != prevStyle)
@@ -849,47 +911,6 @@ namespace Windawesome
 			if (redraw)
 			{
 				Redraw();
-			}
-		}
-
-		private void ShowHideInTaskbar(ref NativeMethods.WS_EX exStyle)
-		{
-			switch (inTaskbar)
-			{
-				case State.SHOWN:
-					exStyle = (exStyle | NativeMethods.WS_EX.WS_EX_APPWINDOW) & ~NativeMethods.WS_EX.WS_EX_TOOLWINDOW;
-					break;
-				case State.HIDDEN:
-					exStyle = (exStyle & ~NativeMethods.WS_EX.WS_EX_APPWINDOW) | NativeMethods.WS_EX.WS_EX_TOOLWINDOW;
-					break;
-			}
-		}
-
-		private void ShowHideTitlebar(ref NativeMethods.WS style, ref NativeMethods.WS_EX exStyle)
-		{
-			switch (titlebar)
-			{
-				case State.SHOWN:
-					style   |= titlebarStyle;
-					exStyle |= titlebarExStyle;
-					break;
-				case State.HIDDEN:
-					style   &= ~titlebarStyle;
-					exStyle &= ~titlebarExStyle;
-					break;
-			}
-		}
-
-		private void ShowHideWindowBorder(ref NativeMethods.WS style)
-		{
-			switch (windowBorders)
-			{
-				case State.SHOWN:
-					style |= NativeMethods.WS.WS_SIZEBOX;
-					break;
-				case State.HIDDEN:
-					style &= ~NativeMethods.WS.WS_SIZEBOX;
-					break;
 			}
 		}
 
@@ -913,12 +934,18 @@ namespace Windawesome
 
 		internal void Redraw()
 		{
-			NativeMethods.SetWindowPos(hWnd, IntPtr.Zero, 0, 0, 0, 0,
-				NativeMethods.SWP.SWP_FRAMECHANGED | NativeMethods.SWP.SWP_NOMOVE |
-				NativeMethods.SWP.SWP_NOSIZE | NativeMethods.SWP.SWP_NOZORDER | NativeMethods.SWP.SWP_NOACTIVATE);
-			NativeMethods.RedrawWindow(hWnd, IntPtr.Zero, IntPtr.Zero,
-				NativeMethods.RDW.RDW_INVALIDATE | NativeMethods.RDW.RDW_UPDATENOW |
-				NativeMethods.RDW.RDW_ALLCHILDREN | NativeMethods.RDW.RDW_FRAME);
+			// this whole thing is a hack but I've found no other way to make it work (and I've tried
+			// a zillion things). Resizing seems to do the best job.
+			NativeMethods.RECT rect;
+			NativeMethods.GetWindowRect(hWnd, out rect);
+			NativeMethods.SetWindowPos(hWnd, IntPtr.Zero, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top + 1,
+				NativeMethods.SWP.SWP_ASYNCWINDOWPOS | NativeMethods.SWP.SWP_FRAMECHANGED | NativeMethods.SWP.SWP_NOMOVE |
+				NativeMethods.SWP.SWP_NOZORDER | NativeMethods.SWP.SWP_NOACTIVATE |
+				NativeMethods.SWP.SWP_NOOWNERZORDER | NativeMethods.SWP.SWP_NOCOPYBITS);
+			NativeMethods.SetWindowPos(hWnd, IntPtr.Zero, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
+				NativeMethods.SWP.SWP_ASYNCWINDOWPOS | NativeMethods.SWP.SWP_FRAMECHANGED | NativeMethods.SWP.SWP_NOMOVE |
+				NativeMethods.SWP.SWP_NOZORDER | NativeMethods.SWP.SWP_NOACTIVATE |
+				NativeMethods.SWP.SWP_NOOWNERZORDER | NativeMethods.SWP.SWP_NOCOPYBITS);
 		}
 
 		internal void SavePosition()
@@ -945,7 +972,7 @@ namespace Windawesome
 
 		internal void Hide()
 		{
-			NativeMethods.ShowWindow(hWnd, NativeMethods.SW.SW_HIDE);
+			NativeMethods.ShowWindowAsync(hWnd, NativeMethods.SW.SW_HIDE);
 		}
 
 		internal void RevertToInitialValues()
