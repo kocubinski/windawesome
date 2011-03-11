@@ -53,6 +53,7 @@ showInTabs - whether the window will show in Windawesome's Application Tabs Widg
 titlebar - whether the window's titlebar is SHOWN, HIDDEN or AS_IS (the last one means that Windawesome will not do anything to the titlebar - do NOT use that if the window is shared, i.e. visible on two or more workspaces, if on any of the others it is not AS_IS)
 inTaskbar - whether the window is SHOWN, HIDDEN or AS_IS in Window's taskbar
 windowBorders - whether the window's border is SHOWN, HIDDEN or AS_IS (the last one means that Windawesome will not do anything to the border - do NOT use that if the window is shared, i.e. visible on two or more workspaces, if on any of the others it is not AS_IS)
+redrawOnShow - whether the window should be redrawed when shown. Some windows (e.g. Excel) have a problem when hidden and then shown again
 
 Bar:
 A Bar is a vertical... well bar, that is docked to the top or the bottom of the screen. It can contain Widgets which can be left, right or middle aligned.
@@ -75,6 +76,7 @@ topBars - a list of the same length as bars with booleans, indicating for each b
 showBars - a list of the same length as bars with booleans, indicating for each bar whether it is shown in the beginning. True means it is shown. This can be toggled at runtime
 name - a short, descriptive name that is going to be shown next to the workspace ID in the Workspaces Widget
 showWindowsTaskbar - a boolean to indicate whether to show the Windows taskbar initially on this workspace
+repositionOnSwitchedTo - a boolean indicating whether to reposition all windows when this workspace has been switched to
 
 
 Layouts:

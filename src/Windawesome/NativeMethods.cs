@@ -19,8 +19,14 @@ namespace Windawesome
 				IsAppWindow = IsAppWindow64;
 				ForceForegroundWindow = hWnd =>
 					{
-						ForceForegroundWindow64(hWnd);
-						Windawesome.PostAction(() => BringWindowToTop(hWnd));
+						if (IsWindowVisible(hWnd))
+						{
+							ForceForegroundAndBringToTop(hWnd, ForceForegroundWindow64);
+						}
+						else
+						{
+							Windawesome.ExecuteOnWindowShown(hWnd, h => ForceForegroundAndBringToTop(h, ForceForegroundWindow64));
+						}
 					};
 				UnsubclassWindow = UnsubclassWindow64;
 				RunApplicationNonElevated = RunApplicationNonElevated64;
@@ -37,8 +43,14 @@ namespace Windawesome
 				IsAppWindow = IsAppWindow32;
 				ForceForegroundWindow = hWnd =>
 					{
-						ForceForegroundWindow32(hWnd);
-						Windawesome.PostAction(() => BringWindowToTop(hWnd));
+						if (IsWindowVisible(hWnd))
+						{
+							ForceForegroundAndBringToTop(hWnd, ForceForegroundWindow32);
+						}
+						else
+						{
+							Windawesome.ExecuteOnWindowShown(hWnd, h => ForceForegroundAndBringToTop(h, ForceForegroundWindow32));
+						}
 					};
 				UnsubclassWindow = UnsubclassWindow32;
 				RunApplicationNonElevated = RunApplicationNonElevated32;
@@ -55,6 +67,12 @@ namespace Windawesome
 			}
 
 			NONCLIENTMETRICSSize = Marshal.SizeOf(typeof(NONCLIENTMETRICS)) - (Windawesome.isAtLeastVista ? 0 : 4);
+		}
+
+		private static void ForceForegroundAndBringToTop(IntPtr hWnd, Action<IntPtr> forceAction)
+		{
+			forceAction(hWnd);
+			Windawesome.PostAction(() => BringWindowToTop(hWnd));
 		}
 
 		// hooks stuff
@@ -135,6 +153,15 @@ namespace Windawesome
 
 		[DllImport("User32.dll")]
 		public static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint uMsg, UIntPtr wParam, IntPtr lParam, SMTO fuFlags, uint uTimeout, [Optional, Out] out IntPtr lpdwResult);
+
+		[DllImport("User32.dll")]
+		public static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint uMsg, UIntPtr wParam, IntPtr lParam, SMTO fuFlags, uint uTimeout, [Optional, Out] IntPtr lpdwResult);
+
+		public delegate void SendMessageCallbackDelegate(IntPtr hWnd, uint uMsg, IntPtr dwData, IntPtr lResult);
+
+		[DllImport("user32.dll")]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		public static extern bool SendMessageCallback(IntPtr hWnd, uint Msg, UIntPtr wParam, IntPtr lParam, [MarshalAs(UnmanagedType.FunctionPtr)] SendMessageCallbackDelegate lpCallBack, IntPtr dwData);
 
 		[Flags]
 		public enum SMTO : uint
@@ -291,7 +318,11 @@ namespace Windawesome
 
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool IsIconic(IntPtr hwnd);
+		public static extern bool IsIconic(IntPtr hWnd);
+
+		[DllImport("user32.dll")]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		public static extern bool IsWindowVisible(IntPtr hWnd);
 
 		[DllImport("user32.dll")]
 		public static extern IntPtr GetDesktopWindow();

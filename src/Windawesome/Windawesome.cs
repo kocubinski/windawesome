@@ -17,6 +17,8 @@ namespace Windawesome
 		private static readonly Queue<Action> postedActions;
 		private static readonly Dictionary<int, HandleMessageDelegate> messageHandlers;
 		private static readonly NativeMethods.NONCLIENTMETRICS originalNonClientMetrics;
+		private static IntPtr onWindowShownHandle;
+		private static Action<IntPtr> onWindowShownHandler;
 		private readonly bool changedNonClientMetrics = false;
 		private readonly bool finishedInitializing = false;
 
@@ -544,77 +546,109 @@ namespace Windawesome
 			}
 		}
 
-		public static Bitmap GetWindowSmallIconAsBitmap(IntPtr hWnd)
+		private static readonly HashSet<NativeMethods.SendMessageCallbackDelegate> delegatesSet = new HashSet<NativeMethods.SendMessageCallbackDelegate>();
+		public static void GetWindowSmallIconAsBitmap(IntPtr hWnd, Action<Bitmap> action)
 		{
-			IntPtr hIcon;
-			Bitmap bitmap = null;
+			NativeMethods.SendMessageCallbackDelegate firstCallback = null;
+			NativeMethods.SendMessageCallbackDelegate secondCallback = null;
 
-			NativeMethods.SendMessageTimeout(
+			firstCallback = (_, _1, hWnd1, lResult) =>
+				{
+					delegatesSet.Remove(firstCallback);
+
+					if (lResult != IntPtr.Zero)
+					{
+						action(new Bitmap(Bitmap.FromHicon(lResult), smallIconSize));
+						return ;
+					}
+
+					delegatesSet.Add(secondCallback);
+					NativeMethods.SendMessageCallback(
+						hWnd1,
+						NativeMethods.WM_QUERYDRAGICON,
+						UIntPtr.Zero,
+						IntPtr.Zero,
+						secondCallback,
+						hWnd1);
+				};
+
+			secondCallback = (_3, _4, hWnd2, hIcon) =>
+				{
+					delegatesSet.Remove(secondCallback);
+
+					if (hIcon != IntPtr.Zero)
+					{
+						action(new Bitmap(Bitmap.FromHicon(hIcon), smallIconSize));
+						return ;
+					}
+
+					hIcon = NativeMethods.GetClassLongPtr(hWnd2, NativeMethods.GCL_HICONSM);
+
+					if (hIcon != IntPtr.Zero)
+					{
+						action(new Bitmap(Bitmap.FromHicon(hIcon), smallIconSize));
+						return ;
+					}
+
+					try
+					{
+						int processID;
+						NativeMethods.GetWindowThreadProcessId(hWnd2, out processID);
+						var process = System.Diagnostics.Process.GetProcessById(processID);
+
+						System.Threading.Tasks.Task.Factory.StartNew(() =>
+							{
+								var info = new NativeMethods.SHFILEINFO();
+
+								NativeMethods.SHGetFileInfo(process.MainModule.FileName, 0, ref info,
+									Marshal.SizeOf(info), NativeMethods.SHGFI_ICON | NativeMethods.SHGFI_SMALLICON);
+
+								return info.hIcon;
+							}).ContinueWith(res =>
+								{
+									var infoHIcon = res.Result;
+
+									Bitmap bitmap;
+									if (infoHIcon != IntPtr.Zero)
+									{
+										bitmap = new Bitmap(Bitmap.FromHicon(infoHIcon), smallIconSize);
+										NativeMethods.DestroyIcon(infoHIcon);
+										PostAction(() => action(bitmap));
+										return ;
+									}
+
+									bitmap = Icon.ExtractAssociatedIcon(process.MainModule.FileName).ToBitmap();
+									if (bitmap != null)
+									{
+										PostAction(() => action(new Bitmap(bitmap, smallIconSize)));
+									}
+								});
+					}
+					catch
+					{
+					}
+				};
+
+			delegatesSet.Add(firstCallback);
+			NativeMethods.SendMessageCallback(
 				hWnd,
 				NativeMethods.WM_GETICON,
 				NativeMethods.ICON_SMALL,
 				IntPtr.Zero,
-				NativeMethods.SMTO.SMTO_BLOCK | NativeMethods.SMTO.SMTO_ABORTIFHUNG,
-				1000, out hIcon);
-
-			if (hIcon == IntPtr.Zero)
-			{
-				NativeMethods.SendMessageTimeout(
-					hWnd,
-					NativeMethods.WM_QUERYDRAGICON,
-					UIntPtr.Zero,
-					IntPtr.Zero,
-					NativeMethods.SMTO.SMTO_BLOCK | NativeMethods.SMTO.SMTO_ABORTIFHUNG,
-					1000, out hIcon);
-
-				if (hIcon == IntPtr.Zero)
-				{
-					hIcon = NativeMethods.GetClassLongPtr(hWnd, NativeMethods.GCL_HICONSM);
-
-					if (hIcon == IntPtr.Zero)
-					{
-						try
-						{
-							int processID;
-							NativeMethods.GetWindowThreadProcessId(hWnd, out processID);
-							var process = System.Diagnostics.Process.GetProcessById(processID);
-
-							var info = new NativeMethods.SHFILEINFO();
-							NativeMethods.SHGetFileInfo(process.MainModule.FileName, 0, ref info,
-								Marshal.SizeOf(info), NativeMethods.SHGFI_ICON | NativeMethods.SHGFI_SMALLICON);
-
-							if (info.hIcon != IntPtr.Zero)
-							{
-								bitmap = new Bitmap(Bitmap.FromHicon(info.hIcon), smallIconSize);
-								NativeMethods.DestroyIcon(info.hIcon);
-								return bitmap;
-							}
-
-							bitmap = Icon.ExtractAssociatedIcon(process.MainModule.FileName).ToBitmap();
-							return bitmap != null ? new Bitmap(bitmap, smallIconSize) : null;
-						}
-						catch
-						{
-						}
-						return null;
-					}
-				}
-			}
-
-			try
-			{
-				bitmap = new Bitmap(Bitmap.FromHicon(hIcon), smallIconSize);
-			}
-			catch
-			{
-			}
-			return bitmap;
+				firstCallback,
+				hWnd);
 		}
 
 		public static void PostAction(Action action)
 		{
 			postedActions.Enqueue(action);
 			NativeMethods.PostMessage(handle, postActionMessageNum, UIntPtr.Zero, IntPtr.Zero);
+		}
+
+		public static void ExecuteOnWindowShown(IntPtr hWnd, Action<IntPtr> action)
+		{
+			onWindowShownHandle = hWnd;
+			onWindowShownHandler = action;
 		}
 
 		#endregion
@@ -641,6 +675,11 @@ namespace Windawesome
 						// keeps showing up when changing workspaces
 						NativeMethods.SendNotifyMessage(handle, shellMessageNum,
 							(UIntPtr) NativeMethods.ShellEvents.HSHELL_WINDOWACTIVATED, lParam);
+					}
+					else if (lParam == onWindowShownHandle)
+					{
+						onWindowShownHandler(lParam);
+						onWindowShownHandle = IntPtr.Zero;
 					}
 					break;
 				case NativeMethods.ShellEvents.HSHELL_WINDOWDESTROYED: // window destroyed or minimized to tray

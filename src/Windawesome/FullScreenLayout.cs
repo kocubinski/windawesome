@@ -13,17 +13,17 @@ namespace Windawesome
 				if ((ws & NativeMethods.WS.WS_MAXIMIZE) == 0)
 				{
 					// if there is a caption, we can make the window maximized
-					NativeMethods.ShowWindow(window.hWnd, NativeMethods.SW.SW_SHOWMAXIMIZED);
+					NativeMethods.ShowWindowAsync(window.hWnd, NativeMethods.SW.SW_SHOWMAXIMIZED);
 				}
 			}
 			else
 			{
 				// otherwise, Windows would make the window "truly" full-screen, i.e. on top of all shell
 				// windows, which doesn't work for us. So we just set window to take the maximum possible area
-				NativeMethods.ShowWindow(window.hWnd, NativeMethods.SW.SW_SHOWNOACTIVATE);
+				NativeMethods.ShowWindowAsync(window.hWnd, NativeMethods.SW.SW_SHOWNOACTIVATE);
 				NativeMethods.SetWindowPos(window.hWnd, IntPtr.Zero,
 					workingArea.X, workingArea.Y, workingArea.Width, workingArea.Height,
-					NativeMethods.SWP.SWP_NOACTIVATE |
+					NativeMethods.SWP.SWP_ASYNCWINDOWPOS | NativeMethods.SWP.SWP_NOACTIVATE |
 					NativeMethods.SWP.SWP_NOZORDER | NativeMethods.SWP.SWP_NOOWNERZORDER |
 					NativeMethods.SWP.SWP_FRAMECHANGED | NativeMethods.SWP.SWP_NOCOPYBITS);
 			}

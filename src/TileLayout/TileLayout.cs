@@ -289,7 +289,7 @@ namespace Windawesome
 			this.workingArea = workingArea;
 			this.windowsCount = windows.Count(w => w.showInTabs);
 
-			windows.ForEach(window => NativeMethods.ShowWindow(window.hWnd, NativeMethods.SW.SW_SHOWNOACTIVATE));
+			windows.ForEach(window => NativeMethods.ShowWindowAsync(window.hWnd, NativeMethods.SW.SW_SHOWNOACTIVATE));
 
 			this.windows = windows;
 

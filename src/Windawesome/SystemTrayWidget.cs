@@ -16,6 +16,8 @@ namespace Windawesome
 		private int left, right;
 		private bool isLeft;
 
+		private static int nonHiddenButtonsCount;
+
 		#region Events
 
 		private delegate void IconAddedEventHandler(NativeMethods.NOTIFYICONDATA iconData, Tuple<int, uint> tuple);
@@ -63,11 +65,14 @@ namespace Windawesome
 			IconModified += SystemTrayWidget_IconModified;
 			IconRemoved	 += SystemTrayWidget_IconRemoved;
 
+			nonHiddenButtonsCount = 0;
+
 			foreach (var icon in SystemTray.GetButtons(SystemTray.trayHandle))
 			{
 				var pictureBox = CreatePictureBox(icon);
 				var toolTip = CreateToolTip(pictureBox, icon.tooltip);
 				icons[new Tuple<int, uint>((int) icon.hWnd, icon.id)] = new Tuple<SystemTray.TrayIcon, PictureBox, ToolTip>(icon, pictureBox, toolTip);
+				nonHiddenButtonsCount++;
 			}
 
 			if (showFullSystemTray)
@@ -231,8 +236,7 @@ namespace Windawesome
 			var hWnd = (IntPtr) iconData.hWnd;
 
 			// add to visible or to hidden icons
-			if (SystemTray.GetButtons(SystemTray.trayHandle).
-				FirstOrDefault(icon => icon.hWnd == hWnd && icon.id == iconData.uID) != null)
+			if (SetButtonsCount())
 			{
 				OnIconAdded(iconData, tuple);
 			}
@@ -244,12 +248,25 @@ namespace Windawesome
 
 		private static void TrayIconModified(NativeMethods.NOTIFYICONDATA iconData)
 		{
+			SetButtonsCount();
 			OnIconModified(iconData, new Tuple<int, uint>(iconData.hWnd, iconData.uID));
 		}
 
 		private static void TrayIconDeleted(NativeMethods.NOTIFYICONDATA iconData)
 		{
+			SetButtonsCount();
 			OnIconRemoved(new Tuple<int, uint>(iconData.hWnd, iconData.uID));
+		}
+
+		private static bool SetButtonsCount()
+		{
+			var newButtonsCount = SystemTray.GetButtonsCount(SystemTray.trayHandle);
+			if (newButtonsCount != nonHiddenButtonsCount)
+			{
+				nonHiddenButtonsCount = newButtonsCount;
+				return true;
+			}
+			return false;
 		}
 
 		private static bool UpdateIconData(Tuple<SystemTray.TrayIcon, PictureBox, ToolTip> prevIconData, NativeMethods.NOTIFYICONDATA iconData)
@@ -318,6 +335,9 @@ namespace Windawesome
 
 		public void StaticInitializeWidget(Windawesome windawesome, Config config)
 		{
+			// cleans the resources taken by the system tray manager
+			SystemTray.Dispose();
+
 			if (Windawesome.isRunningElevated)
 			{
 				if (Windawesome.isAtLeast7)
@@ -401,9 +421,6 @@ namespace Windawesome
 		{
 			// unregister system tray hook
 			NativeMethods.UnregisterSystemTrayHook();
-
-			// cleans the resources taken by the system tray manager
-			SystemTray.Dispose();
 		}
 
 		public void Dispose()
@@ -531,6 +548,21 @@ namespace Windawesome
 				}
 			}
 
+			internal static int GetButtonsCount(IntPtr trayHandle)
+			{
+				IntPtr buttonsCountIntPtr;
+
+				NativeMethods.SendMessageTimeout(
+					trayHandle,
+					TB_BUTTONCOUNT,
+					UIntPtr.Zero,
+					IntPtr.Zero,
+					NativeMethods.SMTO.SMTO_BLOCK | NativeMethods.SMTO.SMTO_NOTIMEOUTIFNOTHUNG | NativeMethods.SMTO.SMTO_ABORTIFHUNG,
+					1000, out buttonsCountIntPtr);
+
+				return buttonsCountIntPtr.ToInt32();
+			}
+
 			internal static IEnumerable<TrayIcon> GetButtons(IntPtr trayHandle)
 			{
 				if (Environment.Is64BitOperatingSystem)
@@ -546,17 +578,7 @@ namespace Windawesome
 			private static IEnumerable<TrayIcon> GetButtons<TrayIconData>(IntPtr trayHandle)
 				where TrayIconData : ITrayIconData, new()
 			{
-				IntPtr buttonsCountIntPtr;
-
-				NativeMethods.SendMessageTimeout(
-					trayHandle,
-					TB_BUTTONCOUNT,
-					UIntPtr.Zero,
-					IntPtr.Zero,
-					NativeMethods.SMTO.SMTO_BLOCK | NativeMethods.SMTO.SMTO_NOTIMEOUTIFNOTHUNG | NativeMethods.SMTO.SMTO_ABORTIFHUNG,
-					1000, out buttonsCountIntPtr);
-
-				int buttonsCount = buttonsCountIntPtr.ToInt32();
+				int buttonsCount = GetButtonsCount(trayHandle);
 				TrayIconData data = new TrayIconData();
 
 				for (int i = 0; i < buttonsCount; i++)
@@ -567,7 +589,7 @@ namespace Windawesome
 						(UIntPtr) i,
 						buttonMemory,
 						NativeMethods.SMTO.SMTO_BLOCK | NativeMethods.SMTO.SMTO_NOTIMEOUTIFNOTHUNG | NativeMethods.SMTO.SMTO_ABORTIFHUNG,
-						1000, out buttonsCountIntPtr);
+						1000, IntPtr.Zero);
 
 					uint numberOfBytesRead;
 

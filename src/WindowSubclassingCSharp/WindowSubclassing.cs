@@ -14,23 +14,6 @@ namespace Windawesome
 		private static readonly uint START_WINDOW_PROC_MESSAGE;
 		private static readonly uint STOP_WINDOW_PROC_MESSAGE;
 
-		private class WindowEqualityComparer : IEqualityComparer<Window>
-		{
-			#region IEqualityComparer<Window> Members
-
-			bool IEqualityComparer<Window>.Equals(Window x, Window y)
-			{
-				return x.hWnd == y.hWnd;
-			}
-
-			int IEqualityComparer<Window>.GetHashCode(Window obj)
-			{
-				return obj.hWnd.GetHashCode();
-			}
-
-			#endregion
-		}
-
 		static WindowSubclassing()
 		{
 			START_WINDOW_PROC_MESSAGE = NativeMethods.RegisterWindowMessage("START_WINDOW_PROC");
@@ -145,10 +128,9 @@ namespace Windawesome
 			this.windawesome = windawesome;
 
 			subclassedWindows = new HashMultiSet<Window>[config.workspacesCount];
-			var equalityComparer = new WindowEqualityComparer();
 			for (int i = 0; i < config.workspacesCount; i++)
 			{
-				subclassedWindows[i] = new HashMultiSet<Window>(equalityComparer);
+				subclassedWindows[i] = new HashMultiSet<Window>();
 			}
 		}
 

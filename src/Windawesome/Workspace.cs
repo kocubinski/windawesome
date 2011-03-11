@@ -33,7 +33,7 @@ namespace Windawesome
 		private readonly LinkedList<Window> managedWindows; // windows.Where(w => !w.isFloating && !w.isMinimized), not sorted
 		private readonly LinkedList<Window> sharedWindows; // windows.Where(w => w.shared), not sorted
 		private readonly LinkedList<Window> windowsShownInTabs; // windows.Where(w => w.showInTabs), not sorted
-		private readonly LinkedList<Window> removedSharedWindows;
+		private readonly LinkedList<Window> removedSharedWindows; // windows that need to be Initialized but then removed from shared
 		internal bool hasChanges;
 
 		#region Events
@@ -257,8 +257,6 @@ namespace Windawesome
 
 		internal void SwitchTo(bool setForeground = true)
 		{
-			isCurrentWorkspace = true;
-
 			// hides or shows the Windows taskbar
 			if (this.showWindowsTaskbar != Workspace.isWindowsTaskbarShown)
 			{
@@ -293,16 +291,18 @@ namespace Windawesome
 				SetForeground();
 			}
 
+			isCurrentWorkspace = true;
+
 			OnWorkspaceChangedTo(this);
 		}
 
 		internal void Unswitch()
 		{
-			isCurrentWorkspace = false;
-
 			sharedWindows.ForEach(window => window.SavePosition());
 
 			HideWindows();
+
+			isCurrentWorkspace = false;
 
 			OnWorkspaceChangedFrom(this);
 		}
@@ -345,32 +345,24 @@ namespace Windawesome
 		private void ShowWindows()
 		{
 			// restores the Z order of the windows
-			if (sharedWindows.Count > 0 && (layout.NeedsToSaveAndRestoreZOrder() || floatingWindowsCount > 0))
+			bool restoreZOrder = windows.Count > 1 &&
+				(layout.NeedsToSaveAndRestoreZOrder() || sharedWindows.Count > 0 || floatingWindowsCount > 0);
+
+			IntPtr prevWindowHandle = NativeMethods.HWND_TOP;
+			foreach (var window in windows)
 			{
-				IntPtr prevWindowHandle = NativeMethods.HWND_TOP;
-				foreach (var window in windows)
+				NativeMethods.ShowWindowAsync(window.hWnd, NativeMethods.SW.SW_SHOWNA);
+				if (restoreZOrder)
 				{
 					NativeMethods.SetWindowPos(window.hWnd, prevWindowHandle, 0, 0, 0, 0,
-						NativeMethods.SWP.SWP_SHOWWINDOW |
+						NativeMethods.SWP.SWP_ASYNCWINDOWPOS |
 						NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
 					prevWindowHandle = window.hWnd;
-
-					if (window.redrawOnShow)
-					{
-						window.Redraw();
-					}
 				}
-			}
-			else
-			{
-				foreach (var window in windows)
-				{
-					NativeMethods.ShowWindow(window.hWnd, NativeMethods.SW.SW_SHOWNA);
 
-					if (window.redrawOnShow)
-					{
-						window.Redraw();
-					}
+				if (window.redrawOnShow)
+				{
+					window.Redraw();
 				}
 			}
 		}
@@ -967,6 +959,7 @@ namespace Windawesome
 					windowPlacement.ShowCmd = NativeMethods.SW.SW_SHOWMINNOACTIVE;
 					break;
 			}
+			windowPlacement.Flags |= NativeMethods.WindowPlacementFlags.WPF_ASYNCWINDOWPLACEMENT;
 			NativeMethods.SetWindowPlacement(hWnd, ref windowPlacement);
 		}
 
