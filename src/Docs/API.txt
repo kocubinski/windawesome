@@ -14,6 +14,9 @@ adds the specified window from the current workspace to the one specified in the
 void RemoveApplicationFromCurrentWorkspace(IntPtr handle)
 removes the specified window from the current workspace
 
+public void RemoveApplicationFromAllWorkspaces(IntPtr hWnd)
+removes the specified window from all workspaces - this is somewhat like making the window unmanaged by Windawesome
+
 void SwitchToWorkspace(int workspace, bool setForeground = true)
 switches the current workspace to the one specified in the first parameter. If the second parameter is true, the window highest in Z order of the new workspace is set as the foreground and active window, otherwise is not
 
@@ -35,8 +38,8 @@ switches to the window with this handle on whichever workspace it is
 void RunApplication(string path, string arguments = "")
 runs the specified application. Even if Windawesome is run in elevated mode, the new application will not be elevated
 
-void RunOrShowApplication(string className, string path, string displayName = null, string arguments = "")
-if the application with the specified class and display name is running, it is switch to, on whichever workspace it is. If not, it is run with RunApplication
+void RunOrShowApplication(string className, string path, string displayName = ".*", string arguments = "")
+if the application with the specified class and display name is running (both are regexes), it is switch to, on whichever workspace it is. If not, it is run with RunApplication
 
 void QuitApplication(IntPtr handle)
 quits the specified application

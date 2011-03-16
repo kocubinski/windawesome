@@ -17,8 +17,14 @@ namespace Windawesome
 			string layoutsDirName = "Layouts";
 			string widgetsDirName = "Widgets";
 			string pluginsDirName = "Plugins";
-			string configDirName = "Config";
+			string configDirName  = "Config";
 
+			if (!Directory.Exists(configDirName) || Directory.EnumerateFiles(configDirName).FirstOrDefault() == null)
+			{
+				throw new Exception("You HAVE to have a " + configDirName + " directory in the folder and it must " +
+					"contain at least one Python or Ruby file that initializes all instance variables in 'config' " +
+					"that don't have default values!");
+			}
 			if (!Directory.Exists(layoutsDirName))
 			{
 				Directory.CreateDirectory(layoutsDirName);
@@ -31,11 +37,6 @@ namespace Windawesome
 			{
 				Directory.CreateDirectory(pluginsDirName);
 			}
-			if (!Directory.Exists(configDirName))
-			{
-				Directory.CreateDirectory(configDirName);
-			}
-
 			var files =
 				Directory.EnumerateFiles(layoutsDirName).Select(fileName => new FileInfo(fileName)) .Concat(
 				Directory.EnumerateFiles(widgetsDirName).Select(fileName => new FileInfo(fileName))).Concat(
@@ -98,8 +99,7 @@ namespace Windawesome
 				searchPaths.Add(System.Environment.CurrentDirectory);
 				engine.SetSearchPaths(searchPaths);
 
-				AppDomain.CurrentDomain.GetAssemblies()
-					.ForEach(assembly => engine.Runtime.LoadAssembly(assembly));
+				AppDomain.CurrentDomain.GetAssemblies().ForEach(engine.Runtime.LoadAssembly);
 			}
 
 			private static ScriptEngine GetEngineForFile(FileInfo file)
@@ -147,8 +147,12 @@ namespace Windawesome
 						{
 							var oldScope = scope;
 							scope = engine.CreateScope();
-							oldScope.GetItems().ForEach(variable => scope.SetVariable(variable.Key, variable.Value));
-							previousLanguage.Runtime.Globals.GetItems().ForEach(variable => scope.SetVariable(variable.Key, variable.Value));
+							oldScope.GetItems().
+								Where(variable => variable.Value != null).
+								ForEach(variable =>	scope.SetVariable(variable.Key, variable.Value));
+							previousLanguage.Runtime.Globals.GetItems().
+								Where(variable => variable.Value != null).
+								ForEach(variable => scope.SetVariable(variable.Key, variable.Value));
 						}
 
 						scope = engine.ExecuteFile(file.FullName, scope);
@@ -182,13 +186,13 @@ namespace Windawesome
 		internal bool IsMatch(string cName, string dName, NativeMethods.WS style, NativeMethods.WS_EX exStyle)
 		{
 			return className.IsMatch(cName) && displayName.IsMatch(dName) &&
-				(style & styleContains) == style && (style & styleNotContains) == 0 &&
-				(exStyle & styleExContains) == exStyle && (exStyle & styleExNotContains) == 0;
+				(style & styleContains) == styleContains && (style & styleNotContains) == 0 &&
+				(exStyle & styleExContains) == styleExContains && (exStyle & styleExNotContains) == 0;
 		}
 
 		public ProgramRule(string className = ".*", string displayName = ".*",
-			NativeMethods.WS styleContains = (NativeMethods.WS) uint.MaxValue, NativeMethods.WS styleNotContains = 0,
-			NativeMethods.WS_EX styleExContains = (NativeMethods.WS_EX) uint.MaxValue, NativeMethods.WS_EX styleExNotContains = 0,
+			NativeMethods.WS styleContains = 0, NativeMethods.WS styleNotContains = 0,
+			NativeMethods.WS_EX styleExContains = 0, NativeMethods.WS_EX styleExNotContains = 0,
 			bool isManaged = true, int windowCreatedDelay = 350, bool switchToOnCreated = true, IList<Rule> rules = null)
 		{
 			this.className = new Regex(className, RegexOptions.Compiled);

@@ -469,7 +469,7 @@ namespace Windawesome
 			{
 				window.isMinimized = true;
 
-				if (!window.isFloating)
+				if (managedWindows.Contains(window))
 				{
 					managedWindows.Remove(window);
 					layout.WindowMinimized(window, managedWindows, workingArea);
@@ -486,7 +486,7 @@ namespace Windawesome
 			{
 				window.isMinimized = false;
 
-				if (!window.isFloating)
+				if (managedWindows.Contains(window))
 				{
 					managedWindows.AddFirst(window);
 					layout.WindowRestored(window, managedWindows, workingArea);
@@ -663,7 +663,10 @@ namespace Windawesome
 			if (window != null)
 			{
 				window.ToggleShowHideTitlebar();
-				layout.WindowTitlebarToggled(window, managedWindows, workingArea);
+				if (managedWindows.Contains(window))
+				{
+					layout.WindowTitlebarToggled(window, managedWindows, workingArea);
+				}
 			}
 		}
 
@@ -673,7 +676,10 @@ namespace Windawesome
 			if (window != null)
 			{
 				window.ToggleShowHideWindowBorder();
-				layout.WindowBorderToggled(window, managedWindows, workingArea);
+				if (managedWindows.Contains(window))
+				{
+					layout.WindowBorderToggled(window, managedWindows, workingArea);
+				}
 			}
 		}
 

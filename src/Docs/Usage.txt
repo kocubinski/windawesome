@@ -4,7 +4,7 @@ Windawesome
 Windawesome (pronounced - contrary to what you would expect from the way it is written - Windows-om, not Wind-awesome) is a highly customizable dynamic window manager for Windows, which works on top of explorer.exe and NOT as a shell replacement. It is heavily inspired by Bug.n, but it goes much furthur. Windawesome is (mostly) written in C# and is scriptable and pluggable in IronRuby, IronPython and any .NET language that compiles down to an assembly. Requires .NET Framework 4 Client Profile, Visual C++ 2010 Redistributable and IronRuby/IronPython DLLs. The main bundle comes with 3 configuration files (2 in Python, 1 in Ruby), 3 layouts (2 built-in and one as a C# DLL), a couple of Plugins and some Widgets, one of which is written in Ruby. Works with 32- and 64-bit versions of Windows XP, Vista and 7. Goes under the GNU General Public License version 2.
 
 Installation:
-You can build from sources, which would require at least Visual Studio 2010 and the IronPython/IronRuby DLLs (see below). If you don't want, you could just use the binaries I have built, but you still need .NET 4, VC++ 2010 redist and the IronPython/IronRuby DLLs (IronPython.dll, IronPython.Modules.dll, IronRuby.dll, IronRuby.Libraries.dll, Microsoft.Dynamic.dll, Microsoft.Scripting.dll).
+You can build from sources, which would require at least Visual Studio 2010 and the IronPython/IronRuby DLLs (see below). If you don't want, you could just use the binaries I have built, but you still need .NET 4, VC++ 2010 redist and the IronPython/IronRuby DLLs (IronPython.dll, IronPython.Modules.dll, IronRuby.dll, IronRuby.Libraries.dll, Microsoft.Dynamic.dll, Microsoft.Scripting.dll). All the configuration that comes with Windawesome is the one that I use on my machine - you probably won't like it so make sure to go through all config files and customize as you like.
 
 Terminology:
 Window - a window
@@ -143,7 +143,6 @@ Known bugs/limitations:
 - If you use Windows 7 (at least that's what I have seen the bug with) with the "old", Windows 98-like, look and feel (without Aero), setting the working area is not correct, as, for some reason, the Taskbar height and width is different than the one when Aero is on.
 - Whenever a label's text is longer than the width, ellipsis show. However, then the text alignment changes to Top or something. This is a bug in the .NET Framework since version 2.0 and hasn't been fixed even in 4.0. Should be relatively easy to fix that by drawing one's own text, but I won't bother.
 - There is a minor chance that the System Tray Widget is not going to work properly in some case. Let me know if that happens with the exact scenario.
-- Windawesome reads some configuration files on startup. They are in Python and Ruby and that's why Windawesome boots kind of slow. On my machine it takes a couple of seconds to take off. However, after that, I have made huge, HUGE optimizations for it to run perfectly smooth. If you have any problems, please let me know.
 - Currently only one monitor is supported. Unfortunatelly I have only one and I cannot test it even if I wrote something for multimonitor support. Feel free to let me know if you know exactly how it should be done or if you want to do it. :)
 
 For any suggestions, complaints or the likes, feel free to write to boris underscore petrov at live dot com.

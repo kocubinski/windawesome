@@ -154,7 +154,7 @@ namespace Windawesome
 				KeyboardEventHandler handlers;
 				if (subscriptions.TryGetValue(newSubscription, out handlers))
 				{
-					handlers += handler;
+					subscriptions[newSubscription] = handlers + handler;
 				}
 				else
 				{

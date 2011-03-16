@@ -4,19 +4,48 @@
 
 BOOL IsAppWindow(HWND hWnd)
 {
-	if (IsWindowVisible(hWnd) && GetParent(hWnd) == 0)
+	if (IsWindowVisible(hWnd) && !(GetWindowLongPtr(hWnd, GWL_EXSTYLE) & WS_EX_TOOLWINDOW) && !GetParent(hWnd))
 	{
 		HWND hWndOwner = GetWindow(hWnd, GW_OWNER);
-		LONG_PTR exStyle = GetWindowLongPtr(hWnd, GWL_EXSTYLE);
-		if (((exStyle & WS_EX_TOOLWINDOW) == 0 && hWndOwner == NULL) ||
-			((exStyle & WS_EX_APPWINDOW)  != 0 && hWndOwner != NULL))
+		if (!hWndOwner ||
+			((GetWindowLongPtr(hWndOwner, GWL_STYLE) & (WS_VISIBLE | WS_CLIPCHILDREN)) != (WS_VISIBLE | WS_CLIPCHILDREN)) || 
+			GetWindowLongPtr(hWndOwner, GWL_EXSTYLE) & WS_EX_TOOLWINDOW)
 		{
-			return TRUE;
+			return true;
 		}
 	}
 
 	return FALSE;
 }
+
+//BOOL IsAppWindow(HWND hWnd)
+//{
+//	if (IsWindowVisible(hWnd) && !GetParent(hWnd))
+//	{
+//		HWND hWndOwner = GetWindow(hWnd, GW_OWNER);
+//		LONG_PTR exStyle = GetWindowLongPtr(hWnd, GWL_EXSTYLE);
+//		if (((exStyle & WS_EX_TOOLWINDOW) == 0 && hWndOwner == NULL) ||
+//			((exStyle & WS_EX_APPWINDOW)  != 0 && hWndOwner != NULL))
+//		{
+//			return TRUE;
+//		}
+//	}
+//
+//	return FALSE;
+//}
+
+//BOOL IsAppWindow(HWND hWnd)
+//{
+//	LONG_PTR exStyle = GetWindowLongPtr(hWnd, GWL_EXSTYLE);
+//	if (IsWindowVisible(hWnd) &&
+//		((exStyle & WS_EX_APPWINDOW) != 0 ||
+//		((exStyle & (WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE)) == 0 && !GetWindow(hWnd, GW_OWNER))))
+//	{
+//		return TRUE;
+//	}
+//
+//	return FALSE;
+//}
 
 void ForceForegroundWindow(HWND hWnd)
 {

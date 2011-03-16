@@ -65,15 +65,14 @@ namespace Windawesome
 			IconModified += SystemTrayWidget_IconModified;
 			IconRemoved	 += SystemTrayWidget_IconRemoved;
 
-			nonHiddenButtonsCount = 0;
-
 			foreach (var icon in SystemTray.GetButtons(SystemTray.trayHandle))
 			{
 				var pictureBox = CreatePictureBox(icon);
 				var toolTip = CreateToolTip(pictureBox, icon.tooltip);
 				icons[new Tuple<int, uint>((int) icon.hWnd, icon.id)] = new Tuple<SystemTray.TrayIcon, PictureBox, ToolTip>(icon, pictureBox, toolTip);
-				nonHiddenButtonsCount++;
 			}
+
+			nonHiddenButtonsCount = icons.Count;
 
 			if (showFullSystemTray)
 			{
@@ -233,7 +232,6 @@ namespace Windawesome
 		{
 			// TODO: GUID not taken into account
 			var tuple = new Tuple<int, uint>(iconData.hWnd, iconData.uID);
-			var hWnd = (IntPtr) iconData.hWnd;
 
 			// add to visible or to hidden icons
 			if (SetButtonsCount())
@@ -261,7 +259,7 @@ namespace Windawesome
 		private static bool SetButtonsCount()
 		{
 			var newButtonsCount = SystemTray.GetButtonsCount(SystemTray.trayHandle);
-			if (newButtonsCount != nonHiddenButtonsCount)
+			if (newButtonsCount != -1 && newButtonsCount != nonHiddenButtonsCount)
 			{
 				nonHiddenButtonsCount = newButtonsCount;
 				return true;
@@ -438,17 +436,12 @@ namespace Windawesome
 			internal static readonly IntPtr hiddenTrayHandle;
 
 			private static readonly int TBBUTTONsize;
-			private static readonly StringBuilder sb;
-			private static readonly int explorerPID;
 			private static readonly IntPtr explorerProcessHandle;
 			private static readonly IntPtr buttonMemory;
-
-			private static readonly bool initializedOK;
+			private static StringBuilder sb;
 
 			static SystemTray()
 			{
-				initializedOK = false;
-
 				trayHandle = FindTrayHandle();
 				if (Windawesome.isAtLeast7)
 				{
@@ -465,9 +458,10 @@ namespace Windawesome
 				}
 				sb = new StringBuilder(1024);
 
+				int explorerPID;
 				NativeMethods.GetWindowThreadProcessId(trayHandle, out explorerPID);
 
-				explorerProcessHandle = NativeMethods.OpenProcess(NativeMethods.PROCESS_VM_OPERATION | NativeMethods.PROCESS_VM_READ | NativeMethods.PROCESS_VM_WRITE | NativeMethods.PROCESS_QUERY_INFORMATION, false, explorerPID);
+				explorerProcessHandle = NativeMethods.OpenProcess(NativeMethods.PROCESS_VM_OPERATION | NativeMethods.PROCESS_VM_READ, false, explorerPID);
 				if (explorerProcessHandle == IntPtr.Zero)
 				{
 					throw new Exception("Could not open explorer.exe process with PROCESS_VM_OPERATION | PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_QUERY_INFORMATION permissions");
@@ -479,17 +473,19 @@ namespace Windawesome
 					NativeMethods.CloseHandle(explorerProcessHandle);
 					throw new Exception("Could not VirtualAllocEx some memory in explorer.exe");
 				}
-
-				initializedOK = true;
 			}
 
 			internal static void Dispose()
 			{
-				if (initializedOK)
+				if (explorerProcessHandle != IntPtr.Zero)
 				{
-					NativeMethods.VirtualFreeEx(explorerProcessHandle, buttonMemory, 0, NativeMethods.MEM_RELEASE);
+					if (buttonMemory != IntPtr.Zero)
+					{
+						NativeMethods.VirtualFreeEx(explorerProcessHandle, buttonMemory, 0, NativeMethods.MEM_RELEASE);
+					}
 					NativeMethods.CloseHandle(explorerProcessHandle);
 				}
+				sb = null;
 			}
 
 			private static IntPtr FindTrayHandle()
@@ -542,9 +538,6 @@ namespace Windawesome
 				public TrayIcon()
 				{
 					tooltip = "";
-					callbackMessage = 0;
-					iconHandle = IntPtr.Zero;
-					state = 0;
 				}
 			}
 
@@ -552,13 +545,16 @@ namespace Windawesome
 			{
 				IntPtr buttonsCountIntPtr;
 
-				NativeMethods.SendMessageTimeout(
+				if (NativeMethods.SendMessageTimeout(
 					trayHandle,
 					TB_BUTTONCOUNT,
 					UIntPtr.Zero,
 					IntPtr.Zero,
 					NativeMethods.SMTO.SMTO_BLOCK | NativeMethods.SMTO.SMTO_NOTIMEOUTIFNOTHUNG | NativeMethods.SMTO.SMTO_ABORTIFHUNG,
-					1000, out buttonsCountIntPtr);
+					1000, out buttonsCountIntPtr) == IntPtr.Zero)
+				{
+					return -1;
+				}
 
 				return buttonsCountIntPtr.ToInt32();
 			}
@@ -580,6 +576,8 @@ namespace Windawesome
 			{
 				int buttonsCount = GetButtonsCount(trayHandle);
 				TrayIconData data = new TrayIconData();
+				var result = new LinkedList<TrayIcon>();
+				TrayIcon trayIcon;
 
 				for (int i = 0; i < buttonsCount; i++)
 				{
@@ -603,7 +601,7 @@ namespace Windawesome
 						continue;
 					}
 
-					TrayIcon trayIcon = new TrayIcon();
+					trayIcon = new TrayIcon();
 					if (NativeMethods.ReadProcessMemory(explorerProcessHandle, data.Button.iString, sb, sb.Capacity, out numberOfBytesRead))
 					{
 						trayIcon.tooltip = sb.ToString();
@@ -619,10 +617,10 @@ namespace Windawesome
 						trayIcon.state |= NativeMethods.IconState.NIS_HIDDEN;
 					}
 
-					yield return trayIcon;
+					result.AddLast(trayIcon);
 				}
 
-				yield break;
+				return result;
 			}
 		}
 	}

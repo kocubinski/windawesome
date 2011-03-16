@@ -4,17 +4,12 @@ from Windawesome.NativeMethods import WS
 
 config.programRules = Enumerable.ToArray[ProgramRule]([
 	ProgramRule(
-		className = "^TApplication$",
-		displayName = "^Find and Run Robot$",
-		isManaged = False
-	),
-	ProgramRule(
 		className = "^Vim$",
 		windowCreatedDelay = 200,
 		rules = [ProgramRule.Rule(workspace = 3)]
 	),
 	ProgramRule(
-		className = "^MozillaUIWindowClass$",
+		className = "^MozillaWindowClass$",
 		rules = [ProgramRule.Rule(workspace = 2)]
 	),
 	ProgramRule(
@@ -92,12 +87,12 @@ config.programRules = Enumerable.ToArray[ProgramRule]([
 		rules = [ProgramRule.Rule(isFloating = True)] # should be floating
 	),
 	ProgramRule(
-		styleNotContains = WS.WS_MAXIMIZEBOX,
-		rules = [ProgramRule.Rule(isFloating = True)]
-	),
-	ProgramRule(
 		styleContains = WS.WS_POPUP,
 		isManaged = False
+	),
+	ProgramRule(
+		styleNotContains = WS.WS_MAXIMIZEBOX,
+		rules = [ProgramRule.Rule(isFloating = True)]
 	),
 	ProgramRule() # there SHOULD be a catch-all rule in the end!
 ])

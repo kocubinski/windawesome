@@ -8,7 +8,7 @@ namespace Windawesome
 		private void MaximizeWindow(Window window, System.Drawing.Rectangle workingArea)
 		{
 			var ws = NativeMethods.GetWindowStyleLongPtr(window.hWnd);
-			if ((ws & NativeMethods.WS.WS_CAPTION) != 0)
+			if ((ws & NativeMethods.WS.WS_CAPTION) != 0 && (ws & NativeMethods.WS.WS_MAXIMIZEBOX) != 0)
 			{
 				if ((ws & NativeMethods.WS.WS_MAXIMIZE) == 0)
 				{

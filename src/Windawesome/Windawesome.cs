@@ -272,18 +272,15 @@ namespace Windawesome
 
 				if (finishedInitializing)
 				{
-					if (programRule.switchToOnCreated)
+					if (!programRule.switchToOnCreated && matchingRules.FirstOrDefault(r => r.workspace == 0 || r.workspace == config.workspaces[0].ID) == null)
 					{
-						PostAction(() => SwitchToApplication(hWnd));
+						hiddenApplications.Add(hWnd);
+						NativeMethods.ShowWindowAsync(hWnd, NativeMethods.SW.SW_HIDE);
+						config.workspaces[0].SetForeground();
 					}
 					else
 					{
-						if (matchingRules.FirstOrDefault(r => r.workspace == 0 || r.workspace == config.workspaces[0].ID) == null)
-						{
-							hiddenApplications.Add(hWnd);
-							NativeMethods.ShowWindowAsync(hWnd, NativeMethods.SW.SW_HIDE);
-						}
-						config.workspaces[0].SetForeground();
+						PostAction(() => SwitchToApplication(hWnd));
 					}
 
 					System.Threading.Thread.Sleep(programRule.windowCreatedDelay);
@@ -325,9 +322,7 @@ namespace Windawesome
 			return false;
 		}
 
-		#region API
-
-		public void RefreshWindawesome()
+		private void RefreshApplicationsHash()
 		{
 			HashSet<IntPtr> set = new HashSet<IntPtr>();
 
@@ -343,8 +338,15 @@ namespace Windawesome
 				}, IntPtr.Zero);
 
 			// remove all non-existent applications
-			applications.Where(t => !set.Contains(t.Key)).ForEach(app =>
-				app.Value.ForEach(t => t.Item1.WindowDestroyed(t.Item2, false)));
+			applications.Keys.Where(app => !set.Contains(app)).ToArray().
+				ForEach(RemoveApplicationFromAllWorkspaces);
+		}
+
+		#region API
+
+		public void RefreshWindawesome()
+		{
+			RefreshApplicationsHash();
 
 			// repositions all windows in all workspaces
 			config.workspaces.Skip(1).Where(ws => !ws.isCurrentWorkspace).ForEach(ws => ws.hasChanges = true);
@@ -415,6 +417,16 @@ namespace Windawesome
 
 					currentWorkspace.WindowDestroyed(window);
 				}
+			}
+		}
+
+		public void RemoveApplicationFromAllWorkspaces(IntPtr hWnd) // sort of UnmanageWindow
+		{
+			LinkedList<Tuple<Workspace, Window>> list;
+			if (applications.TryGetValue(hWnd, out list))
+			{
+				list.ForEach(tuple => tuple.Item1.WindowDestroyed(tuple.Item2));
+				applications.Remove(hWnd);
 			}
 		}
 
@@ -489,16 +501,20 @@ namespace Windawesome
 			}
 		}
 
-		public void RunOrShowApplication(string className, string path, string displayName = null, string arguments = "")
+		public void RunOrShowApplication(string className, string path, string displayName = ".*", string arguments = "")
 		{
-			var hWnd = NativeMethods.FindWindow(className, displayName);
-			if (hWnd == IntPtr.Zero)
+			var classNameRegex = new System.Text.RegularExpressions.Regex(className, System.Text.RegularExpressions.RegexOptions.Compiled);
+			var displayNameRegex = new System.Text.RegularExpressions.Regex(displayName, System.Text.RegularExpressions.RegexOptions.Compiled);
+
+			Window window;
+			if ((window = applications.Values.Select(list => list.First.Value.Item2).
+				FirstOrDefault(w => classNameRegex.IsMatch(w.className) && displayNameRegex.IsMatch(w.caption))) != null)
 			{
-				RunApplication(path, arguments);
+				SwitchToApplication(window.hWnd);
 			}
 			else
 			{
-				SwitchToApplication(hWnd);
+				RunApplication(path, arguments);
 			}
 		}
 
@@ -509,8 +525,7 @@ namespace Windawesome
 
 		public void MinimizeApplication(IntPtr hWnd)
 		{
-			// CloseWindow does not activate the next window in the Z order
-			NativeMethods.PostMessage(hWnd, NativeMethods.WM_SYSCOMMAND, NativeMethods.SC_MINIMIZEU, IntPtr.Zero);
+			NativeMethods.ShowWindowAsync(hWnd, NativeMethods.SW.SW_MINIMIZE);
 		}
 
 		// only switches to applications in the current workspace
@@ -538,7 +553,7 @@ namespace Windawesome
 			HandleMessageDelegate handlers;
 			if (messageHandlers.TryGetValue(message, out handlers))
 			{
-				handlers += targetHandler;
+				messageHandlers[message] = handlers + targetHandler;
 			}
 			else
 			{
@@ -552,27 +567,23 @@ namespace Windawesome
 			NativeMethods.SendMessageCallbackDelegate firstCallback = null;
 			NativeMethods.SendMessageCallbackDelegate secondCallback = null;
 
-			firstCallback = (_, _1, hWnd1, lResult) =>
+			firstCallback = (hWnd1, _1, _2, lResult) =>
 				{
 					delegatesSet.Remove(firstCallback);
 
 					if (lResult != IntPtr.Zero)
 					{
 						action(new Bitmap(Bitmap.FromHicon(lResult), smallIconSize));
-						return ;
 					}
-
-					delegatesSet.Add(secondCallback);
-					NativeMethods.SendMessageCallback(
-						hWnd1,
-						NativeMethods.WM_QUERYDRAGICON,
-						UIntPtr.Zero,
-						IntPtr.Zero,
-						secondCallback,
-						hWnd1);
+					else
+					{
+						delegatesSet.Add(secondCallback);
+						NativeMethods.SendMessageCallback(hWnd1, NativeMethods.WM_QUERYDRAGICON, UIntPtr.Zero,
+							IntPtr.Zero, secondCallback, UIntPtr.Zero);
+					}
 				};
 
-			secondCallback = (_3, _4, hWnd2, hIcon) =>
+			secondCallback = (hWnd2, _3, _4, hIcon) =>
 				{
 					delegatesSet.Remove(secondCallback);
 
@@ -590,53 +601,44 @@ namespace Windawesome
 						return ;
 					}
 
-					try
-					{
-						int processID;
-						NativeMethods.GetWindowThreadProcessId(hWnd2, out processID);
-						var process = System.Diagnostics.Process.GetProcessById(processID);
-
-						System.Threading.Tasks.Task.Factory.StartNew(() =>
+					System.Threading.Tasks.Task.Factory.StartNew(() =>
+						{
+							Bitmap bitmap = null;
+							try
 							{
+								int processID;
+								NativeMethods.GetWindowThreadProcessId(hWnd2, out processID);
+								var process = System.Diagnostics.Process.GetProcessById(processID);
+
 								var info = new NativeMethods.SHFILEINFO();
 
 								NativeMethods.SHGetFileInfo(process.MainModule.FileName, 0, ref info,
 									Marshal.SizeOf(info), NativeMethods.SHGFI_ICON | NativeMethods.SHGFI_SMALLICON);
 
-								return info.hIcon;
-							}).ContinueWith(res =>
+								if (info.hIcon != IntPtr.Zero)
 								{
-									var infoHIcon = res.Result;
-
-									Bitmap bitmap;
-									if (infoHIcon != IntPtr.Zero)
-									{
-										bitmap = new Bitmap(Bitmap.FromHicon(infoHIcon), smallIconSize);
-										NativeMethods.DestroyIcon(infoHIcon);
-										PostAction(() => action(bitmap));
-										return ;
-									}
-
+									bitmap = new Bitmap(Bitmap.FromHicon(info.hIcon), smallIconSize);
+									NativeMethods.DestroyIcon(info.hIcon);
+								}
+								else
+								{
 									bitmap = Icon.ExtractAssociatedIcon(process.MainModule.FileName).ToBitmap();
 									if (bitmap != null)
 									{
-										PostAction(() => action(new Bitmap(bitmap, smallIconSize)));
+										bitmap = new Bitmap(bitmap, smallIconSize);
 									}
-								});
-					}
-					catch
-					{
-					}
+								}
+							}
+							catch
+							{
+							}
+							PostAction(() => action(bitmap));
+						});
 				};
 
 			delegatesSet.Add(firstCallback);
-			NativeMethods.SendMessageCallback(
-				hWnd,
-				NativeMethods.WM_GETICON,
-				NativeMethods.ICON_SMALL,
-				IntPtr.Zero,
-				firstCallback,
-				hWnd);
+			NativeMethods.SendMessageCallback(hWnd,	NativeMethods.WM_GETICON, NativeMethods.ICON_SMALL,
+				IntPtr.Zero, firstCallback,	UIntPtr.Zero);
 		}
 
 		public static void PostAction(Action action)
@@ -685,13 +687,7 @@ namespace Windawesome
 				case NativeMethods.ShellEvents.HSHELL_WINDOWDESTROYED: // window destroyed or minimized to tray
 					if (hiddenApplications.Remove(lParam) == HashMultiSet<IntPtr>.RemoveResult.NOT_FOUND)
 					{
-						// remove window from all workspaces
-						LinkedList<Tuple<Workspace, Window>> list;
-						if (applications.TryGetValue(lParam, out list))
-						{
-							list.ForEach(tuple => tuple.Item1.WindowDestroyed(tuple.Item2));
-							applications.Remove(lParam);
-						}
+						RefreshApplicationsHash();
 					}
 					break;
 				case NativeMethods.ShellEvents.HSHELL_WINDOWACTIVATED: // window activated
@@ -700,9 +696,10 @@ namespace Windawesome
 					{
 						if (lParam != IntPtr.Zero)
 						{
-							if (!applications.ContainsKey(lParam))
+							if (NativeMethods.IsAppWindow(lParam) && !applications.ContainsKey(lParam))
 							{
-								AddWindowToWorkspace(lParam);
+								// windows that have TApplication as their class cause HUGE problems
+								RefreshApplicationsHash();
 							}
 							else if (!config.workspaces[0].ContainsWindow(lParam))
 							{

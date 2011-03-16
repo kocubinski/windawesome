@@ -133,7 +133,7 @@ namespace Windawesome
 
 		// messages stuff
 
-		#region SendNotifyMessage/ReplyMessage/PostMessage/SendMessageTimeout
+		#region SendNotifyMessage/ReplyMessage/PostMessage/SendMessageTimeout/SendMessageCallback
 
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
@@ -157,11 +157,11 @@ namespace Windawesome
 		[DllImport("User32.dll")]
 		public static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint uMsg, UIntPtr wParam, IntPtr lParam, SMTO fuFlags, uint uTimeout, [Optional, Out] IntPtr lpdwResult);
 
-		public delegate void SendMessageCallbackDelegate(IntPtr hWnd, uint uMsg, IntPtr dwData, IntPtr lResult);
+		public delegate void SendMessageCallbackDelegate(IntPtr hWnd, uint uMsg, UIntPtr dwData, IntPtr lResult);
 
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool SendMessageCallback(IntPtr hWnd, uint Msg, UIntPtr wParam, IntPtr lParam, [MarshalAs(UnmanagedType.FunctionPtr)] SendMessageCallbackDelegate lpCallBack, IntPtr dwData);
+		public static extern bool SendMessageCallback(IntPtr hWnd, uint Msg, UIntPtr wParam, IntPtr lParam, [MarshalAs(UnmanagedType.FunctionPtr)] SendMessageCallbackDelegate lpCallBack, UIntPtr dwData);
 
 		[Flags]
 		public enum SMTO : uint
@@ -178,9 +178,7 @@ namespace Windawesome
 		public const uint WM_GETICON = 0x007f;
 		public const uint WM_QUERYDRAGICON = 0x0037;
 
-		public static readonly IntPtr SC_MINIMIZE = (IntPtr) 0xF020;
-		public static readonly UIntPtr SC_MINIMIZEU = (UIntPtr) 0xF020;
-		public static readonly IntPtr SC_MAXIMIZE = (IntPtr) 0xF030;
+		public static readonly UIntPtr SC_MINIMIZE = (UIntPtr) 0xF020;
 		public static readonly UIntPtr SC_CLOSE = (UIntPtr) 0xF060;
 
 		public static readonly IntPtr WM_LBUTTONDBLCLK = (IntPtr) 0x0203;
@@ -280,15 +278,14 @@ namespace Windawesome
 
 		public static string GetText(IntPtr hWnd)
 		{
-			const int length = 255;
-			StringBuilder sb = new StringBuilder(length + 1);
+			StringBuilder sb = new StringBuilder(256);
 			NativeMethods.GetWindowText(hWnd, sb, sb.Capacity);
 			return sb.ToString();
 		}
 
 		public static string GetWindowClassName(IntPtr hWnd)
 		{
-			StringBuilder classNameSB = new StringBuilder(255);
+			StringBuilder classNameSB = new StringBuilder(257);
 			NativeMethods.GetClassName(hWnd, classNameSB, classNameSB.Capacity);
 			return classNameSB.ToString();
 		}
@@ -307,10 +304,10 @@ namespace Windawesome
 		public static readonly GetClassLongPtrDelegate GetClassLongPtr;
 
 		[DllImport("user32.dll", EntryPoint = "GetClassLong")]
-		public static extern IntPtr GetClassLong32(IntPtr hWnd, int nIndex);
+		private static extern IntPtr GetClassLong32(IntPtr hWnd, int nIndex);
 
 		[DllImport("user32.dll", EntryPoint = "GetClassLongPtr")]
-		public static extern IntPtr GetClassLongPtr64(IntPtr hWnd, int nIndex);
+		private static extern IntPtr GetClassLongPtr64(IntPtr hWnd, int nIndex);
 
 		public const int GCL_HICONSM = -34;
 
@@ -459,6 +456,7 @@ namespace Windawesome
 
 		public enum SW : int
 		{
+			SW_FORCEMINIMIZE = 11,
 			SW_SHOW = 5,
 			SW_SHOWNA = 8,
 			SW_SHOWNOACTIVATE = 4,
@@ -663,7 +661,9 @@ namespace Windawesome
 			{
 				int processID;
 				GetWindowThreadProcessId(hWnd, out processID);
-				var processHandle = OpenProcess(PROCESS_QUERY_INFORMATION, false, processID);
+				var processHandle = Windawesome.isAtLeastVista ?
+					OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, processID) :
+					OpenProcess(PROCESS_QUERY_INFORMATION, false, processID);
 				if (processHandle != IntPtr.Zero)
 				{
 					try
@@ -766,10 +766,7 @@ namespace Windawesome
 		[DllImport("user32.dll")]
 		public static extern uint GetWindowThreadProcessId(IntPtr hWnd, [Optional, Out] out int lpdwProcessId);
 
-		[DllImport("user32.dll")]
-		public static extern short GetKeyState(System.Windows.Forms.Keys nVirtKey);
-
-		#region RegisterHotKey/UnregisterHotKey
+		#region RegisterHotKey/UnregisterHotKey/GetKeyState
 
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
@@ -789,6 +786,9 @@ namespace Windawesome
 		}
 
 		public const int WM_HOTKEY = 0x312;
+
+		[DllImport("user32.dll")]
+		public static extern short GetKeyState(System.Windows.Forms.Keys nVirtKey);
 
 		#endregion
 
@@ -1438,9 +1438,9 @@ namespace Windawesome
 		public const uint MEM_RELEASE = 0x8000;
 		public const uint PAGE_READWRITE = 0x4;
 		public const uint PROCESS_VM_READ = 0x10;
-		public const uint PROCESS_VM_WRITE = 0x20;
 		public const uint PROCESS_VM_OPERATION = 0x8;
 		public const uint PROCESS_QUERY_INFORMATION = 0x400;
+		public const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
 
 		[DllImport("kernel32.dll")]
 		public static extern IntPtr OpenProcess(uint dwDesiredAccess, [MarshalAs(UnmanagedType.Bool)] bool bInheritHandle, int dwProcessId);
