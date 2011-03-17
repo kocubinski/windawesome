@@ -17,15 +17,15 @@ namespace Windawesome
 				GetWindowExStyleLongPtr = hWnd => GetWindowLongPtr64WS_EX(hWnd, GWL_EXSTYLE);
 				GetClassLongPtr = (hWnd, nIndex) => GetClassLongPtr64(hWnd, nIndex);
 				IsAppWindow = IsAppWindow64;
-				ForceForegroundWindow = hWnd =>
+				ForceForegroundWindow = (hWnd, bringToTop) =>
 					{
 						if (IsWindowVisible(hWnd))
 						{
-							ForceForegroundAndBringToTop(hWnd, ForceForegroundWindow64);
+							ForceForegroundAndBringToTop(hWnd, ForceForegroundWindow64, bringToTop);
 						}
 						else
 						{
-							Windawesome.ExecuteOnWindowShown(hWnd, h => ForceForegroundAndBringToTop(h, ForceForegroundWindow64));
+							Windawesome.ExecuteOnWindowShown(hWnd, h => ForceForegroundAndBringToTop(h, ForceForegroundWindow64, bringToTop));
 						}
 					};
 				UnsubclassWindow = UnsubclassWindow64;
@@ -41,15 +41,15 @@ namespace Windawesome
 				GetWindowExStyleLongPtr = hWnd => GetWindowLong32WS_EX(hWnd, GWL_EXSTYLE);
 				GetClassLongPtr = (hWnd, nIndex) => GetClassLong32(hWnd, nIndex);
 				IsAppWindow = IsAppWindow32;
-				ForceForegroundWindow = hWnd =>
+				ForceForegroundWindow = (hWnd, bringToTop) =>
 					{
 						if (IsWindowVisible(hWnd))
 						{
-							ForceForegroundAndBringToTop(hWnd, ForceForegroundWindow32);
+							ForceForegroundAndBringToTop(hWnd, ForceForegroundWindow32, bringToTop);
 						}
 						else
 						{
-							Windawesome.ExecuteOnWindowShown(hWnd, h => ForceForegroundAndBringToTop(h, ForceForegroundWindow32));
+							Windawesome.ExecuteOnWindowShown(hWnd, h => ForceForegroundAndBringToTop(h, ForceForegroundWindow32, bringToTop));
 						}
 					};
 				UnsubclassWindow = UnsubclassWindow32;
@@ -69,10 +69,13 @@ namespace Windawesome
 			NONCLIENTMETRICSSize = Marshal.SizeOf(typeof(NONCLIENTMETRICS)) - (Windawesome.isAtLeastVista ? 0 : 4);
 		}
 
-		private static void ForceForegroundAndBringToTop(IntPtr hWnd, Action<IntPtr> forceAction)
+		private static void ForceForegroundAndBringToTop(IntPtr hWnd, Action<IntPtr> forceAction, bool bringToTop)
 		{
 			forceAction(hWnd);
-			Windawesome.PostAction(() => BringWindowToTop(hWnd));
+			if (bringToTop)
+			{
+				Windawesome.PostAction(() => BringWindowToTop(hWnd));
+			}
 		}
 
 		// hooks stuff
@@ -688,7 +691,7 @@ namespace Windawesome
 		public delegate bool IsAppWindowDelegate(IntPtr hWnd);
 		public static readonly IsAppWindowDelegate IsAppWindow;
 
-		public delegate void ForceForegroundWindowDelegate(IntPtr hWnd);
+		public delegate void ForceForegroundWindowDelegate(IntPtr hWnd, bool bringToTop);
 		public static readonly ForceForegroundWindowDelegate ForceForegroundWindow;
 
 		public delegate void RunApplicationNonElevatedDelegate(string path, string arguments);

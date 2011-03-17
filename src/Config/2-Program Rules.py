@@ -4,6 +4,15 @@ from Windawesome.NativeMethods import WS
 
 config.programRules = Enumerable.ToArray[ProgramRule]([
 	ProgramRule(
+		className = "^TApplication$",
+		displayName = "^Find and Run Robot*",
+        isManaged = False
+	),
+	ProgramRule(
+		className = "^TApplication$",
+        handleOwnedWindows = True
+	),
+	ProgramRule(
 		className = "^Vim$",
 		windowCreatedDelay = 200,
 		rules = [ProgramRule.Rule(workspace = 3)]
@@ -72,6 +81,10 @@ config.programRules = Enumerable.ToArray[ProgramRule]([
 	ProgramRule(
 		className = "^XLMAIN$", # Excel
 		rules = [ProgramRule.Rule(redrawOnShow = True)]
+	),
+	ProgramRule(
+		className = "^QuickTimePlayerMain$",
+		rules = [ProgramRule.Rule(workspace = 1, isFloating = True)]
 	),
 	ProgramRule(className = "^ConsoleWindowClass$", rules = [ProgramRule.Rule(isFloating = True)]), # Interix terminal
 	ProgramRule(className = "^Internet Explorer_Hidden$", displayName = "", isManaged = False), # what the hell

@@ -454,11 +454,12 @@ namespace Windawesome
 		{
 			if (windows.Count > 0 && !windows.First.Value.isMinimized)
 			{
-				NativeMethods.ForceForegroundWindow(windows.First.Value.hWnd);
+				var hasOwner = windows.First.Value.owner != IntPtr.Zero;
+				NativeMethods.ForceForegroundWindow(hasOwner ? windows.First.Value.owner : windows.First.Value.hWnd, !hasOwner);
 			}
 			else
 			{
-				NativeMethods.ForceForegroundWindow(NativeMethods.GetDesktopWindow());
+				NativeMethods.ForceForegroundWindow(NativeMethods.GetDesktopWindow(), false);
 			}
 		}
 
@@ -793,6 +794,7 @@ namespace Windawesome
 		public readonly string className;
 		public readonly bool is64BitProcess;
 		public bool redrawOnShow { get; internal set; }
+		public readonly IntPtr owner;
 
 		private readonly NativeMethods.WS titlebarStyle;
 
@@ -803,13 +805,14 @@ namespace Windawesome
 		private readonly NativeMethods.WINDOWPLACEMENT originalWindowPlacement;
 
 		internal Window(IntPtr hWnd, string className, string caption, int workspacesCount, bool is64BitProcess,
-			NativeMethods.WS originalStyle, NativeMethods.WS_EX originalExStyle)
+			NativeMethods.WS originalStyle, NativeMethods.WS_EX originalExStyle, IntPtr owner)
 		{
 			this.hWnd = hWnd;
 			this.className = className;
 			this.caption = caption;
 			this.workspacesCount = workspacesCount;
 			this.is64BitProcess = is64BitProcess;
+			this.owner = owner;
 
 			windowPlacement = NativeMethods.WINDOWPLACEMENT.Default;
 			SavePosition();
@@ -841,6 +844,7 @@ namespace Windawesome
 			workspacesCount = window.workspacesCount;
 			originalWindowPlacement = window.originalWindowPlacement;
 			is64BitProcess = window.is64BitProcess;
+			owner = window.owner;
 
 			titlebarStyle = window.titlebarStyle;
 

@@ -23,7 +23,6 @@ namespace Windawesome
 		private LinkedList<Window> windows;
 		private int masterAreaWindowsCount;
 		private Rectangle workingArea;
-		private int windowsCount;
 
 		public TileLayout(LayoutAxis layoutAxis = LayoutAxis.LeftToRight, LayoutAxis masterAreaAxis = LayoutAxis.Monocle,
 			LayoutAxis stackAreaAxis = LayoutAxis.TopToBottom, double masterAreaFactor = 0.6, int masterAreaWindowsCount = 1)
@@ -287,7 +286,6 @@ namespace Windawesome
 		public void Reposition(LinkedList<Window> windows, Rectangle workingArea)
 		{
 			this.workingArea = workingArea;
-			this.windowsCount = windows.Count(w => w.showInTabs);
 
 			windows.ForEach(window => NativeMethods.ShowWindowAsync(window.hWnd, NativeMethods.SW.SW_SHOWNOACTIVATE));
 

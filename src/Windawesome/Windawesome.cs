@@ -12,6 +12,7 @@ namespace Windawesome
 		private readonly Config config;
 		private readonly Dictionary<IntPtr, LinkedList<Tuple<Workspace, Window>>> applications; // hWnd to a list of workspaces and windows
 		private readonly HashMultiSet<IntPtr> hiddenApplications;
+		private readonly Dictionary<IntPtr, IntPtr> ownerWindows; // owner -> owned
 		private readonly uint shellMessageNum;
 		private static readonly uint postActionMessageNum;
 		private static readonly Queue<Action> postedActions;
@@ -78,6 +79,16 @@ namespace Windawesome
 
 		#endregion
 
+		private bool ApplicationsTryGetValue(IntPtr hWnd, out LinkedList<Tuple<Workspace, Window>> list)
+		{
+			IntPtr owned;
+			if (ownerWindows.TryGetValue(hWnd, out owned))
+			{
+				hWnd = owned;
+			}
+			return applications.TryGetValue(hWnd, out list);
+		}
+
 		public Workspace CurrentWorkspace
 		{
 			get { return config.workspaces[0]; }
@@ -127,6 +138,7 @@ namespace Windawesome
 
 			applications = new Dictionary<IntPtr, LinkedList<Tuple<Workspace, Window>>>(30);
 			hiddenApplications = new HashMultiSet<IntPtr>();
+			ownerWindows = new Dictionary<IntPtr, IntPtr>();
 
 			// add all windows to their respective workspace
 			NativeMethods.EnumWindows((hWnd, _) => AddWindowToWorkspace(hWnd) || true, IntPtr.Zero);
@@ -296,10 +308,36 @@ namespace Windawesome
 				}
 
 				var list = new LinkedList<Tuple<Workspace, Window>>();
-				applications[hWnd] = list;
 
-				var windowTemplate = new Window(hWnd, className, displayName, workspacesCount,
-					Environment.Is64BitOperatingSystem && NativeMethods.Is64BitProcess(hWnd), style, exStyle);
+				Window windowTemplate;
+				if (programRule.handleOwnedWindows)
+				{
+					NativeMethods.EnumWindows((h, hOwner) =>
+						{
+							if (NativeMethods.IsWindowVisible(h) &&
+								NativeMethods.GetWindow(h, NativeMethods.GW_OWNER) == hOwner)
+							{
+								ownerWindows[hOwner] = h;
+								return false;
+							}
+							return true;
+						}, hWnd);
+
+					var hOwned = ownerWindows[hWnd];
+					string classNameOwned = NativeMethods.GetWindowClassName(hOwned);
+					string displayNameOwned = NativeMethods.GetText(hOwned);
+					var styleOwned = NativeMethods.GetWindowStyleLongPtr(hOwned);
+					var exStyleOwned = NativeMethods.GetWindowExStyleLongPtr(hOwned);
+					windowTemplate = new Window(hOwned, classNameOwned, displayNameOwned, workspacesCount,
+						Environment.Is64BitOperatingSystem && NativeMethods.Is64BitProcess(hWnd), styleOwned, exStyleOwned, hWnd);
+					applications[hOwned] = list;
+				}
+				else
+				{
+					windowTemplate = new Window(hWnd, className, displayName, workspacesCount,
+						Environment.Is64BitOperatingSystem && NativeMethods.Is64BitProcess(hWnd), style, exStyle, IntPtr.Zero);
+					applications[hWnd] = list;
+				}
 
 				foreach (var rule in matchingRules)
 				{
@@ -367,7 +405,7 @@ namespace Windawesome
 				currentWorkspace.WindowDestroyed(window, false);
 				newWorkspace.WindowCreated(window);
 
-				var list = applications[hWnd];
+				var list = applications[window.hWnd];
 				list.Remove(new Tuple<Workspace, Window>(currentWorkspace, window));
 				list.AddFirst(new Tuple<Workspace, Window>(newWorkspace, window));
 
@@ -387,7 +425,7 @@ namespace Windawesome
 
 				newWorkspace.WindowCreated(newWindow);
 
-				var list = applications[hWnd];
+				var list = applications[window.hWnd];
 				list.AddFirst(new Tuple<Workspace, Window>(newWorkspace, newWindow));
 				list.Where(t => ++t.Item2.workspacesCount == 2).ForEach(t => t.Item1.AddToSharedWindows(t.Item2));
 
@@ -404,14 +442,14 @@ namespace Windawesome
 			{
 				if (window.workspacesCount == 1)
 				{
-					QuitApplication(hWnd);
+					QuitApplication(window.hWnd);
 				}
 				else
 				{
 					hiddenApplications.Add(window.hWnd);
 					window.Hide();
 
-					var list = applications[hWnd];
+					var list = applications[window.hWnd];
 					list.Remove(new Tuple<Workspace, Window>(currentWorkspace, window));
 					list.Where(t => --t.Item2.workspacesCount == 1).ForEach(t => t.Item1.AddToRemovedSharedWindows(t.Item2));
 
@@ -478,6 +516,11 @@ namespace Windawesome
 
 		public void SwitchToApplication(IntPtr hWnd)
 		{
+			IntPtr owned;
+			if (ownerWindows.TryGetValue(hWnd, out owned))
+			{
+				hWnd = owned;
+			}
 			if (!SwitchToApplicationInCurrentWorkspace(hWnd))
 			{
 				LinkedList<Tuple<Workspace, Window>> list;
@@ -525,7 +568,7 @@ namespace Windawesome
 
 		public void MinimizeApplication(IntPtr hWnd)
 		{
-			NativeMethods.ShowWindowAsync(hWnd, NativeMethods.SW.SW_MINIMIZE);
+			NativeMethods.SendNotifyMessage(hWnd, NativeMethods.WM_SYSCOMMAND, NativeMethods.SC_MINIMIZE, IntPtr.Zero);
 		}
 
 		// only switches to applications in the current workspace
@@ -540,7 +583,7 @@ namespace Windawesome
 					NativeMethods.ShowWindowAsync(hWnd, NativeMethods.SW.SW_RESTORE);
 				}
 
-				NativeMethods.ForceForegroundWindow(hWnd);
+				NativeMethods.ForceForegroundWindow(hWnd, true);
 
 				return true;
 			}
@@ -589,16 +632,28 @@ namespace Windawesome
 
 					if (hIcon != IntPtr.Zero)
 					{
-						action(new Bitmap(Bitmap.FromHicon(hIcon), smallIconSize));
-						return ;
+						try
+						{
+							action(new Bitmap(Bitmap.FromHicon(hIcon), smallIconSize));
+							return ;
+						}
+						catch
+						{
+						}
 					}
 
 					hIcon = NativeMethods.GetClassLongPtr(hWnd2, NativeMethods.GCL_HICONSM);
 
 					if (hIcon != IntPtr.Zero)
 					{
-						action(new Bitmap(Bitmap.FromHicon(hIcon), smallIconSize));
-						return ;
+						try
+						{
+							action(new Bitmap(Bitmap.FromHicon(hIcon), smallIconSize));
+							return ;
+						}
+						catch
+						{
+						}
 					}
 
 					System.Threading.Tasks.Task.Factory.StartNew(() =>
@@ -687,7 +742,17 @@ namespace Windawesome
 				case NativeMethods.ShellEvents.HSHELL_WINDOWDESTROYED: // window destroyed or minimized to tray
 					if (hiddenApplications.Remove(lParam) == HashMultiSet<IntPtr>.RemoveResult.NOT_FOUND)
 					{
-						RefreshApplicationsHash();
+						IntPtr owned;
+						if (ownerWindows.TryGetValue(lParam, out owned))
+						{
+							RemoveApplicationFromAllWorkspaces(owned);
+							hiddenApplications.Remove(owned);
+							ownerWindows.Remove(lParam);
+						}
+						else
+						{
+							RemoveApplicationFromAllWorkspaces(lParam);
+						}
 					}
 					break;
 				case NativeMethods.ShellEvents.HSHELL_WINDOWACTIVATED: // window activated
@@ -696,10 +761,17 @@ namespace Windawesome
 					{
 						if (lParam != IntPtr.Zero)
 						{
-							if (NativeMethods.IsAppWindow(lParam) && !applications.ContainsKey(lParam))
+							if (!applications.ContainsKey(lParam))
 							{
-								// windows that have TApplication as their class cause HUGE problems
-								RefreshApplicationsHash();
+								IntPtr owned;
+								if (ownerWindows.TryGetValue(lParam, out owned))
+								{
+									lParam = owned;
+								}
+								else
+								{
+									RefreshApplicationsHash();
+								}
 							}
 							else if (!config.workspaces[0].ContainsWindow(lParam))
 							{
@@ -725,7 +797,7 @@ namespace Windawesome
 				case NativeMethods.ShellEvents.HSHELL_FLASH: // window flashing in taskbar
 					{
 						LinkedList<Tuple<Workspace, Window>> list;
-						if (applications.TryGetValue(lParam, out list))
+						if (ApplicationsTryGetValue(lParam, out list))
 						{
 							OnWindowFlashing(list);
 						}
@@ -734,7 +806,7 @@ namespace Windawesome
 				case NativeMethods.ShellEvents.HSHELL_REDRAW: // window's taskbar button has changed
 					{
 						LinkedList<Tuple<Workspace, Window>> list;
-						if (applications.TryGetValue(lParam, out list))
+						if (ApplicationsTryGetValue(lParam, out list))
 						{
 							var text = NativeMethods.GetText(lParam);
 							foreach (var t in list)

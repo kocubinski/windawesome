@@ -40,6 +40,7 @@ styleExNotContains - the extended window styles that must NOT be present in the 
 isManaged - whether Windawesome should care about that window
 windowCreatedDelay - the time, in milliseconds, to wait before taking any action after the window has been created. If Windawesome has problems with newly created windows, try setting this to a higher value
 switchToOnCreated - if true, Windawesome switches to this application even if it is not on the current workspace (i.e. it switches to the first workspace where it can find it)
+handleOwnedWindows - if true, Windawesome will handle a window that is owned by this one. Useful for applications using the VCL framework as they use a window which owns the "real" window
 rules - a list of Rule objects
 
 Whenever a new window is created, Windawesome tries to match it with any program rule in config.programRules. className and displayName must both match. The FIRST matching rule is used, that is why an "all-catch" rule should be at the end. After that, if a window is not managed, Windawesome does nothing more - which means you will see the window on every workspace and as a normal, floating window. Then Windawesome sleeps for windowCreatedDelay milliseconds and after that all the Rules are applied
