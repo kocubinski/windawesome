@@ -6,7 +6,7 @@ using System.Windows.Forms;
 
 namespace Windawesome
 {
-	public class Workspace
+	public sealed class Workspace
 	{
 		public readonly int ID;
 		public ILayout layout { get; private set; }
@@ -455,11 +455,11 @@ namespace Windawesome
 			if (windows.Count > 0 && !windows.First.Value.isMinimized)
 			{
 				var hasOwner = windows.First.Value.owner != IntPtr.Zero;
-				NativeMethods.ForceForegroundWindow(hasOwner ? windows.First.Value.owner : windows.First.Value.hWnd, !hasOwner);
+				Windawesome.ForceForegroundWindow(hasOwner ? windows.First.Value.owner : windows.First.Value.hWnd);
 			}
 			else
 			{
-				NativeMethods.ForceForegroundWindow(NativeMethods.GetDesktopWindow(), false);
+				Windawesome.ForceForegroundWindow(NativeMethods.GetDesktopWindow());
 			}
 		}
 

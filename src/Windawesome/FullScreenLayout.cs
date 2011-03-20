@@ -8,9 +8,9 @@ namespace Windawesome
 		private void MaximizeWindow(Window window, System.Drawing.Rectangle workingArea)
 		{
 			var ws = NativeMethods.GetWindowStyleLongPtr(window.hWnd);
-			if ((ws & NativeMethods.WS.WS_CAPTION) != 0 && (ws & NativeMethods.WS.WS_MAXIMIZEBOX) != 0)
+			if (ws.HasFlag(NativeMethods.WS.WS_CAPTION) && ws.HasFlag(NativeMethods.WS.WS_MAXIMIZEBOX))
 			{
-				if ((ws & NativeMethods.WS.WS_MAXIMIZE) == 0)
+				if (!ws.HasFlag(NativeMethods.WS.WS_MAXIMIZE))
 				{
 					// if there is a caption, we can make the window maximized
 					NativeMethods.ShowWindowAsync(window.hWnd, NativeMethods.SW.SW_SHOWMAXIMIZED);

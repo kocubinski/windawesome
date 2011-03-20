@@ -17,17 +17,6 @@ namespace Windawesome
 				GetWindowExStyleLongPtr = hWnd => GetWindowLongPtr64WS_EX(hWnd, GWL_EXSTYLE);
 				GetClassLongPtr = (hWnd, nIndex) => GetClassLongPtr64(hWnd, nIndex);
 				IsAppWindow = IsAppWindow64;
-				ForceForegroundWindow = (hWnd, bringToTop) =>
-					{
-						if (IsWindowVisible(hWnd))
-						{
-							ForceForegroundAndBringToTop(hWnd, ForceForegroundWindow64, bringToTop);
-						}
-						else
-						{
-							Windawesome.ExecuteOnWindowShown(hWnd, h => ForceForegroundAndBringToTop(h, ForceForegroundWindow64, bringToTop));
-						}
-					};
 				UnsubclassWindow = UnsubclassWindow64;
 				RunApplicationNonElevated = RunApplicationNonElevated64;
 				RegisterSystemTrayHook = RegisterSystemTrayHook64;
@@ -41,17 +30,6 @@ namespace Windawesome
 				GetWindowExStyleLongPtr = hWnd => GetWindowLong32WS_EX(hWnd, GWL_EXSTYLE);
 				GetClassLongPtr = (hWnd, nIndex) => GetClassLong32(hWnd, nIndex);
 				IsAppWindow = IsAppWindow32;
-				ForceForegroundWindow = (hWnd, bringToTop) =>
-					{
-						if (IsWindowVisible(hWnd))
-						{
-							ForceForegroundAndBringToTop(hWnd, ForceForegroundWindow32, bringToTop);
-						}
-						else
-						{
-							Windawesome.ExecuteOnWindowShown(hWnd, h => ForceForegroundAndBringToTop(h, ForceForegroundWindow32, bringToTop));
-						}
-					};
 				UnsubclassWindow = UnsubclassWindow32;
 				RunApplicationNonElevated = RunApplicationNonElevated32;
 				if (Environment.Is64BitOperatingSystem)
@@ -67,15 +45,6 @@ namespace Windawesome
 			}
 
 			NONCLIENTMETRICSSize = Marshal.SizeOf(typeof(NONCLIENTMETRICS)) - (Windawesome.isAtLeastVista ? 0 : 4);
-		}
-
-		private static void ForceForegroundAndBringToTop(IntPtr hWnd, Action<IntPtr> forceAction, bool bringToTop)
-		{
-			forceAction(hWnd);
-			if (bringToTop)
-			{
-				Windawesome.PostAction(() => BringWindowToTop(hWnd));
-			}
 		}
 
 		// hooks stuff
@@ -301,7 +270,7 @@ namespace Windawesome
 
 		#endregion
 
-		#region GetClassLong
+		#region GetClassLongPtr
 
 		public delegate IntPtr GetClassLongPtrDelegate(IntPtr hWnd, int nIndex);
 		public static readonly GetClassLongPtrDelegate GetClassLongPtr;
@@ -327,14 +296,17 @@ namespace Windawesome
 		[DllImport("user32.dll")]
 		public static extern IntPtr GetDesktopWindow();
 
-		[DllImport("user32.dll")]
-		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool BringWindowToTop(IntPtr hWnd);
+		#region GetWindow
 
 		[DllImport("user32.dll")]
-		public static extern IntPtr GetWindow(IntPtr hWnd, uint uCmd);
+		public static extern IntPtr GetWindow(IntPtr hWnd, GW uCmd);
 
-		public const uint GW_OWNER = 4;
+		public enum GW : uint
+		{
+			GW_OWNER = 4
+		}
+
+		#endregion
 
 		#region FindWindow/FindWindowEx
 
@@ -363,11 +335,11 @@ namespace Windawesome
 		[DllImport("user32.dll", EntryPoint = "SetWindowLong")]
 		private static extern UIntPtr SetWindowLong32(IntPtr hWnd, int nIndex, WS dwNewLong);
 
-		[DllImport("user32.dll", EntryPoint = "SetWindowLong")]
-		private static extern UIntPtr SetWindowLong32(IntPtr hWnd, int nIndex, WS_EX dwNewLong);
-
 		[DllImport("user32.dll", EntryPoint = "SetWindowLongPtr")]
 		private static extern UIntPtr SetWindowLongPtr64(IntPtr hWnd, int nIndex, WS dwNewLong);
+
+		[DllImport("user32.dll", EntryPoint = "SetWindowLong")]
+		private static extern UIntPtr SetWindowLong32(IntPtr hWnd, int nIndex, WS_EX dwNewLong);
 
 		[DllImport("user32.dll", EntryPoint = "SetWindowLongPtr")]
 		private static extern UIntPtr SetWindowLongPtr64(IntPtr hWnd, int nIndex, WS_EX dwNewLong);
@@ -375,11 +347,11 @@ namespace Windawesome
 		[DllImport("user32.dll", EntryPoint = "GetWindowLong")]
 		private static extern WS GetWindowLong32WS(IntPtr hWnd, int nIndex);
 
-		[DllImport("user32.dll", EntryPoint = "GetWindowLong")]
-		private static extern WS_EX GetWindowLong32WS_EX(IntPtr hWnd, int nIndex);
-
 		[DllImport("user32.dll", EntryPoint = "GetWindowLongPtr")]
 		private static extern WS GetWindowLongPtr64WS(IntPtr hWnd, int nIndex);
+
+		[DllImport("user32.dll", EntryPoint = "GetWindowLong")]
+		private static extern WS_EX GetWindowLong32WS_EX(IntPtr hWnd, int nIndex);
 
 		[DllImport("user32.dll", EntryPoint = "GetWindowLongPtr")]
 		private static extern WS_EX GetWindowLongPtr64WS_EX(IntPtr hWnd, int nIndex);
@@ -648,7 +620,101 @@ namespace Windawesome
 
 		#endregion
 
+		// keyboard stuff
+
+		#region SendInput
+
+		[DllImport("user32.dll")]
+		public static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
+
+		[StructLayout(LayoutKind.Sequential)]
+		public struct MouseInputData
+		{
+			public int dx;
+			public int dy;
+			public uint mouseData;
+			public uint dwFlags;
+			public uint time;
+			public IntPtr dwExtraInfo;
+		}
+
+		[StructLayout(LayoutKind.Sequential)]
+		public struct KEYBDINPUT
+		{
+			public ushort wVk;
+			public ushort wScan;
+			public uint dwFlags;
+			public uint time;
+			public IntPtr dwExtraInfo;
+		}
+
+		[StructLayout(LayoutKind.Explicit)]
+		public struct MouseKeybdhardwareInputUnion
+		{
+			[FieldOffset(0)]
+			public MouseInputData mi;
+			[FieldOffset(0)]
+			public KEYBDINPUT ki;
+		}
+
+		public static readonly UIntPtr INPUT_KEYBOARD = (UIntPtr) 1;
+
+		[StructLayout(LayoutKind.Sequential)]
+		public struct INPUT
+		{
+			public UIntPtr type;
+			public MouseKeybdhardwareInputUnion mkhi;
+
+			public INPUT(System.Windows.Forms.Keys key, uint flags)
+			{
+				type = INPUT_KEYBOARD;
+				mkhi = new MouseKeybdhardwareInputUnion { ki = new KEYBDINPUT { wVk = (ushort) key, dwFlags = flags } };
+			}
+		}
+
+		public static readonly int INPUTSize = Marshal.SizeOf(typeof(INPUT));
+
+		public const uint KEYEVENTF_KEYUP = 0x0002;
+
+		#endregion
+
+		#region RegisterHotKey/UnregisterHotKey
+
+		[DllImport("user32.dll")]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		public static extern bool RegisterHotKey([Optional] IntPtr hWnd, int id, MOD fsModifiers, System.Windows.Forms.Keys vk);
+
+		[DllImport("user32.dll")]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		public static extern bool UnregisterHotKey([Optional] IntPtr hWnd, int id);
+
+		public enum MOD : uint
+		{
+			MOD_ALT = 0x1,
+			MOD_CONTROL = 0x2,
+			MOD_SHIFT = 0x4,
+			MOD_WIN = 0x8,
+			MOD_NOREPEAT = 0x4000
+		}
+
+		public const int WM_HOTKEY = 0x312;
+
+		#endregion
+
+		[DllImport("user32.dll")]
+		public static extern short GetKeyState(System.Windows.Forms.Keys nVirtKey);
+
 		// misc stuff
+
+		#region GlobalAddAtom/GlobalDeleteAtom
+
+		[DllImport("kernel32.dll", CharSet = CharSet.Auto)]
+		public static extern ushort GlobalAddAtom([MarshalAs(UnmanagedType.LPTStr)] string atomName);
+
+		[DllImport("kernel32.dll")]
+		public static extern ushort GlobalDeleteAtom(ushort nAtom);
+
+		#endregion
 
 		#region Is64BitProcess
 
@@ -691,9 +757,6 @@ namespace Windawesome
 		public delegate bool IsAppWindowDelegate(IntPtr hWnd);
 		public static readonly IsAppWindowDelegate IsAppWindow;
 
-		public delegate void ForceForegroundWindowDelegate(IntPtr hWnd, bool bringToTop);
-		public static readonly ForceForegroundWindowDelegate ForceForegroundWindow;
-
 		public delegate void RunApplicationNonElevatedDelegate(string path, string arguments);
 		public static readonly RunApplicationNonElevatedDelegate RunApplicationNonElevated;
 
@@ -713,12 +776,6 @@ namespace Windawesome
 		[DllImport("Helpers64.dll", CallingConvention = CallingConvention.Cdecl, EntryPoint = "IsAppWindow")]
 		[return: MarshalAs(UnmanagedType.Bool)]
 		private static extern bool IsAppWindow64(IntPtr hWnd);
-
-		[DllImport("Helpers32.dll", CallingConvention = CallingConvention.Cdecl, EntryPoint = "ForceForegroundWindow")]
-		private static extern void ForceForegroundWindow32(IntPtr hWnd);
-
-		[DllImport("Helpers64.dll", CallingConvention = CallingConvention.Cdecl, EntryPoint = "ForceForegroundWindow")]
-		private static extern void ForceForegroundWindow64(IntPtr hWnd);
 
 		[DllImport("Helpers32.dll", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Unicode, EntryPoint = "RunApplicationNonElevated")]
 		private static extern void RunApplicationNonElevated32([MarshalAs(UnmanagedType.LPWStr)] string path, [MarshalAs(UnmanagedType.LPWStr)] string arguments);
@@ -768,32 +825,6 @@ namespace Windawesome
 
 		[DllImport("user32.dll")]
 		public static extern uint GetWindowThreadProcessId(IntPtr hWnd, [Optional, Out] out int lpdwProcessId);
-
-		#region RegisterHotKey/UnregisterHotKey/GetKeyState
-
-		[DllImport("user32.dll")]
-		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool RegisterHotKey([Optional] IntPtr hWnd, int id, MOD fsModifiers, System.Windows.Forms.Keys vk);
-
-		[DllImport("user32.dll")]
-		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool UnregisterHotKey([Optional] IntPtr hWnd, int id);
-
-		public enum MOD : uint
-		{
-			MOD_ALT = 0x1,
-			MOD_CONTROL = 0x2,
-			MOD_SHIFT = 0x4,
-			MOD_WIN = 0x8,
-			MOD_NOREPEAT = 0x4000
-		}
-
-		public const int WM_HOTKEY = 0x312;
-
-		[DllImport("user32.dll")]
-		public static extern short GetKeyState(System.Windows.Forms.Keys nVirtKey);
-
-		#endregion
 
 		public static readonly IntPtr IntPtrOne = (IntPtr) 1;
 

@@ -1,10 +1,16 @@
 from System.Drawing import Font, Color
 from System.Linq import Enumerable
-from Windawesome import ILayout, TileLayout, FullScreenLayout, FloatingLayout, IPlugin, WindowSubclassing, Workspace, Bar, LayoutWidget, WorkspacesWidget, ApplicationTabsWidget, SystemTrayWidget, CPUMonitorWidget, LoggerPlugin, ShortcutsManager
+from Windawesome import ILayout, TileLayout, FullScreenLayout, FloatingLayout, IPlugin, WindowSubclassing, Workspace
+from Windawesome import Bar, LayoutWidget, WorkspacesWidget, ApplicationTabsWidget, SystemTrayWidget, CPUMonitorWidget
+from Windawesome import LoggerPlugin, ShortcutsManager
+from Windawesome.NativeMethods import MOD
 from System import Tuple
+from System.Windows.Forms import Keys
 
 config.borderWidth = 1
 config.paddedBorderWidth = 0
+
+config.uniqueHotkey = Tuple[MOD, Keys](MOD.MOD_ALT | MOD.MOD_CONTROL | MOD.MOD_WIN | MOD.MOD_SHIFT, Keys.Add)
 
 config.layouts = Enumerable.ToArray[ILayout]([TileLayout(), FullScreenLayout(), FloatingLayout()])
 

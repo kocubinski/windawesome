@@ -22,11 +22,12 @@ namespace Windawesome
 			}
 			catch (Exception e)
 			{
-				System.IO.StreamWriter writer = new System.IO.StreamWriter("log.txt", true);
-				writer.WriteLine("------------------------------------");
-				writer.WriteLine(DateTime.Now);
-				writer.WriteLine(e);
-				writer.Close();
+				System.IO.File.AppendAllLines("log.txt", new string[]
+					{
+						"------------------------------------",
+						DateTime.Now.ToString(),
+						e.ToString()
+					});
 
 				if (windawesome != null)
 				{
@@ -42,7 +43,7 @@ namespace Windawesome
 				Windawesome.WindawesomeExiting += Windawesome_WindawesomeExiting;
 			}
 
-			void Windawesome_WindawesomeExiting()
+			private void Windawesome_WindawesomeExiting()
 			{
 				this.ExitThread();
 			}

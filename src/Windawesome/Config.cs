@@ -55,6 +55,7 @@ namespace Windawesome
 		public ProgramRule[] programRules;
 		public int borderWidth = -1;
 		public int paddedBorderWidth = -1;
+		public Tuple<NativeMethods.MOD, System.Windows.Forms.Keys> uniqueHotkey;
 
 		private class PluginLoader
 		{

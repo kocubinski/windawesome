@@ -7,7 +7,7 @@ using System.Windows.Forms;
 
 namespace Windawesome
 {
-	public class Windawesome : NativeWindow
+	public sealed class Windawesome : NativeWindow
 	{
 		private readonly Config config;
 		private readonly Dictionary<IntPtr, LinkedList<Tuple<Workspace, Window>>> applications; // hWnd to a list of workspaces and windows
@@ -22,6 +22,9 @@ namespace Windawesome
 		private static Action<IntPtr> onWindowShownHandler;
 		private readonly bool changedNonClientMetrics = false;
 		private readonly bool finishedInitializing = false;
+		private readonly IntPtr getForegroundPrivilageAtom;
+		private static Tuple<NativeMethods.MOD, Keys> uniqueHotkey;
+		private static IntPtr forceForegroundWindow;
 
 		internal static int[] workspaceBarsEquivalentClasses;
 
@@ -143,12 +146,6 @@ namespace Windawesome
 			// add all windows to their respective workspace
 			NativeMethods.EnumWindows((hWnd, _) => AddWindowToWorkspace(hWnd) || true, IntPtr.Zero);
 
-			// initialize all workspaces
-			config.workspaces.Skip(1).ForEach(ws => ws.Initialize(ws.ID == config.startingWorkspace));
-
-			// switches to the default starting workspace
-			config.workspaces[0].SwitchTo();
-
 			Windawesome.WindawesomeExiting += Windawesome_WindawesomeExiting;
 
 			// add a handler for when the working area changes
@@ -177,9 +174,27 @@ namespace Windawesome
 						ref metrics, NativeMethods.SPIF_SENDCHANGE));
 			}
 
+			// register hotkey for forcing a foreground window
+			uniqueHotkey = config.uniqueHotkey;
+			getForegroundPrivilageAtom = (IntPtr) NativeMethods.GlobalAddAtom("WindawesomeShortcutGetForegroundPrivilage");
+			if (!NativeMethods.RegisterHotKey(this.Handle, (ushort) getForegroundPrivilageAtom, config.uniqueHotkey.Item1, config.uniqueHotkey.Item2))
+			{
+				OutputWarning("There was a problem registering the unique hotkey! Probably this key-combination is in " +
+					"use by some other program! Please use a unique one, otherwise Windawesome won't be able to switch " +
+					"to windows as you change workspaces!");
+			}
+
 			// register a shell hook
 			NativeMethods.RegisterShellHookWindow(handle);
 			shellMessageNum = NativeMethods.RegisterWindowMessage("SHELLHOOK");
+
+			// initialize all workspaces
+			config.workspaces.Skip(1).Where(ws => ws.ID != config.startingWorkspace).
+				ForEach(ws => ws.GetWindows().ForEach(w => hiddenApplications.Add(w.hWnd)));
+			config.workspaces.Skip(1).ForEach(ws => ws.Initialize(ws.ID == config.startingWorkspace));
+
+			// switches to the default starting workspace
+			PostAction(() => config.workspaces[0].SwitchTo());
 
 			finishedInitializing = true;
 		}
@@ -205,6 +220,9 @@ namespace Windawesome
 		private void Windawesome_WindawesomeExiting()
 		{
 			Microsoft.Win32.SystemEvents.UserPreferenceChanged -= SystemEvents_UserPreferenceChanged;
+
+			NativeMethods.UnregisterHotKey(this.Handle, (ushort) getForegroundPrivilageAtom);
+			NativeMethods.GlobalDeleteAtom((ushort) getForegroundPrivilageAtom);
 
 			// unregister shell hook
 			NativeMethods.DeregisterShellHookWindow(handle);
@@ -265,6 +283,8 @@ namespace Windawesome
 
 		#endregion
 
+		#region Helpers
+
 		private bool AddWindowToWorkspace(IntPtr hWnd)
 		{
 			if (NativeMethods.IsAppWindow(hWnd))
@@ -315,7 +335,7 @@ namespace Windawesome
 					NativeMethods.EnumWindows((h, hOwner) =>
 						{
 							if (NativeMethods.IsWindowVisible(h) &&
-								NativeMethods.GetWindow(h, NativeMethods.GW_OWNER) == hOwner)
+								NativeMethods.GetWindow(h, NativeMethods.GW.GW_OWNER) == hOwner)
 							{
 								ownerWindows[hOwner] = h;
 								return false;
@@ -360,6 +380,16 @@ namespace Windawesome
 			return false;
 		}
 
+		private static void OutputWarning(string warning)
+		{
+			System.IO.File.AppendAllLines("warnings.txt", new string[]
+				{
+					"------------------------------------",
+					DateTime.Now.ToString(),
+					warning
+				});
+		}
+
 		private void RefreshApplicationsHash()
 		{
 			HashSet<IntPtr> set = new HashSet<IntPtr>();
@@ -367,7 +397,7 @@ namespace Windawesome
 			NativeMethods.EnumWindows((hWnd, _) =>
 				{
 					set.Add(hWnd);
-					if (NativeMethods.IsAppWindow(hWnd) && !applications.ContainsKey(hWnd))
+					if (NativeMethods.IsWindowVisible(hWnd) && !applications.ContainsKey(hWnd))
 					{
 						// add any application that was not added for some reason when it was created
 						AddWindowToWorkspace(hWnd);
@@ -379,6 +409,139 @@ namespace Windawesome
 			applications.Keys.Where(app => !set.Contains(app)).ToArray().
 				ForEach(RemoveApplicationFromAllWorkspaces);
 		}
+
+		private static readonly NativeMethods.INPUT[] input = new NativeMethods.INPUT[26];
+		// sends the uniqueHotkey combination without disrupting the currently pressed modifiers
+		internal static void ForceForegroundWindow(IntPtr hWnd)
+		{
+			ExecuteOnWindowShown(hWnd, h =>
+				{
+					forceForegroundWindow = h;
+
+					var leftAltPressed = (NativeMethods.GetKeyState(Keys.LMenu) & 0x80) == 0x80;
+					var rightAltPressed = (NativeMethods.GetKeyState(Keys.RMenu) & 0x80) == 0x80;
+					var altShouldBePressed = uniqueHotkey.Item1.HasFlag(NativeMethods.MOD.MOD_ALT);
+
+					var leftControlPressed = (NativeMethods.GetKeyState(Keys.LControlKey) & 0x80) == 0x80;
+					var rightControlPressed = (NativeMethods.GetKeyState(Keys.RControlKey) & 0x80) == 0x80;
+					var controlShouldBePressed = uniqueHotkey.Item1.HasFlag(NativeMethods.MOD.MOD_CONTROL);
+
+					var leftShiftPressed = (NativeMethods.GetKeyState(Keys.LShiftKey) & 0x80) == 0x80;
+					var rightShiftPressed = (NativeMethods.GetKeyState(Keys.RShiftKey) & 0x80) == 0x80;
+					var shiftShouldBePressed = uniqueHotkey.Item1.HasFlag(NativeMethods.MOD.MOD_SHIFT);
+
+					var leftWinPressed = (NativeMethods.GetKeyState(Keys.LWin) & 0x80) == 0x80;
+					var rightWinPressed = (NativeMethods.GetKeyState(Keys.RWin) & 0x80) == 0x80;
+					var winShouldBePressed = uniqueHotkey.Item1.HasFlag(NativeMethods.MOD.MOD_WIN);
+
+					uint i = 0;
+
+					// press needed modifiers
+					PressReleaseModifierKeys(
+						leftAltPressed, rightAltPressed, altShouldBePressed,
+						leftControlPressed, rightControlPressed, controlShouldBePressed,
+						leftShiftPressed, rightShiftPressed, shiftShouldBePressed,
+						leftWinPressed, rightWinPressed, winShouldBePressed,
+						0, NativeMethods.KEYEVENTF_KEYUP, ref i);
+
+					// press and release key
+					input[i++] = new NativeMethods.INPUT(uniqueHotkey.Item2, 0);
+					input[i++] = new NativeMethods.INPUT(uniqueHotkey.Item2, NativeMethods.KEYEVENTF_KEYUP);
+
+					// revert changes to modifiers
+					PressReleaseModifierKeys(
+						leftAltPressed, rightAltPressed, altShouldBePressed,
+						leftControlPressed, rightControlPressed, controlShouldBePressed,
+						leftShiftPressed, rightShiftPressed, shiftShouldBePressed,
+						leftWinPressed, rightWinPressed, winShouldBePressed,
+						NativeMethods.KEYEVENTF_KEYUP, 0, ref i);
+
+					NativeMethods.SendInput(i, input, NativeMethods.INPUTSize);
+				});
+		}
+
+		private static void PressReleaseModifierKeys(
+			bool leftAltPressed, bool rightAltPressed, bool altShouldBePressed,
+			bool leftControlPressed, bool rightControlPressed, bool controlShouldBePressed,
+			bool leftShiftPressed, bool rightShiftPressed, bool shiftShouldBePressed,
+			bool leftWinPressed, bool rightWinPressed, bool winShouldBePressed,
+			uint flags, uint flags2, ref uint i)
+		{
+			if (altShouldBePressed)
+			{
+				if (!leftAltPressed && !rightAltPressed)
+				{
+					input[i++] = new NativeMethods.INPUT(Keys.Menu, flags);
+				}
+			}
+			else
+			{
+				if (leftAltPressed)
+				{
+					input[i++] = new NativeMethods.INPUT(Keys.LMenu, flags2);
+				}
+				if (rightAltPressed)
+				{
+					input[i++] = new NativeMethods.INPUT(Keys.RMenu, flags2);
+				}
+			}
+			if (controlShouldBePressed)
+			{
+				if (!leftControlPressed && !rightControlPressed)
+				{
+					input[i++] = new NativeMethods.INPUT(Keys.ControlKey, flags);
+				}
+			}
+			else
+			{
+				if (leftControlPressed)
+				{
+					input[i++] = new NativeMethods.INPUT(Keys.LControlKey, flags2);
+				}
+				if (rightControlPressed)
+				{
+					input[i++] = new NativeMethods.INPUT(Keys.RControlKey, flags2);
+				}
+			}
+			if (shiftShouldBePressed)
+			{
+				if (!leftShiftPressed && !rightShiftPressed)
+				{
+					input[i++] = new NativeMethods.INPUT(Keys.ShiftKey, flags);
+				}
+			}
+			else
+			{
+				if (leftShiftPressed)
+				{
+					input[i++] = new NativeMethods.INPUT(Keys.LShiftKey, flags2);
+				}
+				if (rightShiftPressed)
+				{
+					input[i++] = new NativeMethods.INPUT(Keys.RShiftKey, flags2);
+				}
+			}
+			if (winShouldBePressed)
+			{
+				if (!leftWinPressed && !rightWinPressed)
+				{
+					input[i++] = new NativeMethods.INPUT(Keys.LWin, flags);
+				}
+			}
+			else
+			{
+				if (leftWinPressed)
+				{
+					input[i++] = new NativeMethods.INPUT(Keys.LWin, flags2);
+				}
+				if (rightWinPressed)
+				{
+					input[i++] = new NativeMethods.INPUT(Keys.RWin, flags2);
+				}
+			}
+		}
+
+		#endregion
 
 		#region API
 
@@ -583,7 +746,7 @@ namespace Windawesome
 					NativeMethods.ShowWindowAsync(hWnd, NativeMethods.SW.SW_RESTORE);
 				}
 
-				NativeMethods.ForceForegroundWindow(hWnd, true);
+				ForceForegroundWindow(hWnd);
 
 				return true;
 			}
@@ -704,8 +867,15 @@ namespace Windawesome
 
 		public static void ExecuteOnWindowShown(IntPtr hWnd, Action<IntPtr> action)
 		{
-			onWindowShownHandle = hWnd;
-			onWindowShownHandler = action;
+			if (NativeMethods.IsWindowVisible(hWnd))
+			{
+				action(hWnd);
+			}
+			else
+			{
+				onWindowShownHandle = hWnd;
+				onWindowShownHandler = action;
+			}
 		}
 
 		#endregion
@@ -855,6 +1025,14 @@ namespace Windawesome
 			else if (m.Msg == postActionMessageNum)
 			{
 				postedActions.Dequeue()();
+				return ;
+			}
+			else if (m.Msg == NativeMethods.WM_HOTKEY && m.WParam == getForegroundPrivilageAtom)
+			{
+				NativeMethods.SetForegroundWindow(forceForegroundWindow);
+				NativeMethods.SetWindowPos(forceForegroundWindow, NativeMethods.HWND_TOP, 0, 0, 0, 0,
+					NativeMethods.SWP.SWP_ASYNCWINDOWPOS | NativeMethods.SWP.SWP_NOMOVE |
+					NativeMethods.SWP.SWP_NOOWNERZORDER | NativeMethods.SWP.SWP_NOSIZE);
 				return ;
 			}
 			else if (messageHandlers.TryGetValue(m.Msg, out messageDelegate))

@@ -225,7 +225,7 @@ namespace Windawesome
 
 		private static bool TrayIconVisible(SystemTray.TrayIcon trayIcon)
 		{
-			return (trayIcon.state & NativeMethods.IconState.NIS_HIDDEN) == 0;
+			return !trayIcon.state.HasFlag(NativeMethods.IconState.NIS_HIDDEN);
 		}
 
 		private static void TrayIconAdded(NativeMethods.NOTIFYICONDATA iconData)
@@ -321,7 +321,7 @@ namespace Windawesome
 
 		private IEnumerable<PictureBox> GetPictureBoxes()
 		{
-			return icons.Where(t => (t.Value.Item1.state & NativeMethods.IconState.NIS_HIDDEN) == 0).Select(t => t.Value.Item2);
+			return icons.Where(t => TrayIconVisible(t.Value.Item1)).Select(t => t.Value.Item2);
 		}
 
 		#region IWidget Members

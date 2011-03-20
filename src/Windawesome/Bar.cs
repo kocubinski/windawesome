@@ -6,7 +6,7 @@ using System.Windows.Forms;
 
 namespace Windawesome
 {
-	public class Bar
+	public sealed class Bar
 	{
 		private static readonly HashSet<Type> widgetTypes;
 		private static readonly IntPtr desktopWindowHandle;
