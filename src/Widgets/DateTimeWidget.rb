@@ -2,6 +2,7 @@
 class DateTimeWidget
 	include Windawesome::IWidget
 	include System
+    include System::Collections::Generic
 	include System::Drawing
 	include System::Windows::Forms
 	include System::Linq
@@ -48,9 +49,7 @@ class DateTimeWidget
 
 		self.reposition_controls left, right
 
-		res = Array[Control].new 1
-		res[0] = @label
-		res
+        Enumerable.repeat @label, 1
 	end
 
 	def reposition_controls left, right

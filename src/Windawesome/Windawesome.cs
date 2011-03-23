@@ -106,7 +106,7 @@ namespace Windawesome
 
 			isRunningElevated = NativeMethods.IsUserAnAdmin();
 
-			messageHandlers = new Dictionary<int, HandleMessageDelegate>();
+			messageHandlers = new Dictionary<int, HandleMessageDelegate>(2);
 
 			originalNonClientMetrics = NativeMethods.NONCLIENTMETRICS.GetNONCLIENTMETRICS();
 			NativeMethods.SystemParametersInfo(NativeMethods.SPI_GETNONCLIENTMETRICS, originalNonClientMetrics.cbSize,
@@ -141,7 +141,7 @@ namespace Windawesome
 
 			applications = new Dictionary<IntPtr, LinkedList<Tuple<Workspace, Window>>>(30);
 			hiddenApplications = new HashMultiSet<IntPtr>();
-			ownerWindows = new Dictionary<IntPtr, IntPtr>();
+			ownerWindows = new Dictionary<IntPtr, IntPtr>(2);
 
 			// add all windows to their respective workspace
 			NativeMethods.EnumWindows((hWnd, _) => AddWindowToWorkspace(hWnd) || true, IntPtr.Zero);
@@ -905,8 +905,8 @@ namespace Windawesome
 					}
 					else if (lParam == onWindowShownHandle)
 					{
-						onWindowShownHandler(lParam);
 						onWindowShownHandle = IntPtr.Zero;
+						onWindowShownHandler(lParam);
 					}
 					break;
 				case NativeMethods.ShellEvents.HSHELL_WINDOWDESTROYED: // window destroyed or minimized to tray

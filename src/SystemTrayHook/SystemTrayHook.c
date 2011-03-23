@@ -59,9 +59,7 @@ static LRESULT CALLBACK HookCallback(int code, WPARAM wParam, LPARAM lParam)
 			{
 				if (((SHELLTRAYDATA*) copyDataStruct->lpData)->dwHz == 0x34753423)
 				{
-					DWORD_PTR result;
-					SendMessageTimeout(applicationHandle, WM_COPYDATA, pInfo->wParam, pInfo->lParam,
-						SMTO_NORMAL, 2000, &result);
+					SendMessage(applicationHandle, WM_COPYDATA, pInfo->wParam, pInfo->lParam);
 				}
 			}
 		}

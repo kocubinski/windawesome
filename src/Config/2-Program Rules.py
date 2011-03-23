@@ -58,6 +58,15 @@ config.programRules = Enumerable.ToArray[ProgramRule]([
 		rules = [ProgramRule.Rule(workspace = 4, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
 	),
 	ProgramRule(
+		className = "^__oxFrame.class__$", # ICQ
+		displayName = "^ICQ$",
+		rules = [ProgramRule.Rule(workspace = 4, isFloating = True)]
+	),
+	ProgramRule(
+		className = "^__oxFrame.class__$", # ICQ, chat window
+		rules = [ProgramRule.Rule(workspace = 4)]
+	),
+	ProgramRule(
 		className = "^MediaPlayerClassicW$",
 		windowCreatedDelay = 100,
 		rules = [ProgramRule.Rule(workspace = 1)]

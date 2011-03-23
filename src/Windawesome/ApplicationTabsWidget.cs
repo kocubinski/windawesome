@@ -14,8 +14,8 @@ namespace Windawesome
 		private Dictionary<IntPtr, Panel>[] applicationPanels; // hWnd -> Panel
 		private Panel currentlyHighlightedPanel;
 		private bool[] mustResize;
-		private bool showSingleApplicationTab;
 		private int left, right;
+		private readonly bool showSingleApplicationTab;
 		private readonly Color normalForegroundColor;
 		private readonly Color normalBackgroundColor;
 		private readonly Color highlightedForegroundColor;
@@ -145,7 +145,7 @@ namespace Windawesome
 					Key);
 		}
 
-		private void WindowTitleOrIconChanged(Workspace workspace, Window window, string newText)
+		private void ApplicationTabsWidget_WindowTitleOrIconChanged(Workspace workspace, Window window, string newText)
 		{
 			Panel panel;
 			var applications = applicationPanels[workspace.ID - 1];
@@ -264,7 +264,7 @@ namespace Windawesome
 		{
 			this.bar = bar;
 
-			Windawesome.WindowTitleOrIconChanged += WindowTitleOrIconChanged;
+			Windawesome.WindowTitleOrIconChanged += ApplicationTabsWidget_WindowTitleOrIconChanged;
 			Workspace.WorkspaceApplicationAdded += ApplicationTabsWidget_WorkspaceApplicationAdded;
 			Workspace.WorkspaceApplicationRemoved += ApplicationTabsWidget_WorkspaceApplicationRemoved;
 			Workspace.WorkspaceApplicationRestored += (_, w) => ApplicationTabsWidget_WindowActivated(w.hWnd);
@@ -279,7 +279,7 @@ namespace Windawesome
 			for (int i = 0; i < config.workspacesCount; i++)
 			{
 				mustResize[i] = false;
-				applicationPanels[i] = new Dictionary<IntPtr, Panel>();
+				applicationPanels[i] = new Dictionary<IntPtr, Panel>(3);
 			}
 		}
 
