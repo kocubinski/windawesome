@@ -294,6 +294,10 @@ namespace Windawesome
 		public static extern bool IsWindowVisible(IntPtr hWnd);
 
 		[DllImport("user32.dll")]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		public static extern bool IsWindow([Optional] IntPtr hWnd);
+
+		[DllImport("user32.dll")]
 		public static extern IntPtr GetDesktopWindow();
 
 		#region GetWindow

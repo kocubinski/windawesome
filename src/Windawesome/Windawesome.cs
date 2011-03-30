@@ -343,7 +343,11 @@ namespace Windawesome
 							return true;
 						}, hWnd);
 
-					var hOwned = ownerWindows[hWnd];
+					IntPtr hOwned;
+					if (!ownerWindows.TryGetValue(hWnd, out hOwned))
+					{
+						return false;
+					}
 					string classNameOwned = NativeMethods.GetWindowClassName(hOwned);
 					string displayNameOwned = NativeMethods.GetText(hOwned);
 					var styleOwned = NativeMethods.GetWindowStyleLongPtr(hOwned);
@@ -410,133 +414,89 @@ namespace Windawesome
 				ForEach(RemoveApplicationFromAllWorkspaces);
 		}
 
-		private static readonly NativeMethods.INPUT[] input = new NativeMethods.INPUT[26];
-		// sends the uniqueHotkey combination without disrupting the currently pressed modifiers
 		internal static void ForceForegroundWindow(IntPtr hWnd)
 		{
-			ExecuteOnWindowShown(hWnd, h =>
-				{
-					forceForegroundWindow = h;
-
-					var leftAltPressed = (NativeMethods.GetKeyState(Keys.LMenu) & 0x80) == 0x80;
-					var rightAltPressed = (NativeMethods.GetKeyState(Keys.RMenu) & 0x80) == 0x80;
-					var altShouldBePressed = uniqueHotkey.Item1.HasFlag(NativeMethods.MOD.MOD_ALT);
-
-					var leftControlPressed = (NativeMethods.GetKeyState(Keys.LControlKey) & 0x80) == 0x80;
-					var rightControlPressed = (NativeMethods.GetKeyState(Keys.RControlKey) & 0x80) == 0x80;
-					var controlShouldBePressed = uniqueHotkey.Item1.HasFlag(NativeMethods.MOD.MOD_CONTROL);
-
-					var leftShiftPressed = (NativeMethods.GetKeyState(Keys.LShiftKey) & 0x80) == 0x80;
-					var rightShiftPressed = (NativeMethods.GetKeyState(Keys.RShiftKey) & 0x80) == 0x80;
-					var shiftShouldBePressed = uniqueHotkey.Item1.HasFlag(NativeMethods.MOD.MOD_SHIFT);
-
-					var leftWinPressed = (NativeMethods.GetKeyState(Keys.LWin) & 0x80) == 0x80;
-					var rightWinPressed = (NativeMethods.GetKeyState(Keys.RWin) & 0x80) == 0x80;
-					var winShouldBePressed = uniqueHotkey.Item1.HasFlag(NativeMethods.MOD.MOD_WIN);
-
-					uint i = 0;
-
-					// press needed modifiers
-					PressReleaseModifierKeys(
-						leftAltPressed, rightAltPressed, altShouldBePressed,
-						leftControlPressed, rightControlPressed, controlShouldBePressed,
-						leftShiftPressed, rightShiftPressed, shiftShouldBePressed,
-						leftWinPressed, rightWinPressed, winShouldBePressed,
-						0, NativeMethods.KEYEVENTF_KEYUP, ref i);
-
-					// press and release key
-					input[i++] = new NativeMethods.INPUT(uniqueHotkey.Item2, 0);
-					input[i++] = new NativeMethods.INPUT(uniqueHotkey.Item2, NativeMethods.KEYEVENTF_KEYUP);
-
-					// revert changes to modifiers
-					PressReleaseModifierKeys(
-						leftAltPressed, rightAltPressed, altShouldBePressed,
-						leftControlPressed, rightControlPressed, controlShouldBePressed,
-						leftShiftPressed, rightShiftPressed, shiftShouldBePressed,
-						leftWinPressed, rightWinPressed, winShouldBePressed,
-						NativeMethods.KEYEVENTF_KEYUP, 0, ref i);
-
-					NativeMethods.SendInput(i, input, NativeMethods.INPUTSize);
-				});
+			ExecuteOnWindowShown(hWnd, SendHotkey);
 		}
 
-		private static void PressReleaseModifierKeys(
-			bool leftAltPressed, bool rightAltPressed, bool altShouldBePressed,
-			bool leftControlPressed, bool rightControlPressed, bool controlShouldBePressed,
-			bool leftShiftPressed, bool rightShiftPressed, bool shiftShouldBePressed,
-			bool leftWinPressed, bool rightWinPressed, bool winShouldBePressed,
+		private static readonly NativeMethods.INPUT[] input = new NativeMethods.INPUT[18];
+		// sends the uniqueHotkey combination without disrupting the currently pressed modifiers
+		private static void SendHotkey(IntPtr hWnd)
+		{
+			uint i = 0;
+
+			// press needed modifiers
+			var shiftShouldBePressed = uniqueHotkey.Item1.HasFlag(NativeMethods.MOD.MOD_SHIFT);
+			var leftShiftPressed = (NativeMethods.GetKeyState(Keys.LShiftKey) & 0x80) == 0x80;
+			var rightShiftPressed = (NativeMethods.GetKeyState(Keys.RShiftKey) & 0x80) == 0x80;
+
+			PressReleaseModifierKey(leftShiftPressed, rightShiftPressed, shiftShouldBePressed,
+				Keys.ShiftKey, Keys.LShiftKey, Keys.RShiftKey, 0, NativeMethods.KEYEVENTF_KEYUP, ref i);
+
+			var winShouldBePressed = uniqueHotkey.Item1.HasFlag(NativeMethods.MOD.MOD_WIN);
+			var leftWinPressed = (NativeMethods.GetKeyState(Keys.LWin) & 0x80) == 0x80;
+			var rightWinPressed = (NativeMethods.GetKeyState(Keys.RWin) & 0x80) == 0x80;
+
+			PressReleaseModifierKey(leftWinPressed, rightWinPressed, winShouldBePressed,
+				Keys.LWin, Keys.LWin, Keys.RWin, 0, NativeMethods.KEYEVENTF_KEYUP, ref i);
+
+			var controlShouldBePressed = uniqueHotkey.Item1.HasFlag(NativeMethods.MOD.MOD_CONTROL);
+			var leftControlPressed = (NativeMethods.GetKeyState(Keys.LControlKey) & 0x80) == 0x80;
+			var rightControlPressed = (NativeMethods.GetKeyState(Keys.RControlKey) & 0x80) == 0x80;
+
+			PressReleaseModifierKey(leftControlPressed, rightControlPressed, controlShouldBePressed,
+				Keys.ControlKey, Keys.LControlKey, Keys.RControlKey, 0, NativeMethods.KEYEVENTF_KEYUP, ref i);
+
+			var altShouldBePressed = uniqueHotkey.Item1.HasFlag(NativeMethods.MOD.MOD_ALT);
+			var leftAltPressed = (NativeMethods.GetKeyState(Keys.LMenu) & 0x80) == 0x80;
+			var rightAltPressed = (NativeMethods.GetKeyState(Keys.RMenu) & 0x80) == 0x80;
+
+			PressReleaseModifierKey(leftAltPressed, rightAltPressed, altShouldBePressed,
+				Keys.Menu, Keys.LMenu, Keys.RMenu, 0, NativeMethods.KEYEVENTF_KEYUP, ref i);
+
+			// press and release key
+			input[i++] = new NativeMethods.INPUT(uniqueHotkey.Item2, 0);
+			input[i++] = new NativeMethods.INPUT(uniqueHotkey.Item2, NativeMethods.KEYEVENTF_KEYUP);
+
+			// revert changes to modifiers
+			PressReleaseModifierKey(leftAltPressed, rightAltPressed, altShouldBePressed,
+				Keys.Menu, Keys.LMenu, Keys.RMenu, NativeMethods.KEYEVENTF_KEYUP, 0, ref i);
+
+			PressReleaseModifierKey(leftControlPressed, rightControlPressed, controlShouldBePressed,
+				Keys.ControlKey, Keys.LControlKey, Keys.RControlKey, NativeMethods.KEYEVENTF_KEYUP, 0, ref i);
+
+			PressReleaseModifierKey(leftWinPressed, rightWinPressed, winShouldBePressed,
+				Keys.LWin, Keys.LWin, Keys.RWin, NativeMethods.KEYEVENTF_KEYUP, 0, ref i);
+
+			PressReleaseModifierKey(leftShiftPressed, rightShiftPressed, shiftShouldBePressed,
+				Keys.ShiftKey, Keys.LShiftKey, Keys.RShiftKey, NativeMethods.KEYEVENTF_KEYUP, 0, ref i);
+
+			NativeMethods.SendInput(i, input, NativeMethods.INPUTSize);
+
+			forceForegroundWindow = hWnd;
+		}
+
+		private static void PressReleaseModifierKey(
+			bool leftKeyPressed, bool rightKeyPressed, bool keyShouldBePressed,
+			Keys key, Keys leftKey, Keys rightKey,
 			uint flags, uint flags2, ref uint i)
 		{
-			if (altShouldBePressed)
+			if (keyShouldBePressed)
 			{
-				if (!leftAltPressed && !rightAltPressed)
+				if (!leftKeyPressed && !rightKeyPressed)
 				{
-					input[i++] = new NativeMethods.INPUT(Keys.Menu, flags);
+					input[i++] = new NativeMethods.INPUT(key, flags);
 				}
 			}
 			else
 			{
-				if (leftAltPressed)
+				if (leftKeyPressed)
 				{
-					input[i++] = new NativeMethods.INPUT(Keys.LMenu, flags2);
+					input[i++] = new NativeMethods.INPUT(leftKey, flags2);
 				}
-				if (rightAltPressed)
+				if (rightKeyPressed)
 				{
-					input[i++] = new NativeMethods.INPUT(Keys.RMenu, flags2);
-				}
-			}
-			if (controlShouldBePressed)
-			{
-				if (!leftControlPressed && !rightControlPressed)
-				{
-					input[i++] = new NativeMethods.INPUT(Keys.ControlKey, flags);
-				}
-			}
-			else
-			{
-				if (leftControlPressed)
-				{
-					input[i++] = new NativeMethods.INPUT(Keys.LControlKey, flags2);
-				}
-				if (rightControlPressed)
-				{
-					input[i++] = new NativeMethods.INPUT(Keys.RControlKey, flags2);
-				}
-			}
-			if (shiftShouldBePressed)
-			{
-				if (!leftShiftPressed && !rightShiftPressed)
-				{
-					input[i++] = new NativeMethods.INPUT(Keys.ShiftKey, flags);
-				}
-			}
-			else
-			{
-				if (leftShiftPressed)
-				{
-					input[i++] = new NativeMethods.INPUT(Keys.LShiftKey, flags2);
-				}
-				if (rightShiftPressed)
-				{
-					input[i++] = new NativeMethods.INPUT(Keys.RShiftKey, flags2);
-				}
-			}
-			if (winShouldBePressed)
-			{
-				if (!leftWinPressed && !rightWinPressed)
-				{
-					input[i++] = new NativeMethods.INPUT(Keys.LWin, flags);
-				}
-			}
-			else
-			{
-				if (leftWinPressed)
-				{
-					input[i++] = new NativeMethods.INPUT(Keys.LWin, flags2);
-				}
-				if (rightWinPressed)
-				{
-					input[i++] = new NativeMethods.INPUT(Keys.RWin, flags2);
+					input[i++] = new NativeMethods.INPUT(rightKey, flags2);
 				}
 			}
 		}
@@ -771,92 +731,106 @@ namespace Windawesome
 		public static void GetWindowSmallIconAsBitmap(IntPtr hWnd, Action<Bitmap> action)
 		{
 			NativeMethods.SendMessageCallbackDelegate firstCallback = null;
-			NativeMethods.SendMessageCallbackDelegate secondCallback = null;
-
 			firstCallback = (hWnd1, _1, _2, lResult) =>
 				{
 					delegatesSet.Remove(firstCallback);
 
 					if (lResult != IntPtr.Zero)
 					{
-						action(new Bitmap(Bitmap.FromHicon(lResult), smallIconSize));
+						try
+						{
+							action(new Bitmap(Bitmap.FromHicon(lResult), smallIconSize));
+							return ;
+						}
+						catch
+						{
+						}
 					}
-					else
+
+					NativeMethods.SendMessageCallbackDelegate secondCallback = null;
+					secondCallback = (hWnd2, _3, _4, hIcon) =>
+						{
+							delegatesSet.Remove(secondCallback);
+
+							if (hIcon != IntPtr.Zero)
+							{
+								try
+								{
+									action(new Bitmap(Bitmap.FromHicon(hIcon), smallIconSize));
+									return ;
+								}
+								catch
+								{
+								}
+							}
+
+							hIcon = NativeMethods.GetClassLongPtr(hWnd2, NativeMethods.GCL_HICONSM);
+
+							if (hIcon != IntPtr.Zero)
+							{
+								try
+								{
+									action(new Bitmap(Bitmap.FromHicon(hIcon), smallIconSize));
+									return ;
+								}
+								catch
+								{
+								}
+							}
+
+							if (!NativeMethods.IsWindow(hWnd2))
+							{
+								return ;
+							}
+
+							System.Threading.Tasks.Task.Factory.StartNew(hWnd3object =>
+								{
+									var hWnd3 = (IntPtr) hWnd3object;
+									Bitmap bitmap = null;
+									try
+									{
+										int processID;
+										NativeMethods.GetWindowThreadProcessId(hWnd3, out processID);
+										var process = System.Diagnostics.Process.GetProcessById(processID);
+
+										var info = new NativeMethods.SHFILEINFO();
+
+										NativeMethods.SHGetFileInfo(process.MainModule.FileName, 0, ref info,
+											Marshal.SizeOf(info), NativeMethods.SHGFI_ICON | NativeMethods.SHGFI_SMALLICON);
+
+										if (info.hIcon != IntPtr.Zero)
+										{
+											bitmap = new Bitmap(Bitmap.FromHicon(info.hIcon), smallIconSize);
+											NativeMethods.DestroyIcon(info.hIcon);
+										}
+										else
+										{
+											bitmap = Icon.ExtractAssociatedIcon(process.MainModule.FileName).ToBitmap();
+											if (bitmap != null)
+											{
+												bitmap = new Bitmap(bitmap, smallIconSize);
+											}
+										}
+									}
+									catch
+									{
+									}
+									PostAction(() => action(bitmap));
+								}, hWnd2);
+						};
+
+					if (NativeMethods.SendMessageCallback(hWnd1, NativeMethods.WM_QUERYDRAGICON, UIntPtr.Zero,
+						IntPtr.Zero, secondCallback, UIntPtr.Zero))
 					{
 						delegatesSet.Add(secondCallback);
-						NativeMethods.SendMessageCallback(hWnd1, NativeMethods.WM_QUERYDRAGICON, UIntPtr.Zero,
-							IntPtr.Zero, secondCallback, UIntPtr.Zero);
 					}
 				};
 
-			secondCallback = (hWnd2, _3, _4, hIcon) =>
-				{
-					delegatesSet.Remove(secondCallback);
-
-					if (hIcon != IntPtr.Zero)
-					{
-						try
-						{
-							action(new Bitmap(Bitmap.FromHicon(hIcon), smallIconSize));
-							return ;
-						}
-						catch
-						{
-						}
-					}
-
-					hIcon = NativeMethods.GetClassLongPtr(hWnd2, NativeMethods.GCL_HICONSM);
-
-					if (hIcon != IntPtr.Zero)
-					{
-						try
-						{
-							action(new Bitmap(Bitmap.FromHicon(hIcon), smallIconSize));
-							return ;
-						}
-						catch
-						{
-						}
-					}
-
-					System.Threading.Tasks.Task.Factory.StartNew(() =>
-						{
-							Bitmap bitmap = null;
-							try
-							{
-								int processID;
-								NativeMethods.GetWindowThreadProcessId(hWnd2, out processID);
-								var process = System.Diagnostics.Process.GetProcessById(processID);
-
-								var info = new NativeMethods.SHFILEINFO();
-
-								NativeMethods.SHGetFileInfo(process.MainModule.FileName, 0, ref info,
-									Marshal.SizeOf(info), NativeMethods.SHGFI_ICON | NativeMethods.SHGFI_SMALLICON);
-
-								if (info.hIcon != IntPtr.Zero)
-								{
-									bitmap = new Bitmap(Bitmap.FromHicon(info.hIcon), smallIconSize);
-									NativeMethods.DestroyIcon(info.hIcon);
-								}
-								else
-								{
-									bitmap = Icon.ExtractAssociatedIcon(process.MainModule.FileName).ToBitmap();
-									if (bitmap != null)
-									{
-										bitmap = new Bitmap(bitmap, smallIconSize);
-									}
-								}
-							}
-							catch
-							{
-							}
-							PostAction(() => action(bitmap));
-						});
-				};
-
-			delegatesSet.Add(firstCallback);
-			NativeMethods.SendMessageCallback(hWnd,	NativeMethods.WM_GETICON, NativeMethods.ICON_SMALL,
-				IntPtr.Zero, firstCallback,	UIntPtr.Zero);
+			if (NativeMethods.SendMessageCallback(hWnd, NativeMethods.WM_GETICON, NativeMethods.ICON_SMALL,
+				IntPtr.Zero, firstCallback, UIntPtr.Zero))
+			{
+				delegatesSet.Add(firstCallback);
+			}
 		}
 
 		public static void PostAction(Action action)
@@ -1055,17 +1029,12 @@ namespace Windawesome
 		#endregion
 	}
 
-	public class HashMultiSet<T> : IEnumerable<T>
+	public sealed class HashMultiSet<T> : IEnumerable<T>
 	{
 		private Dictionary<T, BoxedInt> set;
 		private sealed class BoxedInt
 		{
-			public int i;
-
-			public BoxedInt()
-			{
-				this.i = 1;
-			}
+			public int i = 1;
 		}
 
 		public HashMultiSet(IEqualityComparer<T> comparer = null)

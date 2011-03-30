@@ -546,17 +546,8 @@ namespace Windawesome
 					1000, IntPtr.Zero);
 
 				uint numberOfBytesRead;
-				if (!data.Button.Initialize(explorerProcessHandle, buttonMemory, out numberOfBytesRead))
-				{
-					return false;
-				}
-
-				if (!data.TrayData.Initialize(explorerProcessHandle, data.Button.dwData, out numberOfBytesRead))
-				{
-					return false;
-				}
-
-				return true;
+				return data.Button.Initialize(explorerProcessHandle, buttonMemory, out numberOfBytesRead) &&
+					data.TrayData.Initialize(explorerProcessHandle, data.Button.dwData, out numberOfBytesRead);
 			}
 
 			internal static IEnumerable<TrayIcon> GetButtons(IntPtr trayHandle)
@@ -576,7 +567,9 @@ namespace Windawesome
 			{
 				int buttonsCount = GetButtonsCount(trayHandle);
 				TrayIconData data = new TrayIconData();
+				LinkedList<TrayIcon> result = new LinkedList<TrayIcon>();
 
+				TrayIcon trayIcon;
 				for (int i = 0; i < buttonsCount; i++)
 				{
 					if (!GetButtonData<TrayIconData>(trayHandle, data, i))
@@ -586,7 +579,7 @@ namespace Windawesome
 
 					uint numberOfBytesRead;
 
-					TrayIcon trayIcon = new TrayIcon();
+					trayIcon = new TrayIcon();
 					if (NativeMethods.ReadProcessMemory(explorerProcessHandle, data.Button.iString, sb, sb.Capacity, out numberOfBytesRead))
 					{
 						trayIcon.tooltip = sb.ToString();
@@ -602,10 +595,10 @@ namespace Windawesome
 						trayIcon.state |= NativeMethods.IconState.NIS_HIDDEN;
 					}
 
-					yield return trayIcon;
+					result.AddLast(trayIcon);
 				}
 
-				yield break;
+				return result;
 			}
 
 			internal static bool ContainsButton(IntPtr trayHandle, IntPtr hWnd, uint id)

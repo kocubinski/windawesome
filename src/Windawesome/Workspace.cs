@@ -143,7 +143,10 @@ namespace Windawesome
 		static Workspace()
 		{
 			taskbarHandle = NativeMethods.FindWindow("Shell_TrayWnd", null);
-			startButtonHandle = NativeMethods.FindWindow("Button", "Start");
+			if (Windawesome.isAtLeastVista)
+			{
+				startButtonHandle = NativeMethods.FindWindow("Button", "Start");
+			}
 
 			barsShown = new Bar[0];
 			topBarsShown = new bool[0];
