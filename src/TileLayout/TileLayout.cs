@@ -9,7 +9,7 @@ namespace Windawesome
 	{
 		public enum LayoutAxis
 		{
-			LeftToRight = 0,
+			LeftToRight,
 			RightToLeft,
 			TopToBottom,
 			BottomToTop,
@@ -38,6 +38,12 @@ namespace Windawesome
 
 		#region API
 
+		public void AddToMasterAreaWindowsCount()
+		{
+			masterAreaWindowsCount++;
+			this.Reposition(windows, workingArea);
+		}
+
 		public void ToggleLayoutAxis()
 		{
 			SetLayoutAxis((LayoutAxis) (((int) layoutAxis + 1) % Enum.GetValues(typeof(LayoutAxis)).Length));
@@ -61,7 +67,7 @@ namespace Windawesome
 
 				this.Reposition(windows, workingArea);
 
-				Windawesome.OnLayoutUpdated();
+				Windawesome.DoLayoutUpdated();
 			}
 		}
 
@@ -73,7 +79,7 @@ namespace Windawesome
 
 				this.Reposition(windows, workingArea);
 
-				Windawesome.OnLayoutUpdated();
+				Windawesome.DoLayoutUpdated();
 			}
 		}
 
@@ -85,7 +91,7 @@ namespace Windawesome
 
 				this.Reposition(windows, workingArea);
 
-				Windawesome.OnLayoutUpdated();
+				Windawesome.DoLayoutUpdated();
 			}
 		}
 
@@ -93,7 +99,7 @@ namespace Windawesome
 		{
 			if (windows.Count > 1 && windows.Last.Value != window)
 			{
-				LinkedListNode<Window> node = windows.Find(window);
+				var node = windows.Find(window);
 				windows.AddAfter(node.Next, window);
 				windows.Remove(node);
 
@@ -105,7 +111,7 @@ namespace Windawesome
 		{
 			if (windows.Count > 1 && windows.First.Value != window)
 			{
-				LinkedListNode<Window> node = windows.Find(window);
+				var node = windows.Find(window);
 				windows.AddBefore(node.Previous, window);
 				windows.Remove(node);
 
@@ -117,7 +123,7 @@ namespace Windawesome
 		{
 			if (windows.Count > 1 && windows.First.Value != window)
 			{
-				LinkedListNode<Window> node = windows.Find(window);
+				var node = windows.Find(window);
 				windows.Remove(node);
 				windows.AddFirst(node);
 
@@ -144,13 +150,13 @@ namespace Windawesome
 
 		private IntPtr PositionAreaWindows(IntPtr winPosInfo, Rectangle workingArea, bool master)
 		{
-			IEnumerable<Window> windows = master ? this.windows.Take(masterAreaWindowsCount) : this.windows.Skip(masterAreaWindowsCount);
-			int count = windows.Count();
+			var masterOrStackWindows = master ? this.windows.Take(masterAreaWindowsCount) : this.windows.Skip(masterAreaWindowsCount);
+			var count = masterOrStackWindows.Count();
 			if (count > 0)
 			{
-				int otherWindowsCount = master ? this.windows.Skip(masterAreaWindowsCount).Count() : -1;
-				double factor = otherWindowsCount == 0 ? 1 : (master ? masterAreaFactor : 1 - masterAreaFactor);
-				LayoutAxis axis = master ? masterAreaAxis : stackAreaAxis;
+				var otherWindowsCount = master ? windows.Count - count : -1;
+				var factor = otherWindowsCount == 0 ? 1 : (master ? masterAreaFactor : 1 - masterAreaFactor);
+				var axis = master ? masterAreaAxis : stackAreaAxis;
 
 				int eachWidth = workingArea.Width, eachHight = workingArea.Height;
 				int x = workingArea.X, y = workingArea.Y;
@@ -174,13 +180,14 @@ namespace Windawesome
 						y = master ? workingArea.Bottom - eachHight : workingArea.Y;
 						break;
 				}
-				if (axis == LayoutAxis.RightToLeft)
+				switch (axis)
 				{
-					x += eachWidth;
-				}
-				else if (axis == LayoutAxis.BottomToTop)
-				{
-					y += eachHight;
+					case LayoutAxis.RightToLeft:
+						x += eachWidth;
+						break;
+					case LayoutAxis.BottomToTop:
+						y += eachHight;
+						break;
 				}
 				switch (axis)
 				{
@@ -193,17 +200,18 @@ namespace Windawesome
 						eachHight /= count;
 						break;
 				}
-				if (axis == LayoutAxis.RightToLeft)
+				switch (axis)
 				{
-					x -= eachWidth;
-				}
-				else if (axis == LayoutAxis.BottomToTop)
-				{
-					y -= eachHight;
+					case LayoutAxis.RightToLeft:
+						x -= eachWidth;
+						break;
+					case LayoutAxis.BottomToTop:
+						y -= eachHight;
+						break;
 				}
 
-				IntPtr prevWindowHandle = NativeMethods.HWND_TOP;
-				foreach (var window in windows)
+				var prevWindowHandle = NativeMethods.HWND_TOP;
+				foreach (var window in masterOrStackWindows)
 				{
 					winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, window.hWnd, prevWindowHandle,
 						x, y, eachWidth, eachHight,
@@ -231,7 +239,7 @@ namespace Windawesome
 			return winPosInfo;
 		}
 
-		private string GetAreaSymbol(int count, LayoutAxis axis)
+		private static string GetAreaSymbol(int count, LayoutAxis axis)
 		{
 			switch (axis)
 			{
@@ -252,18 +260,18 @@ namespace Windawesome
 		{
 			if (layoutAxis == LayoutAxis.Monocle)
 			{
-				return "[" + windowsCount.ToString() + "]";
+				return "[" + windowsCount + "]";
 			}
 
-			string master = "[]", stack = "";
-			int masterCount = windows.Take(masterAreaWindowsCount).Count(w => w.showInTabs);
-			int stackCount = windowsCount - masterCount;
+			var master = "[]";
+			var masterCount = windows.Take(masterAreaWindowsCount).Count(w => w.ShowInTabs);
+			var stackCount = windowsCount - masterCount;
 
 			if (masterAreaWindowsCount > 1)
 			{
 				master = GetAreaSymbol(masterCount, masterAreaAxis);
 			}
-			stack = GetAreaSymbol(stackCount, stackAreaAxis);
+			var stack = GetAreaSymbol(stackCount, this.stackAreaAxis);
 
 			switch (layoutAxis)
 			{

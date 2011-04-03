@@ -18,11 +18,11 @@ namespace Windawesome
 			try
 			{
 				windawesome = new Windawesome();
-				Application.Run(new WindawesomeApplicationContext(windawesome));
+				Application.Run(new WindawesomeApplicationContext());
 			}
 			catch (Exception e)
 			{
-				System.IO.File.AppendAllLines("log.txt", new string[]
+				System.IO.File.AppendAllLines("log.txt", new[]
 					{
 						"------------------------------------",
 						DateTime.Now.ToString(),
@@ -38,14 +38,9 @@ namespace Windawesome
 
 		private class WindawesomeApplicationContext : ApplicationContext
 		{
-			internal WindawesomeApplicationContext(Windawesome windawesome)
+			internal WindawesomeApplicationContext()
 			{
-				Windawesome.WindawesomeExiting += Windawesome_WindawesomeExiting;
-			}
-
-			private void Windawesome_WindawesomeExiting()
-			{
-				this.ExitThread();
+				Windawesome.WindawesomeExiting += this.ExitThread;
 			}
 		}
 	}

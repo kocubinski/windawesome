@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -145,27 +146,24 @@ namespace Windawesome
 		}
 
 		public const uint WM_SYSCOMMAND = 0x0112;
+		public static readonly IntPtr WM_LBUTTONDBLCLK = (IntPtr) 0x0203;
 		public static readonly IntPtr WM_LBUTTONDOWN = (IntPtr) 0x0201;
-		public const uint WM_LBUTTONUP = 0x0202;
+		public static readonly IntPtr WM_LBUTTONUP = (IntPtr) 222222;
+		public static readonly IntPtr WM_RBUTTONDOWN = (IntPtr) 0x204;
+		public static readonly IntPtr WM_RBUTTONUP = (IntPtr) 0x205;
 		public const uint WM_GETICON = 0x007f;
 		public const uint WM_QUERYDRAGICON = 0x0037;
 
 		public static readonly UIntPtr SC_MINIMIZE = (UIntPtr) 0xF020;
 		public static readonly UIntPtr SC_CLOSE = (UIntPtr) 0xF060;
 
-		public static readonly IntPtr WM_LBUTTONDBLCLK = (IntPtr) 0x0203;
-		public static readonly IntPtr WM_RBUTTONDOWN = (IntPtr) 0x204;
-
-		public static readonly UIntPtr MK_LBUTTON = (UIntPtr) 0x0001;
-
 		public static readonly UIntPtr ICON_SMALL = UIntPtr.Zero;
-		public static readonly UIntPtr ICON_SMALL2 = (UIntPtr) 2;
 
 		#endregion
 
 		#region SHAppBarMessage/RegisterWindowMessage
 
-		public static int RECTSize = Marshal.SizeOf(typeof(NativeMethods.RECT));
+		public static readonly int RECTSize = Marshal.SizeOf(typeof (RECT));
 
 		[StructLayout(LayoutKind.Sequential)]
 		public struct RECT
@@ -190,9 +188,7 @@ namespace Windawesome
 			{
 				get
 				{
-					APPBARDATA res = new APPBARDATA();
-					res.cbSize = Marshal.SizeOf(typeof(APPBARDATA));
-					return res;
+					return new APPBARDATA { cbSize = Marshal.SizeOf(typeof (APPBARDATA)) };
 				}
 			}
 		}
@@ -213,7 +209,7 @@ namespace Windawesome
 		}
 
 		[DllImport("shell32.dll")]
-		public static extern UIntPtr SHAppBarMessage(NativeMethods.AppBarMsg dwMessage, ref APPBARDATA pData);
+		public static extern UIntPtr SHAppBarMessage(AppBarMsg dwMessage, ref APPBARDATA pData);
 
 		[DllImport("User32.dll", CharSet = CharSet.Auto)]
 		public static extern uint RegisterWindowMessage([MarshalAs(UnmanagedType.LPTStr)] string msg);
@@ -250,23 +246,23 @@ namespace Windawesome
 
 		public static string GetText(IntPtr hWnd)
 		{
-			StringBuilder sb = new StringBuilder(256);
-			NativeMethods.GetWindowText(hWnd, sb, sb.Capacity);
+			var sb = new StringBuilder(256);
+			GetWindowText(hWnd, sb, sb.Capacity);
 			return sb.ToString();
 		}
 
 		public static string GetWindowClassName(IntPtr hWnd)
 		{
-			StringBuilder classNameSB = new StringBuilder(257);
-			NativeMethods.GetClassName(hWnd, classNameSB, classNameSB.Capacity);
+			var classNameSB = new StringBuilder(257);
+			GetClassName(hWnd, classNameSB, classNameSB.Capacity);
 			return classNameSB.ToString();
 		}
 
 		[DllImport("user32.dll", CharSet = CharSet.Auto)]
-		public static extern int GetWindowText(IntPtr hWnd, [Out] StringBuilder lpString, int nMaxCount);
+		private static extern int GetWindowText(IntPtr hWnd, [Out] StringBuilder lpString, int nMaxCount);
 
 		[DllImport("user32.dll", CharSet = CharSet.Auto)]
-		public static extern int GetClassName(IntPtr hWnd, [Out] StringBuilder lpClassName, int nMaxCount);
+		private static extern int GetClassName(IntPtr hWnd, [Out] StringBuilder lpClassName, int nMaxCount);
 
 		#endregion
 
@@ -433,7 +429,7 @@ namespace Windawesome
 		[return: MarshalAs(UnmanagedType.Bool)]
 		public static extern bool ShowWindowAsync(IntPtr hWnd, SW nCmdShow);
 
-		public enum SW : int
+		public enum SW
 		{
 			SW_FORCEMINIMIZE = 11,
 			SW_SHOW = 5,
@@ -459,6 +455,8 @@ namespace Windawesome
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
 		public static extern bool SetWindowPlacement(IntPtr hWnd, [In] ref WINDOWPLACEMENT lpwndpl);
+
+		private static readonly int WINDOWPLACEMENTSize = Marshal.SizeOf(typeof (WINDOWPLACEMENT));
 
 		[StructLayout(LayoutKind.Sequential)]
 		public struct POINT
@@ -521,9 +519,7 @@ namespace Windawesome
 			{
 				get
 				{
-					WINDOWPLACEMENT result = new WINDOWPLACEMENT();
-					result.Length = Marshal.SizeOf(result);
-					return result;
+					return new WINDOWPLACEMENT { Length = WINDOWPLACEMENTSize };
 				}
 			}
 		}
@@ -539,8 +535,9 @@ namespace Windawesome
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
 		public static extern bool SetWindowPos(IntPtr hwnd, [Optional] IntPtr hwndInsertAfter,
-			int X, int Y, int width, int height, SWP flags);
+			int x, int y, int width, int height, SWP flags);
 
+		[Flags]
 		public enum SWP : uint
 		{
 			SWP_SHOWWINDOW = 0x0040,
@@ -616,7 +613,6 @@ namespace Windawesome
 		};
 
 		public const uint SHGFI_ICON = 0x100;
-		public const uint SHGFI_LARGEICON = 0x0;
 		public const uint SHGFI_SMALLICON = 0x1;
 
 		[DllImport("shell32.dll", CharSet = CharSet.Auto)]
@@ -661,7 +657,7 @@ namespace Windawesome
 			public KEYBDINPUT ki;
 		}
 
-		public static readonly UIntPtr INPUT_KEYBOARD = (UIntPtr) 1;
+		private static readonly UIntPtr INPUT_KEYBOARD = (UIntPtr) 1;
 
 		[StructLayout(LayoutKind.Sequential)]
 		public struct INPUT
@@ -728,15 +724,15 @@ namespace Windawesome
 
 		public static bool Is64BitProcess(IntPtr hWnd)
 		{
-			bool result = false;
+			var result = false;
 			if ((Environment.OSVersion.Version.Major == 5 && Environment.OSVersion.Version.Minor >= 1) ||
 				  Environment.OSVersion.Version.Major > 5)
 			{
-				int processID;
-				GetWindowThreadProcessId(hWnd, out processID);
+				int processId;
+				GetWindowThreadProcessId(hWnd, out processId);
 				var processHandle = Windawesome.isAtLeastVista ?
-					OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, processID) :
-					OpenProcess(PROCESS_QUERY_INFORMATION, false, processID);
+					OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, processId) :
+					OpenProcess(PROCESS_QUERY_INFORMATION, false, processId);
 				if (processHandle != IntPtr.Zero)
 				{
 					try
@@ -838,6 +834,7 @@ namespace Windawesome
 		/// The state of the icon - can be set to
 		/// hide the icon.
 		/// </summary>
+		[Flags]
 		public enum IconState : uint
 		{
 			/// <summary>
@@ -856,7 +853,7 @@ namespace Windawesome
 		}
 
 		/// <summary>
-		/// Indicates which members of a <see cref="NotifyIconData"/> structure
+		/// Indicates which members of a <see cref="NOTIFYICONDATA"/> structure
 		/// were set, and thus contain valid data or provide additional information
 		/// to the ToolTip as to how it should display.
 		/// </summary>
@@ -877,15 +874,15 @@ namespace Windawesome
 			NIF_TIP = 0x04,
 			/// <summary>
 			/// State information (<see cref="IconState"/>) is set. This
-			/// applies to both <see cref="NotifyIconData.IconState"/> and
-			/// <see cref="NotifyIconData.StateMask"/>.
+			/// applies to both <see cref="NOTIFYICONDATA.dwState"/> and
+			/// <see cref="NOTIFYICONDATA.dwStateMask"/>.
 			/// </summary>
 			NIF_STATE = 0x08,
 			/// <summary>
 			/// The ballon ToolTip is set. Accordingly, the following
-			/// members are set: <see cref="NotifyIconData.BalloonText"/>,
-			/// <see cref="NotifyIconData.BalloonTitle"/>, <see cref="NotifyIconData.BalloonFlags"/>,
-			/// and <see cref="NotifyIconData.VersionOrTimeout"/>.
+			/// members are set: <see cref="NOTIFYICONDATA.BalloonText"/>,
+			/// <see cref="NOTIFYICONDATA.szInfoTitle"/>, <see cref="NOTIFYICONDATA.dwInfoFlags"/>,
+			/// and <see cref="NOTIFYICONDATA.uTimeout"/>.
 			/// </summary>
 			NIF_INFO = 0x10,
 
@@ -900,7 +897,7 @@ namespace Windawesome
 			/// Use this flag for ToolTips that represent real-time information which
 			/// would be meaningless or misleading if displayed at a later time.
 			/// For example, a message that states "Your telephone is ringing."<br/>
-			/// This modifies and must be combined with the <see cref="Info"/> flag.
+			/// This modifies and must be combined with the <see cref="NIF_INFO"/> flag.
 			/// </summary>
 			NIF_REALTIME = 0x40,
 			/// <summary>
@@ -916,59 +913,6 @@ namespace Windawesome
 			/// to Shell_NotifyIcon.
 			/// </summary>
 			NIF_SHOWTIP = 0x80
-		}
-
-		/// <summary>
-		/// Flags that define the icon that is shown on a balloon
-		/// tooltip.
-		/// </summary>
-		public enum BalloonFlags : uint
-		{
-			/// <summary>
-			/// No icon is displayed.
-			/// </summary>
-			None = 0x00,
-			/// <summary>
-			/// An information icon is displayed.
-			/// </summary>
-			Info = 0x01,
-			/// <summary>
-			/// A warning icon is displayed.
-			/// </summary>
-			Warning = 0x02,
-			/// <summary>
-			/// An error icon is displayed.
-			/// </summary>
-			Error = 0x03,
-			/// <summary>
-			/// Windows XP Service Pack 2 (SP2) and later.
-			/// Use a custom icon as the title icon.
-			/// </summary>
-			User = 0x04,
-			/// <summary>
-			/// Windows XP (Shell32.dll version 6.0) and later.
-			/// Do not play the associated sound. Applies only to balloon ToolTips.
-			/// </summary>
-			NoSound = 0x10,
-			/// <summary>
-			/// Windows Vista (Shell32.dll version 6.0.6) and later. The large version
-			/// of the icon should be used as the balloon icon. This corresponds to the
-			/// icon with dimensions SM_CXICON x SM_CYICON. If this flag is not set,
-			/// the icon with dimensions XM_CXSMICON x SM_CYSMICON is used.<br/>
-			/// - This flag can be used with all stock icons.<br/>
-			/// - Applications that use older customized icons (NIIF_USER with hIcon) must
-			///   provide a new SM_CXICON x SM_CYICON version in the tray icon (hIcon). These
-			///   icons are scaled down when they are displayed in the System Tray or
-			///   System Control Area (SCA).<br/>
-			/// - New customized icons (NIIF_USER with hBalloonIcon) must supply an
-			///   SM_CXICON x SM_CYICON version in the supplied icon (hBalloonIcon).
-			/// </summary>
-			LargeIcon = 0x20,
-			/// <summary>
-			/// Windows 7 and later.
-			/// </summary>
-			RespectQuietTime = 0x80
-
 		}
 
 		// this is a 64-bit structure, when running in 64-bit mode, but should be 32!!!
@@ -1031,13 +975,13 @@ namespace Windawesome
 			public string szTip;
 
 			/// <summary>
-			/// State of the icon. Remember to also set the <see cref="StateMask"/>.
+			/// State of the icon. Remember to also set the <see cref="dwStateMask"/>.
 			/// </summary>
 			public IconState dwState;
 
 			/// <summary>
 			/// A value that specifies which bits of the state member are retrieved or modified.
-			/// For example, setting this member to <see cref="Interop.IconState.Hidden"/>
+			/// For example, setting this member to <see cref="IconState.NIS_HIDDEN"/>
 			/// causes only the item's hidden
 			/// state to be retrieved.
 			/// </summary>
@@ -1066,9 +1010,9 @@ namespace Windawesome
 
 			/// <summary>
 			/// Adds an icon to a balloon ToolTip, which is placed to the left of the title. If the
-			/// <see cref="BalloonTitle"/> member is zero-length, the icon is not shown.
+			/// <see cref="szInfoTitle"/> member is zero-length, the icon is not shown.
 			/// </summary>
-			public BalloonFlags dwInfoFlags;
+			public uint dwInfoFlags;
 
 			/// <summary>
 			/// Windows XP (Shell32.dll version 6.0) and later.<br/>
@@ -1563,7 +1507,7 @@ namespace Windawesome
 
 			public static NONCLIENTMETRICS GetNONCLIENTMETRICS()
 			{
-				return new NONCLIENTMETRICS() { cbSize = NONCLIENTMETRICSSize };
+				return new NONCLIENTMETRICS { cbSize = NONCLIENTMETRICSSize };
 			}
 		}
 
@@ -1581,9 +1525,9 @@ namespace Windawesome
 
 		public static T[] Resize<T>(this T[] array, int newSize)
 		{
-			T[] result = new T[newSize];
+			var result = new T[newSize];
 
-			for (int i = array.Length - 1; i >= 0; i--)
+			for (var i = array.Length - 1; i >= 0; i--)
 			{
 				result[--newSize] = array[i];
 			}

@@ -12,12 +12,30 @@ namespace Windawesome
 {
 	public class Config
 	{
+		public IPlugin[] Plugins { get; set; }
+		public Bar[] Bars { get; set; }
+		public ILayout[] Layouts { get; set; }
+		public int WorkspacesCount { get; set; }
+		public Workspace[] Workspaces { get; set; }
+		public int StartingWorkspace { get; set; }
+		public ProgramRule[] ProgramRules { get; set; }
+		public int BorderWidth { get; set; }
+		public int PaddedBorderWidth { get; set; }
+		public Tuple<NativeMethods.MOD, System.Windows.Forms.Keys> UniqueHotkey { get; set; }
+
+		internal Config()
+		{
+			this.StartingWorkspace = 1;
+			this.BorderWidth = -1;
+			this.PaddedBorderWidth = -1;
+		}
+
 		internal void LoadPlugins(Windawesome windawesome)
 		{
-			string layoutsDirName = "Layouts";
-			string widgetsDirName = "Widgets";
-			string pluginsDirName = "Plugins";
-			string configDirName  = "Config";
+			const string layoutsDirName = "Layouts";
+			const string widgetsDirName = "Widgets";
+			const string pluginsDirName = "Plugins";
+			const string configDirName  = "Config";
 
 			if (!Directory.Exists(configDirName) || Directory.EnumerateFiles(configDirName).FirstOrDefault() == null)
 			{
@@ -46,27 +64,10 @@ namespace Windawesome
 			PluginLoader.LoadAll(windawesome, this, files);
 		}
 
-		public IPlugin[] plugins;
-		public Bar[] bars;
-		public ILayout[] layouts;
-		public int workspacesCount;
-		public Workspace[] workspaces;
-		public int startingWorkspace = 1;
-		public ProgramRule[] programRules;
-		public int borderWidth = -1;
-		public int paddedBorderWidth = -1;
-		public Tuple<NativeMethods.MOD, System.Windows.Forms.Keys> uniqueHotkey;
-
-		private class PluginLoader
+		private static class PluginLoader
 		{
 			private static ScriptEngine pythonEngine;
 			private static ScriptEngine rubyEngine;
-
-			internal PluginLoader()
-			{
-				pythonEngine = null;
-				rubyEngine = null;
-			}
 
 			private static ScriptEngine PythonEngine
 			{
@@ -97,7 +98,7 @@ namespace Windawesome
 			private static void InitializeScriptEngine(ScriptEngine engine)
 			{
 				var searchPaths = engine.GetSearchPaths().ToList();
-				searchPaths.Add(System.Environment.CurrentDirectory);
+				searchPaths.Add(Environment.CurrentDirectory);
 				engine.SetSearchPaths(searchPaths);
 
 				AppDomain.CurrentDomain.GetAssemblies().ForEach(engine.Runtime.LoadAssembly);
@@ -164,7 +165,7 @@ namespace Windawesome
 		}
 	}
 
-	public enum State : int
+	public enum State
 	{
 		SHOWN  = 0,
 		HIDDEN = 1,
@@ -193,10 +194,10 @@ namespace Windawesome
 		}
 
 		public ProgramRule(string className = ".*", string displayName = ".*",
-			NativeMethods.WS styleContains = 0, NativeMethods.WS styleNotContains = 0,
-			NativeMethods.WS_EX styleExContains = 0, NativeMethods.WS_EX styleExNotContains = 0,
+			NativeMethods.WS styleContains = (NativeMethods.WS) 0, NativeMethods.WS styleNotContains = (NativeMethods.WS) 0,
+			NativeMethods.WS_EX styleExContains = (NativeMethods.WS_EX) 0, NativeMethods.WS_EX styleExNotContains = (NativeMethods.WS_EX) 0,
 			bool isManaged = true, int windowCreatedDelay = 350, bool switchToOnCreated = true,
-			bool handleOwnedWindows = false, IList<Rule> rules = null)
+			bool handleOwnedWindows = false, IEnumerable<Rule> rules = null)
 		{
 			this.className = new Regex(className, RegexOptions.Compiled);
 			this.displayName = new Regex(displayName, RegexOptions.Compiled);
@@ -210,7 +211,7 @@ namespace Windawesome
 			this.handleOwnedWindows = handleOwnedWindows;
 			if (isManaged)
 			{
-				this.rules = rules == null ? new Rule[] { new Rule() } : rules.ToArray();
+				this.rules = rules == null ? new[] { new Rule() } : rules.ToArray();
 			}
 		}
 

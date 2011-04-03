@@ -32,7 +32,7 @@ end
 
 # switch to previous workspace
 subscribe modifiers.Alt, key.Oemtilde do
-	windawesome.switch_to_workspace Windawesome::Windawesome.previousWorkspace
+	windawesome.switch_to_workspace Windawesome::Windawesome.previous_workspace
 end
 
 # start Firefox
@@ -67,7 +67,7 @@ end
 
 # start Bitcomet
 subscribe modifiers.Alt, key.B do
-	windawesome.run_application "C:\\Program Files (x86)\\BitComet\\BitComet.exe"
+	windawesome.run_application "C:\\Program Files\\BitComet\\BitComet.exe"
 end
 
 # toggle window floating
@@ -150,7 +150,7 @@ subscribe modifiers.Alt | modifiers.Shift, key.Return do
 	end
 end
 
-(1 .. config.workspacesCount).each do |i|
+(1 .. config.workspaces_count).each do |i|
 	k = eval("key.D" + i.to_s)
 
 	subscribe modifiers.Alt, k do

@@ -5,7 +5,7 @@ namespace Windawesome
 {
 	public class FullScreenLayout : ILayout
 	{
-		private void MaximizeWindow(Window window, System.Drawing.Rectangle workingArea)
+		private static void MaximizeWindow(Window window, System.Drawing.Rectangle workingArea)
 		{
 			var ws = NativeMethods.GetWindowStyleLongPtr(window.hWnd);
 			if (ws.HasFlag(NativeMethods.WS.WS_CAPTION) && ws.HasFlag(NativeMethods.WS.WS_MAXIMIZEBOX))
@@ -33,7 +33,7 @@ namespace Windawesome
 
 		public string LayoutSymbol(int windowsCount)
 		{
-			return windowsCount == 0 ? "[M]" : "[" + windowsCount.ToString() + "]";
+			return windowsCount == 0 ? "[M]" : "[" + windowsCount + "]";
 		}
 
 		public string LayoutName()

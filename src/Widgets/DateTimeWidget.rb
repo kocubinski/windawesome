@@ -21,7 +21,7 @@ class DateTimeWidget
 			@label.width = TextRenderer.measure_text(@label.text, @label.font).width
 			if oldWidth != @label.width
 				self.reposition_controls @left, @right
-				@bar.on_fixed_width_widget_width_changed self
+				@bar.do_fixed_width_widget_width_changed self
 			end
 		}
 	end

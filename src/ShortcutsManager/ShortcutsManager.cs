@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
@@ -9,7 +10,6 @@ namespace Windawesome
 	{
 		private class Subscription
 		{
-			private readonly KeyModifiers modifiers;
 			private readonly Keys key;
 
 			private readonly bool hasShift;
@@ -24,7 +24,6 @@ namespace Windawesome
 
 			internal Subscription(KeyModifiers modifiers, Keys key)
 			{
-				this.modifiers = modifiers;
 				this.key = key;
 
 				shift = modifiers & KeyModifiers.Shift;
@@ -60,17 +59,12 @@ namespace Windawesome
 					{
 						return false;
 					}
-					if (x.key != y.key)
-					{
-						return false;
-					}
-
-					return true;
+					return x.key == y.key;
 				}
 
 				int IEqualityComparer<Subscription>.GetHashCode(Subscription obj)
 				{
-					int modifiers = 0;
+					var modifiers = 0;
 					if (obj.hasControl)
 					{
 						modifiers += 1;
@@ -119,18 +113,14 @@ namespace Windawesome
 
 		public delegate bool KeyboardEventHandler();
 		private static IntPtr hook = IntPtr.Zero;
-		private static readonly NativeMethods.HookProc hookProc;
 		private static readonly Dictionary<Subscription, KeyboardEventHandler> subscriptions;
 		private static bool hasKeyOnlySubscriptions;
 		private static readonly List<KeyboardEventHandler> registeredHotkeys;
 
 		static ShortcutsManager()
 		{
-			hookProc = KeyboardHookProc;
 			subscriptions = new Dictionary<Subscription, KeyboardEventHandler>(new Subscription.SubscriptionEqualityComparer());
 			registeredHotkeys = new List<KeyboardEventHandler>();
-
-			hasKeyOnlySubscriptions = false;
 		}
 
 		public static void Subscribe(KeyModifiers modifiers, Keys key, KeyboardEventHandler handler)
@@ -146,7 +136,7 @@ namespace Windawesome
 			{
 				if (hook == IntPtr.Zero)
 				{
-					hook = NativeMethods.SetWindowsHookEx(NativeMethods.WH_KEYBOARD_LL, hookProc,
+					hook = NativeMethods.SetWindowsHookEx(NativeMethods.WH_KEYBOARD_LL, KeyboardHookProc,
 						System.Diagnostics.Process.GetCurrentProcess().MainModule.BaseAddress, 0);
 				}
 
@@ -164,30 +154,27 @@ namespace Windawesome
 			else
 			{
 				NativeMethods.MOD mods = 0;
-				if ((modifiers & KeyModifiers.Control) != 0)
+				if (modifiers.HasFlag(KeyModifiers.Control))
 				{
 					mods |= NativeMethods.MOD.MOD_CONTROL;
 				}
-				if ((modifiers & KeyModifiers.Alt) != 0)
+				if (modifiers.HasFlag(KeyModifiers.Alt))
 				{
 					mods |= NativeMethods.MOD.MOD_ALT;
 				}
-				if ((modifiers & KeyModifiers.Shift) != 0)
+				if (modifiers.HasFlag(KeyModifiers.Shift))
 				{
 					mods |= NativeMethods.MOD.MOD_SHIFT;
 				}
-				if ((modifiers & KeyModifiers.Win) != 0)
+				if (modifiers.HasFlag(KeyModifiers.Win))
 				{
 					mods |= NativeMethods.MOD.MOD_WIN;
 				}
-				NativeMethods.RegisterHotKey(Windawesome.handle, registeredHotkeys.Count, mods, key);
+				NativeMethods.RegisterHotKey(Windawesome.HandleStatic, registeredHotkeys.Count, mods, key);
 				registeredHotkeys.Add(handler);
 			}
 
-			if (modifiers == KeyModifiers.None)
-			{
-				hasKeyOnlySubscriptions = true;
-			}
+			hasKeyOnlySubscriptions |= modifiers == KeyModifiers.None;
 		}
 
 		private static IntPtr KeyboardHookProc(int nCode, UIntPtr wParam, IntPtr lParam)
@@ -238,12 +225,9 @@ namespace Windawesome
 						KeyboardEventHandler handlers;
 						if (subscriptions.TryGetValue(new Subscription(modifiersPressed, key), out handlers))
 						{
-							foreach (KeyboardEventHandler handler in handlers.GetInvocationList())
+							if (handlers.GetInvocationList().Cast<KeyboardEventHandler>().Any(handler => handler()))
 							{
-								if (handler())
-								{
-									return NativeMethods.IntPtrOne;
-								}
+								return NativeMethods.IntPtrOne;
 							}
 						}
 					}
@@ -267,9 +251,9 @@ namespace Windawesome
 			{
 				NativeMethods.UnhookWindowsHookEx(hook);
 			}
-			for (int i = 0; i < registeredHotkeys.Count; i++)
+			for (var i = 0; i < registeredHotkeys.Count; i++)
 			{
-				NativeMethods.UnregisterHotKey(Windawesome.handle, i);
+				NativeMethods.UnregisterHotKey(Windawesome.HandleStatic, i);
 			}
 		}
 

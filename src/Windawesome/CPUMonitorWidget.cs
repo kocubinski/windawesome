@@ -5,21 +5,20 @@ using System.Windows.Forms;
 
 namespace Windawesome
 {
-	public class CPUMonitorWidget : IWidget
+	public class CpuMonitorWidget : IWidget
 	{
-		private PerformanceCounter counter;
+		private readonly PerformanceCounter counter;
 		private Label label;
-		private Timer updateTimer;
+		private readonly Timer updateTimer;
 		private int left, right;
 		private bool isLeft;
-		private string prefix;
-		private string postfix;
+		private readonly string prefix;
+		private readonly string postfix;
 
-		public CPUMonitorWidget(string prefix = "CPU:", string postfix = "%", int updateTime = 1000)
+		public CpuMonitorWidget(string prefix = "CPU:", string postfix = "%", int updateTime = 1000)
 		{
-			updateTimer = new Timer();
-			updateTimer.Interval = updateTime;
-			updateTimer.Tick += updateTimer_Tick;
+			updateTimer = new Timer { Interval = updateTime };
+			updateTimer.Tick += OnTimerTick;
 
 			this.prefix = prefix;
 			this.postfix = postfix;
@@ -27,7 +26,7 @@ namespace Windawesome
 			counter = new PerformanceCounter("Processor", "% Processor Time", "_Total");
 		}
 
-		private void updateTimer_Tick(object sender, System.EventArgs e)
+		private void OnTimerTick(object sender, System.EventArgs e)
 		{
 			label.Text = prefix + counter.NextValue().ToString("00") + postfix;
 		}
@@ -55,7 +54,7 @@ namespace Windawesome
 
 			RepositionControls(left, right);
 
-			return new Label[] { label };
+			return new[] { label };
 		}
 
 		public void RepositionControls(int left, int right)

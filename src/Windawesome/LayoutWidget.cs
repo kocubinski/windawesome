@@ -19,28 +19,28 @@ namespace Windawesome
 
 		public LayoutWidget(Color? backColor = null, Color? foreColor = null)
 		{
-			backgroundColor = backColor ?? Color.FromArgb(0x99, 0xb4, 0xd1);
+			backgroundColor = backColor ?? Color.FromArgb(0x99, 0xB4, 0xD1);
 			foregroundColor = foreColor ?? Color.FromArgb(0x00, 0x00, 0x00);
 
-			Windawesome.LayoutUpdated += UpdateLayoutLabel;
+			Windawesome.LayoutUpdated += OnUpdateLayoutLabel;
 		}
 
-		private void UpdateLayoutLabel()
+		private void OnUpdateLayoutLabel()
 		{
-			int oldWidth = layoutLabel.Width;
+			var oldWidth = layoutLabel.Width;
 			layoutLabel.Text = windawesome.CurrentWorkspace.LayoutSymbol;
 			layoutLabel.Width = TextRenderer.MeasureText(layoutLabel.Text, layoutLabel.Font).Width;
 			if (layoutLabel.Width != oldWidth)
 			{
 				this.RepositionControls(left, right);
-				bar.OnFixedWidthWidgetWidthChanged(this);
+				bar.DoFixedWidthWidgetWidthChanged(this);
 			}
 		}
 
-		private void layoutLabel_Click(object sender, System.EventArgs e)
+		private static void LayoutLabelClick(object sender, EventArgs e)
 		{
 			windawesome.CurrentWorkspace.ChangeLayout(
-				config.layouts[(Array.IndexOf(config.layouts, windawesome.CurrentWorkspace.layout) + 1) % config.layouts.Length]);
+				config.Layouts[(Array.IndexOf(config.Layouts, windawesome.CurrentWorkspace.Layout) + 1) % config.Layouts.Length]);
 		}
 
 		#region IWidget Members
@@ -64,7 +64,7 @@ namespace Windawesome
 			layoutLabel.TextAlign = ContentAlignment.MiddleCenter;
 			layoutLabel.BackColor = backgroundColor;
 			layoutLabel.ForeColor = foregroundColor;
-			layoutLabel.Click += layoutLabel_Click;
+			layoutLabel.Click += LayoutLabelClick;
 		}
 
 		public IEnumerable<Control> GetControls(int left, int right)

@@ -30,22 +30,7 @@ namespace Windawesome
 		private delegate void HiddenIconAddedEventHandler(NativeMethods.NOTIFYICONDATA iconData, Tuple<int, uint> tuple);
 		private static event HiddenIconAddedEventHandler HiddenIconAdded;
 
-		private static void OnIconAdded(NativeMethods.NOTIFYICONDATA iconData, Tuple<int, uint> tuple)
-		{
-			IconAdded(iconData, tuple);
-		}
-
-		private static void OnIconModified(NativeMethods.NOTIFYICONDATA iconData, Tuple<int, uint> tuple)
-		{
-			IconModified(iconData, tuple);
-		}
-
-		private static void OnIconRemoved(Tuple<int, uint> tuple)
-		{
-			IconRemoved(tuple);
-		}
-
-		private static void OnHiddenIconAdded(NativeMethods.NOTIFYICONDATA iconData, Tuple<int, uint> tuple)
+		private static void DoHiddenIconAdded(NativeMethods.NOTIFYICONDATA iconData, Tuple<int, uint> tuple)
 		{
 			if (HiddenIconAdded != null)
 			{
@@ -59,9 +44,9 @@ namespace Windawesome
 		{
 			icons = new Dictionary<Tuple<int, uint>, Tuple<SystemTray.TrayIcon, PictureBox, ToolTip>>(10);
 
-			IconAdded	 += SystemTrayWidget_IconAdded;
-			IconModified += SystemTrayWidget_IconModified;
-			IconRemoved	 += SystemTrayWidget_IconRemoved;
+			IconAdded	 += OnIconAdded;
+			IconModified += OnIconModified;
+			IconRemoved	 += OnIconRemoved;
 
 			foreach (var icon in SystemTray.GetButtons(SystemTray.trayHandle))
 			{
@@ -72,7 +57,7 @@ namespace Windawesome
 
 			if (Windawesome.isAtLeast7 && showFullSystemTray)
 			{
-				HiddenIconAdded	+= SystemTrayWidget_IconAdded;
+				HiddenIconAdded	+= OnIconAdded;
 
 				foreach (var icon in SystemTray.GetButtons(SystemTray.hiddenTrayHandle))
 				{
@@ -83,13 +68,11 @@ namespace Windawesome
 			}
 		}
 
-		private void SystemTrayWidget_IconAdded(NativeMethods.NOTIFYICONDATA iconData, Tuple<int, uint> tuple)
+		private void OnIconAdded(NativeMethods.NOTIFYICONDATA iconData, Tuple<int, uint> tuple)
 		{
 			if (!icons.ContainsKey(tuple))
 			{
-				var trayIcon = new SystemTray.TrayIcon();
-				trayIcon.hWnd = (IntPtr) iconData.hWnd;
-				trayIcon.id = iconData.uID;
+				var trayIcon = new SystemTray.TrayIcon { hWnd = (IntPtr) iconData.hWnd, id = iconData.uID };
 				var pictureBox = CreatePictureBox(trayIcon);
 				var t = new Tuple<SystemTray.TrayIcon, PictureBox, ToolTip>(trayIcon, pictureBox, CreateToolTip(pictureBox, trayIcon.tooltip));
 				UpdateIconData(t, iconData);
@@ -97,12 +80,12 @@ namespace Windawesome
 				if (TrayIconVisible(trayIcon))
 				{
 					RepositionControls(left, right);
-					bar.OnWidgetControlsChanged(this, new PictureBox[0], new PictureBox[] { pictureBox });
+					bar.DoWidgetControlsChanged(this, new PictureBox[0], new[] { pictureBox });
 				}
 			}
 		}
 
-		private void SystemTrayWidget_IconModified(NativeMethods.NOTIFYICONDATA iconData, Tuple<int, uint> tuple)
+		private void OnIconModified(NativeMethods.NOTIFYICONDATA iconData, Tuple<int, uint> tuple)
 		{
 			Tuple<SystemTray.TrayIcon, PictureBox, ToolTip> trayIcon;
 
@@ -111,16 +94,16 @@ namespace Windawesome
 				RepositionControls(left, right);
 				if (TrayIconVisible(trayIcon.Item1))
 				{
-					bar.OnWidgetControlsChanged(this, new PictureBox[0], new PictureBox[] { trayIcon.Item2 });
+					bar.DoWidgetControlsChanged(this, new PictureBox[0], new[] { trayIcon.Item2 });
 				}
 				else
 				{
-					bar.OnWidgetControlsChanged(this, new PictureBox[] { trayIcon.Item2 }, new PictureBox[0]);
+					bar.DoWidgetControlsChanged(this, new[] { trayIcon.Item2 }, new PictureBox[0]);
 				}
 			}
 		}
 
-		private void SystemTrayWidget_IconRemoved(Tuple<int, uint> tuple)
+		private void OnIconRemoved(Tuple<int, uint> tuple)
 		{
 			Tuple<SystemTray.TrayIcon, PictureBox, ToolTip> trayIcon;
 
@@ -129,7 +112,7 @@ namespace Windawesome
 				icons.Remove(tuple);
 
 				RepositionControls(left, right);
-				bar.OnWidgetControlsChanged(this, new PictureBox[] { trayIcon.Item2 }, new PictureBox[0]);
+				bar.DoWidgetControlsChanged(this, new[] { trayIcon.Item2 }, new PictureBox[0]);
 			}
 		}
 
@@ -178,28 +161,40 @@ namespace Windawesome
 
 		private static PictureBox CreatePictureBox(SystemTray.TrayIcon trayIcon)
 		{
-			var pictureBox = new PictureBox();
-			pictureBox.SizeMode = PictureBoxSizeMode.CenterImage;
+			var pictureBox = new PictureBox { SizeMode = PictureBoxSizeMode.CenterImage };
 			SetPictureBoxIcon(pictureBox, trayIcon);
 
 			pictureBox.MouseDoubleClick += (s, e) =>
-				{
-					NativeMethods.SendNotifyMessage(trayIcon.hWnd, trayIcon.callbackMessage,
-						(UIntPtr) trayIcon.id, NativeMethods.WM_LBUTTONDBLCLK);
-				};
+				NativeMethods.SendNotifyMessage(trayIcon.hWnd, trayIcon.callbackMessage,
+			        (UIntPtr) trayIcon.id, NativeMethods.WM_LBUTTONDBLCLK);
 			pictureBox.MouseDown += (s, e) =>
 				{
-					if (e.Button == MouseButtons.Left)
+					switch (e.Button)
 					{
-						NativeMethods.SetForegroundWindow(trayIcon.hWnd);
-						NativeMethods.SendNotifyMessage(trayIcon.hWnd, trayIcon.callbackMessage,
-							(UIntPtr) trayIcon.id, NativeMethods.WM_LBUTTONDOWN);
+						case MouseButtons.Left:
+							NativeMethods.SetForegroundWindow(trayIcon.hWnd);
+							NativeMethods.SendNotifyMessage(trayIcon.hWnd, trayIcon.callbackMessage,
+								(UIntPtr) trayIcon.id, NativeMethods.WM_LBUTTONDOWN);
+							break;
+						case MouseButtons.Right:
+							NativeMethods.SetForegroundWindow(trayIcon.hWnd);
+							NativeMethods.SendNotifyMessage(trayIcon.hWnd, trayIcon.callbackMessage,
+								(UIntPtr) trayIcon.id, NativeMethods.WM_RBUTTONDOWN);
+							break;
 					}
-					else if (e.Button == MouseButtons.Right)
+				};
+			pictureBox.MouseUp += (s, e) =>
+				{
+					switch (e.Button)
 					{
-						NativeMethods.SetForegroundWindow(trayIcon.hWnd);
-						NativeMethods.SendNotifyMessage(trayIcon.hWnd, trayIcon.callbackMessage,
-							(UIntPtr) trayIcon.id, NativeMethods.WM_RBUTTONDOWN);
+						case MouseButtons.Left:
+							NativeMethods.SendNotifyMessage(trayIcon.hWnd, trayIcon.callbackMessage,
+								(UIntPtr) trayIcon.id, NativeMethods.WM_LBUTTONUP);
+							break;
+						case MouseButtons.Right:
+							NativeMethods.SendNotifyMessage(trayIcon.hWnd, trayIcon.callbackMessage,
+								(UIntPtr) trayIcon.id, NativeMethods.WM_RBUTTONUP);
+							break;
 					}
 				};
 
@@ -208,8 +203,7 @@ namespace Windawesome
 
 		private static ToolTip CreateToolTip(PictureBox pictureBox, string tip)
 		{
-			var toolTip = new ToolTip();
-			toolTip.ShowAlways = true;
+			var toolTip = new ToolTip { ShowAlways = true };
 			toolTip.SetToolTip(pictureBox, tip);
 
 			return toolTip;
@@ -228,27 +222,27 @@ namespace Windawesome
 			// add to visible or to hidden icons
 			if (!Windawesome.isAtLeast7 || SystemTray.ContainsButton(SystemTray.trayHandle, (IntPtr) iconData.hWnd, iconData.uID))
 			{
-				OnIconAdded(iconData, tuple);
+				IconAdded(iconData, tuple);
 			}
 			else
 			{
-				OnHiddenIconAdded(iconData, tuple);
+				DoHiddenIconAdded(iconData, tuple);
 			}
 		}
 
 		private static void TrayIconModified(NativeMethods.NOTIFYICONDATA iconData)
 		{
-			OnIconModified(iconData, new Tuple<int, uint>(iconData.hWnd, iconData.uID));
+			IconModified(iconData, new Tuple<int, uint>(iconData.hWnd, iconData.uID));
 		}
 
 		private static void TrayIconDeleted(NativeMethods.NOTIFYICONDATA iconData)
 		{
-			OnIconRemoved(new Tuple<int, uint>(iconData.hWnd, iconData.uID));
+			IconRemoved(new Tuple<int, uint>(iconData.hWnd, iconData.uID));
 		}
 
 		private static bool UpdateIconData(Tuple<SystemTray.TrayIcon, PictureBox, ToolTip> prevIconData, NativeMethods.NOTIFYICONDATA iconData)
 		{
-			PictureBox pictureBox = prevIconData.Item2;
+			var pictureBox = prevIconData.Item2;
 			var trayIcon = prevIconData.Item1;
 
 			// updates the message callback
@@ -316,7 +310,7 @@ namespace Windawesome
 			{
 				if (Windawesome.isAtLeast7)
 				{
-					NativeMethods.ChangeWindowMessageFilterEx(Windawesome.handle, NativeMethods.WM_COPYDATA, NativeMethods.MSGFLT_ADD, IntPtr.Zero);
+					NativeMethods.ChangeWindowMessageFilterEx(Windawesome.HandleStatic, NativeMethods.WM_COPYDATA, NativeMethods.MSGFLT_ADD, IntPtr.Zero);
 				}
 				else if (Windawesome.isAtLeastVista)
 				{
@@ -325,7 +319,7 @@ namespace Windawesome
 			}
 
 			// system tray hook
-			if (NativeMethods.RegisterSystemTrayHook(Windawesome.handle))
+			if (NativeMethods.RegisterSystemTrayHook(Windawesome.HandleStatic))
 			{
 				Windawesome.RegisterMessage(NativeMethods.WM_COPYDATA, OnSystemTrayMessage);
 			}
@@ -406,7 +400,7 @@ namespace Windawesome
 
 		#endregion
 
-		private class SystemTray
+		private static class SystemTray
 		{
 			private const uint TB_GETBUTTON = 0x417;
 			private const uint TB_BUTTONCOUNT = 0x418;
@@ -414,7 +408,7 @@ namespace Windawesome
 			internal static readonly IntPtr trayHandle;
 			internal static readonly IntPtr hiddenTrayHandle;
 
-			private static readonly int TBBUTTONsize;
+			private static readonly int TBBUTTONSize;
 			private static readonly IntPtr explorerProcessHandle;
 			private static readonly IntPtr buttonMemory;
 			private static readonly StringBuilder sb;
@@ -427,26 +421,22 @@ namespace Windawesome
 					hiddenTrayHandle = FindHiddenTrayHandle();
 				}
 
-				if (Environment.Is64BitOperatingSystem)
-				{
-					TBBUTTONsize = Marshal.SizeOf(typeof(NativeMethods.TBBUTTON64.ButtonData));
-				}
-				else
-				{
-					TBBUTTONsize = Marshal.SizeOf(typeof(NativeMethods.TBBUTTON32.ButtonData));
-				}
-				sb = new StringBuilder(1024);
+				TBBUTTONSize = Marshal.SizeOf(
+					Environment.Is64BitOperatingSystem ?
+						typeof(NativeMethods.TBBUTTON64.ButtonData) :
+						typeof(NativeMethods.TBBUTTON32.ButtonData));
+				sb = new StringBuilder(128);
 
-				int explorerPID;
-				NativeMethods.GetWindowThreadProcessId(trayHandle, out explorerPID);
+				int explorerPId;
+				NativeMethods.GetWindowThreadProcessId(trayHandle, out explorerPId);
 
-				explorerProcessHandle = NativeMethods.OpenProcess(NativeMethods.PROCESS_VM_OPERATION | NativeMethods.PROCESS_VM_READ, false, explorerPID);
+				explorerProcessHandle = NativeMethods.OpenProcess(NativeMethods.PROCESS_VM_OPERATION | NativeMethods.PROCESS_VM_READ, false, explorerPId);
 				if (explorerProcessHandle == IntPtr.Zero)
 				{
 					throw new Exception("Could not open explorer.exe process with PROCESS_VM_OPERATION | PROCESS_VM_READ permissions");
 				}
 
-				buttonMemory = NativeMethods.VirtualAllocEx(explorerProcessHandle, IntPtr.Zero, TBBUTTONsize, NativeMethods.MEM_COMMIT, NativeMethods.PAGE_READWRITE);
+				buttonMemory = NativeMethods.VirtualAllocEx(explorerProcessHandle, IntPtr.Zero, TBBUTTONSize, NativeMethods.MEM_COMMIT, NativeMethods.PAGE_READWRITE);
 				if (buttonMemory == IntPtr.Zero)
 				{
 					NativeMethods.CloseHandle(explorerProcessHandle);
@@ -468,7 +458,7 @@ namespace Windawesome
 
 			private static IntPtr FindTrayHandle()
 			{
-				IntPtr hWnd = NativeMethods.FindWindow("Shell_TrayWnd", null);
+				var hWnd = NativeMethods.FindWindow("Shell_TrayWnd", null);
 				hWnd = NativeMethods.FindWindowEx(hWnd, IntPtr.Zero, "TrayNotifyWnd", null);
 				hWnd = NativeMethods.FindWindowEx(hWnd, IntPtr.Zero, "SysPager", null);
 				return NativeMethods.FindWindowEx(hWnd, IntPtr.Zero, "ToolbarWindow32", null);
@@ -476,31 +466,31 @@ namespace Windawesome
 
 			private static IntPtr FindHiddenTrayHandle()
 			{
-				IntPtr hWnd = NativeMethods.FindWindow("NotifyIconOverflowWindow", null);
+				var hWnd = NativeMethods.FindWindow("NotifyIconOverflowWindow", null);
 				return NativeMethods.FindWindowEx(hWnd, IntPtr.Zero, "ToolbarWindow32", null);
 			}
 
-			private class ITrayIconData
+			private abstract class TrayIconData
 			{
-				public NativeMethods.ITBBUTTON Button;
-				public NativeMethods.ITRAYDATA TrayData;
+				public NativeMethods.ITBBUTTON button;
+				public NativeMethods.ITRAYDATA trayData;
 			}
 
-			private class TrayIconData32 : ITrayIconData
+			private class TrayIconData32 : TrayIconData
 			{
 				public TrayIconData32()
 				{
-					Button = new NativeMethods.TBBUTTON32();
-					TrayData = new NativeMethods.TRAYDATA32();
+					this.button = new NativeMethods.TBBUTTON32();
+					this.trayData = new NativeMethods.TRAYDATA32();
 				}
 			}
 
-			private class TrayIconData64 : ITrayIconData
+			private class TrayIconData64 : TrayIconData
 			{
 				public TrayIconData64()
 				{
-					Button = new NativeMethods.TBBUTTON64();
-					TrayData = new NativeMethods.TRAYDATA64();
+					this.button = new NativeMethods.TBBUTTON64();
+					this.trayData = new NativeMethods.TRAYDATA64();
 				}
 			}
 
@@ -534,8 +524,8 @@ namespace Windawesome
 				return buttonsCountIntPtr.ToInt32();
 			}
 
-			private static bool GetButtonData<TrayIconData>(IntPtr trayHandle, TrayIconData data, int i)
-				where TrayIconData : ITrayIconData, new()
+			private static bool GetButtonData<TTrayIconData>(IntPtr trayHandle, TTrayIconData data, int i)
+				where TTrayIconData : TrayIconData, new()
 			{
 				NativeMethods.SendMessageTimeout(
 					trayHandle,
@@ -546,33 +536,28 @@ namespace Windawesome
 					1000, IntPtr.Zero);
 
 				uint numberOfBytesRead;
-				return data.Button.Initialize(explorerProcessHandle, buttonMemory, out numberOfBytesRead) &&
-					data.TrayData.Initialize(explorerProcessHandle, data.Button.dwData, out numberOfBytesRead);
+				return data.button.Initialize(explorerProcessHandle, buttonMemory, out numberOfBytesRead) &&
+					data.trayData.Initialize(explorerProcessHandle, data.button.dwData, out numberOfBytesRead);
 			}
 
 			internal static IEnumerable<TrayIcon> GetButtons(IntPtr trayHandle)
 			{
-				if (Environment.Is64BitOperatingSystem)
-				{
-					return GetButtons<TrayIconData64>(trayHandle);
-				}
-				else
-				{
-					return GetButtons<TrayIconData32>(trayHandle);
-				}
+				return Environment.Is64BitOperatingSystem ?
+					GetButtons<TrayIconData64>(trayHandle) :
+					GetButtons<TrayIconData32>(trayHandle);
 			}
 
-			private static IEnumerable<TrayIcon> GetButtons<TrayIconData>(IntPtr trayHandle)
-				where TrayIconData : ITrayIconData, new()
+			private static IEnumerable<TrayIcon> GetButtons<TTrayIconData>(IntPtr trayHandle)
+				where TTrayIconData : TrayIconData, new()
 			{
-				int buttonsCount = GetButtonsCount(trayHandle);
-				TrayIconData data = new TrayIconData();
-				LinkedList<TrayIcon> result = new LinkedList<TrayIcon>();
+				var buttonsCount = GetButtonsCount(trayHandle);
+				var data = new TTrayIconData();
+				var result = new LinkedList<TrayIcon>();
 
 				TrayIcon trayIcon;
-				for (int i = 0; i < buttonsCount; i++)
+				for (var i = 0; i < buttonsCount; i++)
 				{
-					if (!GetButtonData<TrayIconData>(trayHandle, data, i))
+					if (!GetButtonData(trayHandle, data, i))
 					{
 						continue;
 					}
@@ -580,17 +565,17 @@ namespace Windawesome
 					uint numberOfBytesRead;
 
 					trayIcon = new TrayIcon();
-					if (NativeMethods.ReadProcessMemory(explorerProcessHandle, data.Button.iString, sb, sb.Capacity, out numberOfBytesRead))
+					if (NativeMethods.ReadProcessMemory(explorerProcessHandle, data.button.iString, sb, sb.Capacity, out numberOfBytesRead))
 					{
 						trayIcon.tooltip = sb.ToString();
 					}
 
-					trayIcon.callbackMessage = data.TrayData.uCallbackMessage;
-					trayIcon.id = data.TrayData.uID;
-					trayIcon.hWnd = data.TrayData.hWnd;
-					trayIcon.iconHandle = data.TrayData.hIcon;
+					trayIcon.callbackMessage = data.trayData.uCallbackMessage;
+					trayIcon.id = data.trayData.uID;
+					trayIcon.hWnd = data.trayData.hWnd;
+					trayIcon.iconHandle = data.trayData.hIcon;
 					trayIcon.state = 0;
-					if ((data.Button.fsState & NativeMethods.TBSTATE_HIDDEN) == NativeMethods.TBSTATE_HIDDEN)
+					if ((data.button.fsState & NativeMethods.TBSTATE_HIDDEN) == NativeMethods.TBSTATE_HIDDEN)
 					{
 						trayIcon.state |= NativeMethods.IconState.NIS_HIDDEN;
 					}
@@ -603,30 +588,25 @@ namespace Windawesome
 
 			internal static bool ContainsButton(IntPtr trayHandle, IntPtr hWnd, uint id)
 			{
-				if (Environment.Is64BitOperatingSystem)
-				{
-					return ContainsButton<TrayIconData64>(trayHandle, hWnd, id);
-				}
-				else
-				{
-					return ContainsButton<TrayIconData32>(trayHandle, hWnd, id);
-				}
+				return Environment.Is64BitOperatingSystem ?
+					ContainsButton<TrayIconData64>(trayHandle, hWnd, id) :
+					ContainsButton<TrayIconData32>(trayHandle, hWnd, id);
 			}
 
-			private static bool ContainsButton<TrayIconData>(IntPtr trayHandle, IntPtr hWnd, uint id)
-				where TrayIconData : ITrayIconData, new()
+			private static bool ContainsButton<TTrayIconData>(IntPtr trayHandle, IntPtr hWnd, uint id)
+				where TTrayIconData : TrayIconData, new()
 			{
-				int buttonsCount = GetButtonsCount(trayHandle);
-				TrayIconData data = new TrayIconData();
+				var buttonsCount = GetButtonsCount(trayHandle);
+				var data = new TTrayIconData();
 
-				for (int i = 0; i < buttonsCount; i++)
+				for (var i = 0; i < buttonsCount; i++)
 				{
-					if (!GetButtonData<TrayIconData>(trayHandle, data, i))
+					if (!GetButtonData(trayHandle, data, i))
 					{
 						continue;
 					}
 
-					if (data.TrayData.hWnd == hWnd && data.TrayData.uID == id)
+					if (data.trayData.hWnd == hWnd && data.trayData.uID == id)
 					{
 						return true;
 					}

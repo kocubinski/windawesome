@@ -30,22 +30,22 @@ namespace Windawesome
 		{
 			this.showSingleApplicationTab = showSingleApplicationTab;
 			this.normalForegroundColor = normalForegroundColor ?? Color.FromArgb(0x00, 0x00, 0x00);
-			this.normalBackgroundColor = normalBackgroundColor ?? Color.FromArgb(0xf0, 0xf0, 0xf0);
-			this.highlightedForegroundColor = highlightedForegroundColor ?? Color.FromArgb(0xff, 0xff, 0xff);
-			this.highlightedBackgroundColor = highlightedBackgroundColor ?? Color.FromArgb(0x33, 0x99, 0xff);
+			this.normalBackgroundColor = normalBackgroundColor ?? Color.FromArgb(0xF0, 0xF0, 0xF0);
+			this.highlightedForegroundColor = highlightedForegroundColor ?? Color.FromArgb(0xFF, 0xFF, 0xFF);
+			this.highlightedBackgroundColor = highlightedBackgroundColor ?? Color.FromArgb(0x33, 0x99, 0xFF);
 
 			isShown = false;
 		}
 
-		private void ResizeApplicationPanels(int left, int right, int workspaceID)
+		private void ResizeApplicationPanels(int left, int right, int workspaceId)
 		{
-			mustResize[workspaceID] = false;
+			mustResize[workspaceId] = false;
 
-			if (applicationPanels[workspaceID].Values.Count > 0)
+			if (applicationPanels[workspaceId].Values.Count > 0)
 			{
-				var eachWidth = (right - left) / (showSingleApplicationTab ? 1 : applicationPanels[workspaceID].Values.Count);
+				var eachWidth = (right - left) / (showSingleApplicationTab ? 1 : applicationPanels[workspaceId].Values.Count);
 
-				foreach (var panel in applicationPanels[workspaceID].Values)
+				foreach (var panel in applicationPanels[workspaceId].Values)
 				{
 					panel.Location = new Point(left, 0);
 					panel.Size = new Size(eachWidth, bar.barHeight);
@@ -61,17 +61,19 @@ namespace Windawesome
 
 		private Panel CreatePanel(Window window)
 		{
-			Panel panel = new Panel();
+			var panel = new Panel();
 			panel.SuspendLayout();
 			panel.AutoSize = false;
 			panel.Location = new Point(left, 0);
 			panel.ForeColor = normalForegroundColor;
 			panel.BackColor = normalBackgroundColor;
 
-			PictureBox pictureBox = new PictureBox();
-			pictureBox.Size = new Size(bar.barHeight, bar.barHeight);
-			pictureBox.SizeMode = PictureBoxSizeMode.CenterImage;
-			pictureBox.Click += applicationTab_Click;
+			var pictureBox = new PictureBox
+			    {
+			        Size = new Size(this.bar.barHeight, this.bar.barHeight),
+			        SizeMode = PictureBoxSizeMode.CenterImage
+			    };
+			pictureBox.Click += this.OnApplicationTabClick;
 			panel.Controls.Add(pictureBox);
 
 			Windawesome.GetWindowSmallIconAsBitmap(window.hWnd, bitmap =>
@@ -85,21 +87,21 @@ namespace Windawesome
 					}
 				});
 
-			Label label = bar.CreateLabel(window.caption, bar.barHeight, 0);
-			label.Click += applicationTab_Click;
+			var label = bar.CreateLabel(window.Caption, bar.barHeight, 0);
+			label.Click += this.OnApplicationTabClick;
 			panel.Controls.Add(label);
 
 			panel.ResumeLayout();
 			return panel;
 		}
 
-		private void ApplicationTabsWidget_WindowActivated(IntPtr hWnd)
+		private void OnWindowActivated(IntPtr hWnd)
 		{
 			if (isShown)
 			{
 				Panel panel;
-				int workspaceID = windawesome.CurrentWorkspace.ID - 1;
-				var applications = applicationPanels[workspaceID];
+				var workspaceId = windawesome.CurrentWorkspace.id - 1;
+				var applications = applicationPanels[workspaceId];
 
 				if (applications.TryGetValue(hWnd, out panel))
 				{
@@ -146,84 +148,84 @@ namespace Windawesome
 			}
 		}
 
-		private void applicationTab_Click(object sender, EventArgs e)
+		private void OnApplicationTabClick(object sender, EventArgs e)
 		{
 			windawesome.SwitchToApplicationInCurrentWorkspace(
-				applicationPanels[windawesome.CurrentWorkspace.ID - 1].
-					First(item => item.Value == ((sender as Control).Parent as Panel)).
+				applicationPanels[windawesome.CurrentWorkspace.id - 1].
+					First(item => item.Value == (((Control) sender).Parent as Panel)).
 					Key);
 		}
 
-		private void ApplicationTabsWidget_WindowTitleOrIconChanged(Workspace workspace, Window window, string newText)
+		private void OnWindowTitleOrIconChanged(Workspace workspace, Window window, string newText)
 		{
 			Panel panel;
-			var applications = applicationPanels[workspace.ID - 1];
+			var applications = applicationPanels[workspace.id - 1];
 			if (applications.TryGetValue(window.hWnd, out panel))
 			{
 				panel.Controls[1].Text = newText;
 			}
 		}
 
-		private void ApplicationTabsWidget_WorkspaceApplicationAdded(Workspace workspace, Window window)
+		private void OnWorkspaceApplicationAdded(Workspace workspace, Window window)
 		{
-			if (window.showInTabs)
+			if (window.ShowInTabs)
 			{
-				var workspaceID = workspace.ID - 1;
+				var workspaceId = workspace.id - 1;
 				var newPanel = CreatePanel(window);
 
-				applicationPanels[workspaceID].Add(window.hWnd, newPanel);
+				applicationPanels[workspaceId].Add(window.hWnd, newPanel);
 
-				if (isShown && workspace.isCurrentWorkspace)
+				if (isShown && workspace.IsCurrentWorkspace)
 				{
-					ApplicationTabsWidget_WindowActivated(window.hWnd);
-					ResizeApplicationPanels(left, right, workspaceID);
+					OnWindowActivated(window.hWnd);
+					ResizeApplicationPanels(left, right, workspaceId);
 				}
 				else
 				{
 					newPanel.Hide();
-					mustResize[workspaceID] = true;
+					mustResize[workspaceId] = true;
 				}
-				bar.OnSpanWidgetControlsAdded(this, new Panel[] { newPanel });
+				bar.DoSpanWidgetControlsAdded(this, new[] { newPanel });
 			}
 		}
 
-		private void ApplicationTabsWidget_WorkspaceApplicationRemoved(Workspace workspace, Window window)
+		private void OnWorkspaceApplicationRemoved(Workspace workspace, Window window)
 		{
-			var workspaceID = workspace.ID - 1;
+			var workspaceId = workspace.id - 1;
 			Panel removedPanel;
-			if (applicationPanels[workspaceID].TryGetValue(window.hWnd, out removedPanel))
+			if (applicationPanels[workspaceId].TryGetValue(window.hWnd, out removedPanel))
 			{
-				applicationPanels[workspaceID].Remove(window.hWnd);
-				if (isShown && workspace.isCurrentWorkspace)
+				applicationPanels[workspaceId].Remove(window.hWnd);
+				if (isShown && workspace.IsCurrentWorkspace)
 				{
-					if (applicationPanels[workspaceID].Count > 0)
+					if (applicationPanels[workspaceId].Count > 0)
 					{
 						ActivateTopmost(workspace);
 					}
-					ResizeApplicationPanels(left, right, workspaceID);
+					ResizeApplicationPanels(left, right, workspaceId);
 				}
 				else
 				{
-					mustResize[workspaceID] = true;
+					mustResize[workspaceId] = true;
 				}
-				bar.OnSpanWidgetControlsRemoved(this, new Panel[] { removedPanel });
+				bar.DoSpanWidgetControlsRemoved(this, new[] { removedPanel });
 			}
 		}
 
-		private void ApplicationTabsWidget_WorkspaceChangedTo(Workspace workspace)
+		private void OnWorkspaceChangedTo(Workspace workspace)
 		{
 			if (isShown)
 			{
-				var workspaceID = workspace.ID - 1;
-				if (applicationPanels[workspaceID].Count > 0)
+				var workspaceId = workspace.id - 1;
+				if (applicationPanels[workspaceId].Count > 0)
 				{
-					if (mustResize[workspaceID])
+					if (mustResize[workspaceId])
 					{
-						ResizeApplicationPanels(left, right, workspaceID);
+						ResizeApplicationPanels(left, right, workspaceId);
 					}
 					if (!showSingleApplicationTab)
 					{
-						applicationPanels[workspaceID].Values.ForEach(p => p.Show());
+						applicationPanels[workspaceId].Values.ForEach(p => p.Show());
 					}
 					currentlyHighlightedPanel = null;
 					ActivateTopmost(workspace);
@@ -231,18 +233,18 @@ namespace Windawesome
 			}
 		}
 
-		private void ApplicationTabsWidget_WorkspaceChangedFrom(Workspace workspace)
+		private void OnWorkspaceChangedFrom(Workspace workspace)
 		{
 			if (isShown)
 			{
-				var workspaceID = workspace.ID - 1;
-				if (applicationPanels[workspaceID].Count > 0)
+				var workspaceId = workspace.id - 1;
+				if (applicationPanels[workspaceId].Count > 0)
 				{
 					if (!showSingleApplicationTab)
 					{
-						applicationPanels[workspaceID].Values.ForEach(p => p.Hide());
+						applicationPanels[workspaceId].Values.ForEach(p => p.Hide());
 					}
-					ApplicationTabsWidget_WindowActivated(IntPtr.Zero);
+					OnWindowActivated(IntPtr.Zero);
 				}
 			}
 		}
@@ -250,9 +252,9 @@ namespace Windawesome
 		private void ActivateTopmost(Workspace workspace)
 		{
 			var topmost = workspace.GetTopmostWindow();
-			if (!topmost.isMinimized)
+			if (!topmost.IsMinimized)
 			{
-				ApplicationTabsWidget_WindowActivated(topmost.hWnd);
+				OnWindowActivated(topmost.hWnd);
 			}
 		}
 
@@ -273,21 +275,20 @@ namespace Windawesome
 		{
 			this.bar = bar;
 
-			Windawesome.WindowTitleOrIconChanged += ApplicationTabsWidget_WindowTitleOrIconChanged;
-			Workspace.WorkspaceApplicationAdded += ApplicationTabsWidget_WorkspaceApplicationAdded;
-			Workspace.WorkspaceApplicationRemoved += ApplicationTabsWidget_WorkspaceApplicationRemoved;
-			Workspace.WorkspaceApplicationRestored += (_, w) => ApplicationTabsWidget_WindowActivated(w.hWnd);
-			Workspace.WindowActivatedEvent += ApplicationTabsWidget_WindowActivated;
-			Workspace.WorkspaceChangedTo += ApplicationTabsWidget_WorkspaceChangedTo;
-			Workspace.WorkspaceChangedFrom += ApplicationTabsWidget_WorkspaceChangedFrom;
+			Windawesome.WindowTitleOrIconChanged += OnWindowTitleOrIconChanged;
+			Workspace.WorkspaceApplicationAdded += OnWorkspaceApplicationAdded;
+			Workspace.WorkspaceApplicationRemoved += OnWorkspaceApplicationRemoved;
+			Workspace.WorkspaceApplicationRestored += (_, w) => OnWindowActivated(w.hWnd);
+			Workspace.WindowActivatedEvent += OnWindowActivated;
+			Workspace.WorkspaceChangedTo += OnWorkspaceChangedTo;
+			Workspace.WorkspaceChangedFrom += OnWorkspaceChangedFrom;
 
 			currentlyHighlightedPanel = null;
 
-			mustResize = new bool[config.workspacesCount];
-			applicationPanels = new Dictionary<IntPtr, Panel>[config.workspacesCount];
-			for (int i = 0; i < config.workspacesCount; i++)
+			mustResize = new bool[config.WorkspacesCount];
+			applicationPanels = new Dictionary<IntPtr, Panel>[config.WorkspacesCount];
+			for (var i = 0; i < config.WorkspacesCount; i++)
 			{
-				mustResize[i] = false;
 				applicationPanels[i] = new Dictionary<IntPtr, Panel>(3);
 			}
 		}
@@ -297,7 +298,7 @@ namespace Windawesome
 			this.left = left;
 			this.right = right;
 
-			return applicationPanels[windawesome.CurrentWorkspace.ID - 1].Values;
+			return applicationPanels[windawesome.CurrentWorkspace.id - 1].Values;
 		}
 
 		public void RepositionControls(int left, int right)
@@ -305,12 +306,12 @@ namespace Windawesome
 			this.left = left;
 			this.right = right;
 
-			for (int i = 0; i < config.workspacesCount; i++)
+			for (var i = 0; i < config.WorkspacesCount; i++)
 			{
 				mustResize[i] = true;
 			}
 
-			ResizeApplicationPanels(left, right, windawesome.CurrentWorkspace.ID - 1);
+			ResizeApplicationPanels(left, right, windawesome.CurrentWorkspace.id - 1);
 		}
 
 		public int GetLeft()

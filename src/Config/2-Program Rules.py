@@ -2,7 +2,7 @@ from System.Linq import Enumerable
 from Windawesome import ProgramRule, State
 from Windawesome.NativeMethods import WS
 
-config.programRules = Enumerable.ToArray[ProgramRule]([
+config.ProgramRules = Enumerable.ToArray[ProgramRule]([
 	ProgramRule(
 		className = "^TApplication$",
 		displayName = "^Find and Run Robot*",
@@ -31,7 +31,7 @@ config.programRules = Enumerable.ToArray[ProgramRule]([
 		rules = [ProgramRule.Rule(workspace = 1)]
 	),
 	ProgramRule(
-		displayName = "^BitComet.*",
+		displayName = ".*BitComet.*",
 		windowCreatedDelay = 1000,
 		switchToOnCreated = False,
 		rules = [ProgramRule.Rule(workspace = 9, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
@@ -79,7 +79,7 @@ config.programRules = Enumerable.ToArray[ProgramRule]([
 	ProgramRule(
 		className = "^{97E27FAA-C0B3-4b8e-A693-ED7881E99FC1}$", # Foobar2000
 		windowCreatedDelay = 100,
-		rules = [ProgramRule.Rule(workspace = 1, showInTabs = False)]
+		rules = [ProgramRule.Rule(workspace = 7)]
 	),
 	ProgramRule(
 		displayName = ".*Microsoft Visual Studio.*",

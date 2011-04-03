@@ -38,22 +38,22 @@ namespace Windawesome
 		private delegate void WidgetControlsChangedEventHandler(IWidget widget, IEnumerable<Control> oldControls, IEnumerable<Control> newControls);
 		private event WidgetControlsChangedEventHandler WidgetControlsChanged;
 
-		public void OnWidgetControlsChanged(IWidget widget, IEnumerable<Control> controlsRemoved, IEnumerable<Control> controlsAdded)
+		public void DoWidgetControlsChanged(IWidget widget, IEnumerable<Control> controlsRemoved, IEnumerable<Control> controlsAdded)
 		{
 			WidgetControlsChanged(widget, controlsRemoved, controlsAdded);
 		}
 
-		public void OnSpanWidgetControlsAdded(IWidget widget, IEnumerable<Control> controls)
+		public void DoSpanWidgetControlsAdded(IWidget widget, IEnumerable<Control> controls)
 		{
 			SpanWidgetControlsAdded(widget, controls);
 		}
 
-		public void OnSpanWidgetControlsRemoved(IWidget widget, IEnumerable<Control> controls)
+		public void DoSpanWidgetControlsRemoved(IWidget widget, IEnumerable<Control> controls)
 		{
 			SpanWidgetControlsRemoved(widget, controls);
 		}
 
-		public void OnFixedWidthWidgetWidthChanged(IWidget widget)
+		public void DoFixedWidthWidgetWidthChanged(IWidget widget)
 		{
 			FixedWidthWidgetWidthChanged(widget);
 		}
@@ -62,46 +62,48 @@ namespace Windawesome
 
 		private Form CreateForm()
 		{
-			Form form = new Form();
+			var newForm = new Form
+			    {
+			        StartPosition = FormStartPosition.Manual,
+			        FormBorderStyle = FormBorderStyle.FixedToolWindow,
+			        AutoValidate = AutoValidate.Disable,
+			        CausesValidation = false,
+			        ControlBox = false,
+			        MaximizeBox = false,
+			        MinimizeBox = false,
+			        ShowIcon = false,
+			        ShowInTaskbar = false,
+			        SizeGripStyle = SizeGripStyle.Hide,
+			        AutoScaleMode = AutoScaleMode.Font,
+			        AutoScroll = false,
+			        AutoSize = false,
+			        HelpButton = false,
+			        TopLevel = true,
+			        WindowState = FormWindowState.Normal,
+			        TopMost = true,
+					MinimumSize = new Size(0, this.barHeight),
+			        Height = this.barHeight
+			    };
 
-			form.StartPosition = FormStartPosition.Manual;
-			form.FormBorderStyle = FormBorderStyle.FixedToolWindow;
-			form.AutoValidate = AutoValidate.Disable;
-			form.CausesValidation = false;
-			form.ControlBox = false;
-			form.MaximizeBox = false;
-			form.MinimizeBox = false;
-			form.ShowIcon = false;
-			form.ShowInTaskbar = false;
-			form.SizeGripStyle = SizeGripStyle.Hide;
-			form.AutoScaleMode = AutoScaleMode.Font;
-			form.AutoScroll = false;
-			form.AutoSize = false;
-			form.HelpButton = false;
-			form.TopLevel = true;
-			form.WindowState = FormWindowState.Normal;
-			form.TopMost = true;
-			form.VisibleChanged += form_VisibleChanged;
-			form.FormClosing += (s, ea) => ea.Cancel = true;
-			form.MinimumSize = new Size(0, barHeight);
-			form.Height = barHeight;
+			newForm.VisibleChanged += this.OnFormVisibleChanged;
+			newForm.FormClosing += (s, ea) => ea.Cancel = true;
 
 			// make the bar not activatable
-			var exStyle = NativeMethods.GetWindowExStyleLongPtr(form.Handle);
-			NativeMethods.SetWindowExStyleLongPtr(form.Handle, exStyle | NativeMethods.WS_EX.WS_EX_NOACTIVATE);
+			var exStyle = NativeMethods.GetWindowExStyleLongPtr(newForm.Handle);
+			NativeMethods.SetWindowExStyleLongPtr(newForm.Handle, exStyle | NativeMethods.WS_EX.WS_EX_NOACTIVATE);
 
-			return form;
+			return newForm;
 		}
 
 		public override int GetHashCode()
 		{
-			return form.Handle.GetHashCode();
+			return this.form.Handle.GetHashCode();
 		}
 
 		public override bool Equals(object obj)
 		{
-			Bar bar = obj as Bar;
-			return bar != null && form.Handle == bar.form.Handle;
+			var bar = obj as Bar;
+			return bar != null && this.form.Handle == bar.form.Handle;
 		}
 
 		#region Construction and Destruction
@@ -118,23 +120,23 @@ namespace Windawesome
 			}
 		}
 
-		public Bar(IList<IWidget> containsLeftAligned, IList<IWidget> containsRightAligned,
-			IList<IWidget> middleAlignedWidgets, int barHeight = 20, Font font = null, Color? backgroundColor = null)
+		public Bar(IEnumerable<IWidget> containsLeftAligned, IEnumerable<IWidget> containsRightAligned,
+			IEnumerable<IWidget> middleAlignedWidgets, int barHeight = 20, Font font = null, Color? backgroundColor = null)
 		{
-			this.leftAlignedWidgets = containsLeftAligned.ToArray();
-			this.rightAlignedWidgets = containsRightAligned.ToArray();
+			leftAlignedWidgets = containsLeftAligned.ToArray();
+			rightAlignedWidgets = containsRightAligned.ToArray();
 			this.middleAlignedWidgets = middleAlignedWidgets.ToArray();
 			this.barHeight = barHeight;
 			this.font = font ?? new Font("Lucida Console", 8);
 
-			form = CreateForm();
+			this.form = CreateForm();
 			if (backgroundColor != null)
 			{
-				form.BackColor = backgroundColor.Value;
+				this.form.BackColor = backgroundColor.Value;
 			}
 
 			// make the bar visible even when the user uses "Show Desktop" or ALT-TABs to the desktop
-			NativeMethods.SetParent(form.Handle, desktopWindowHandle);
+			NativeMethods.SetParent(this.form.Handle, desktopWindowHandle);
 		}
 
 		internal void InitializeBar(Windawesome windawesome, Config config)
@@ -151,10 +153,10 @@ namespace Windawesome
 				Where(w => !widgetTypes.Contains(w.GetType())).
 				ForEach(w => { w.StaticInitializeWidget(windawesome, config); widgetTypes.Add(w.GetType()); });
 
-			WidgetControlsChanged = Bar_WidgetControlsChanged;
-			SpanWidgetControlsAdded = Bar_SpanWidgetControlsAdded;
-			SpanWidgetControlsRemoved = Bar_SpanWidgetControlsRemoved;
-			FixedWidthWidgetWidthChanged = Bar_FixedWidthWidgetWidthChanged;
+			WidgetControlsChanged = OnWidgetControlsChanged;
+			SpanWidgetControlsAdded = OnSpanWidgetControlsAdded;
+			SpanWidgetControlsRemoved = OnSpanWidgetControlsRemoved;
+			FixedWidthWidgetWidthChanged = OnFixedWidthWidgetWidthChanged;
 
 			leftAlignedWidgets.ForEach(w => w.InitializeWidget(this));
 			rightAlignedWidgets.ForEach(w => w.InitializeWidget(this));
@@ -165,23 +167,23 @@ namespace Windawesome
 
 		internal void Dispose()
 		{
+			leftAlignedWidgets.ForEach(w => w.Dispose());
+			rightAlignedWidgets.ForEach(w => w.Dispose());
+			middleAlignedWidgets.ForEach(w => w.Dispose());
+
 			// statically dispose of any widgets not already dispsed
 			leftAlignedWidgets.Concat(rightAlignedWidgets).Concat(middleAlignedWidgets).
 				Where(w => widgetTypes.Contains(w.GetType())).
 				ForEach(w => { w.StaticDispose(); widgetTypes.Remove(w.GetType()); });
 
-			leftAlignedWidgets.ForEach(w => w.Dispose());
-			rightAlignedWidgets.ForEach(w => w.Dispose());
-			middleAlignedWidgets.ForEach(w => w.Dispose());
-
-			form.Dispose();
+			this.form.Dispose();
 		}
 
 		#endregion
 
 		#region Event Handlers
 
-		private void Bar_WidgetControlsChanged(IWidget widget, IEnumerable<Control> controlsRemoved, IEnumerable<Control> controlsAdded)
+		private void OnWidgetControlsChanged(IWidget widget, IEnumerable<Control> controlsRemoved, IEnumerable<Control> controlsAdded)
 		{
 			this.form.SuspendLayout();
 
@@ -196,7 +198,7 @@ namespace Windawesome
 			this.form.ResumeLayout();
 		}
 
-		private void Bar_SpanWidgetControlsAdded(IWidget widget, IEnumerable<Control> controls)
+		private void OnSpanWidgetControlsAdded(IWidget widget, IEnumerable<Control> controls)
 		{
 			this.form.SuspendLayout();
 
@@ -205,7 +207,7 @@ namespace Windawesome
 			this.form.ResumeLayout();
 		}
 
-		private void Bar_SpanWidgetControlsRemoved(IWidget widget, IEnumerable<Control> controls)
+		private void OnSpanWidgetControlsRemoved(IWidget widget, IEnumerable<Control> controls)
 		{
 			this.form.SuspendLayout();
 
@@ -214,7 +216,7 @@ namespace Windawesome
 			this.form.ResumeLayout();
 		}
 
-		private void Bar_FixedWidthWidgetWidthChanged(IWidget widget)
+		private void OnFixedWidthWidgetWidthChanged(IWidget widget)
 		{
 			this.form.SuspendLayout();
 
@@ -223,9 +225,9 @@ namespace Windawesome
 			this.form.ResumeLayout();
 		}
 
-		private void form_VisibleChanged(object sender, EventArgs e)
+		private void OnFormVisibleChanged(object sender, EventArgs e)
 		{
-			if (form.Visible)
+			if (this.form.Visible)
 			{
 				leftAlignedWidgets.ForEach(w => w.WidgetShown());
 				rightAlignedWidgets.ForEach(w => w.WidgetShown());
@@ -268,7 +270,7 @@ namespace Windawesome
 
 		private void RepositionLeftAlignedWidgets(int fromIndex, int fromX)
 		{
-			for (int i = fromIndex; i < leftAlignedWidgets.Length; i++)
+			for (var i = fromIndex; i < leftAlignedWidgets.Length; i++)
 			{
 				var w = leftAlignedWidgets[i];
 				w.RepositionControls(fromX, -1);
@@ -280,7 +282,7 @@ namespace Windawesome
 
 		private void RepositionRightAlignedWidgets(int fromIndex, int toX)
 		{
-			for (int i = fromIndex; i >= 0; i--)
+			for (var i = fromIndex; i >= 0; i--)
 			{
 				var w = rightAlignedWidgets[i];
 				w.RepositionControls(-1, toX);
@@ -295,7 +297,7 @@ namespace Windawesome
 			if (middleAlignedWidgets.Length > 0)
 			{
 				var eachWidth = (leftmostRightAlign - rightmostLeftAlign) / middleAlignedWidgets.Length;
-				int x = rightmostLeftAlign;
+				var x = rightmostLeftAlign;
 				foreach (var w in middleAlignedWidgets)
 				{
 					w.RepositionControls(x, x + eachWidth);
@@ -308,21 +310,19 @@ namespace Windawesome
 		{
 			this.form.SuspendLayout();
 
-			leftmost = SystemInformation.WorkingArea.Left;
-			rightmost = SystemInformation.WorkingArea.Right;
-			int x = leftmost;
-			foreach (var widget in leftAlignedWidgets)
+			this.leftmost = SystemInformation.WorkingArea.Left;
+			this.rightmost = SystemInformation.WorkingArea.Right;
+			var x = this.leftmost;
+			foreach (var controls in this.leftAlignedWidgets.Select(widget => widget.GetControls(x, -1)))
 			{
-				var controls = widget.GetControls(x, -1);
 				controls.ForEach(this.form.Controls.Add);
 				x = controls.FirstOrDefault() != null ? controls.Max(c => c.Right) : x;
 			}
 			rightmostLeftAlign = x;
 
-			x = rightmost;
-			foreach (var widget in rightAlignedWidgets.Reverse())
+			x = this.rightmost;
+			foreach (var controls in this.rightAlignedWidgets.Reverse().Select(widget => widget.GetControls(-1, x)))
 			{
-				var controls = widget.GetControls(-1, x);
 				controls.ForEach(this.form.Controls.Add);
 				x = controls.FirstOrDefault() != null ? controls.Min(c => c.Left) : x;
 			}
@@ -332,9 +332,8 @@ namespace Windawesome
 			{
 				var eachWidth = (leftmostRightAlign - rightmostLeftAlign) / middleAlignedWidgets.Length;
 				x = rightmostLeftAlign;
-				foreach (var widget in middleAlignedWidgets)
+				foreach (var controls in this.middleAlignedWidgets.Select(widget => widget.GetControls(x, x + eachWidth)))
 				{
-					var controls = widget.GetControls(x, x + eachWidth);
 					controls.ForEach(this.form.Controls.Add);
 					x += eachWidth;
 				}
@@ -345,13 +344,13 @@ namespace Windawesome
 
 		public Label CreateLabel(string text, int xLocation, int width = -1)
 		{
-			Label label = new Label();
+			var label = new Label();
 			label.SuspendLayout();
 			label.AutoSize = false;
 			label.AutoEllipsis = true;
 			label.Text = text;
 			label.Font = font;
-			label.Size = new Size(width == -1 ? TextRenderer.MeasureText(label.Text, label.Font).Width : width, barHeight);
+			label.Size = new Size(width == -1 ? TextRenderer.MeasureText(label.Text, label.Font).Width : width, this.barHeight);
 			label.Location = new Point(xLocation, 0);
 			label.TextAlign = ContentAlignment.MiddleLeft; // TODO: this doesn't work when there are ellipsis
 			label.ResumeLayout();

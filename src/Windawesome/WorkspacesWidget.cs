@@ -10,7 +10,6 @@ namespace Windawesome
 	{
 		private static Windawesome windawesome;
 		private static Config config;
-		private Bar bar;
 		private Label[] workspaceLabels;
 		private readonly Color[] normalForegroundColor;
 		private readonly Color[] normalBackgroundColor;
@@ -21,15 +20,14 @@ namespace Windawesome
 		private int left, right;
 		private bool isLeft;
 		private bool isShown;
-		private bool flashWorkspaces;
+		private readonly bool flashWorkspaces;
 		private static readonly Timer flashTimer;
 		private static readonly HashSet<Workspace> flashingWorkspaces;
 		private static bool anyFlashWorkspaces;
 
 		static WorkspacesWidget()
 		{
-			flashTimer = new Timer();
-			flashTimer.Interval = 500;
+			flashTimer = new Timer { Interval = 500 };
 
 			flashingWorkspaces = new HashSet<Workspace>();
 		}
@@ -38,25 +36,25 @@ namespace Windawesome
 			Color? highlightedForegroundColor = null, Color? highlightedBackgroundColor = null,
 			Color? flashingForegroundColor = null, Color? flashingBackgroundColor = null, bool flashWorkspaces = true)
 		{
-			this.normalForegroundColor = normalForegroundColor ?? new Color[10]
+			this.normalForegroundColor = normalForegroundColor ?? new[]
 				{
 					Color.FromArgb(0x00, 0x00, 0x00),
 					Color.FromArgb(0x00, 0x00, 0x00),
 					Color.FromArgb(0x00, 0x00, 0x00),
 					Color.FromArgb(0x00, 0x00, 0x00),
 					Color.FromArgb(0x00, 0x00, 0x00),
-					Color.FromArgb(0xff, 0xff, 0xff),
-					Color.FromArgb(0xff, 0xff, 0xff),
-					Color.FromArgb(0xff, 0xff, 0xff),
-					Color.FromArgb(0xff, 0xff, 0xff),
-					Color.FromArgb(0xff, 0xff, 0xff),
+					Color.FromArgb(0xFF, 0xFF, 0xFF),
+					Color.FromArgb(0xFF, 0xFF, 0xFF),
+					Color.FromArgb(0xFF, 0xFF, 0xFF),
+					Color.FromArgb(0xFF, 0xFF, 0xFF),
+					Color.FromArgb(0xFF, 0xFF, 0xFF),
 				};
-			this.normalBackgroundColor = normalBackgroundColor ?? new Color[10]
+			this.normalBackgroundColor = normalBackgroundColor ?? new[]
 				{
-					Color.FromArgb(0xf0, 0xf0, 0xf0),
-					Color.FromArgb(0xd8, 0xd8, 0xd8),
-					Color.FromArgb(0xc0, 0xc0, 0xc0),
-					Color.FromArgb(0xa8, 0xa8, 0xa8),
+					Color.FromArgb(0xF0, 0xF0, 0xF0),
+					Color.FromArgb(0xD8, 0xD8, 0xD8),
+					Color.FromArgb(0xC0, 0xC0, 0xC0),
+					Color.FromArgb(0xA8, 0xA8, 0xA8),
 					Color.FromArgb(0x90, 0x90, 0x90),
 					Color.FromArgb(0x78, 0x78, 0x78),
 					Color.FromArgb(0x60, 0x60, 0x60),
@@ -64,30 +62,30 @@ namespace Windawesome
 					Color.FromArgb(0x30, 0x30, 0x30),
 					Color.FromArgb(0x18, 0x18, 0x18),
 				};
-			this.highlightedForegroundColor = highlightedForegroundColor ?? Color.FromArgb(0xff, 0xff, 0xff);
-			this.highlightedBackgroundColor = highlightedBackgroundColor ?? Color.FromArgb(0x33, 0x99, 0xff);
+			this.highlightedForegroundColor = highlightedForegroundColor ?? Color.FromArgb(0xFF, 0xFF, 0xFF);
+			this.highlightedBackgroundColor = highlightedBackgroundColor ?? Color.FromArgb(0x33, 0x99, 0xFF);
 			this.flashingForegroundColor = flashingForegroundColor ?? Color.White;
 			this.flashingBackgroundColor = flashingBackgroundColor ?? Color.Red;
 			this.flashWorkspaces = flashWorkspaces;
 			anyFlashWorkspaces |= flashWorkspaces;
 		}
 
-		private void workspaceLabel_Click(object sender, EventArgs e)
+		private void OnWorkspaceLabelClick(object sender, EventArgs e)
 		{
 			windawesome.SwitchToWorkspace(Array.IndexOf(workspaceLabels, sender as Label) + 1);
 		}
 
 		private void SetWorkspaceLabelColor(Workspace workspace, Window window)
 		{
-			var workspaceLabel = workspaceLabels[workspace.ID - 1];
-			if (workspace.isCurrentWorkspace && isShown)
+			var workspaceLabel = workspaceLabels[workspace.id - 1];
+			if (workspace.IsCurrentWorkspace && isShown)
 			{
 				workspaceLabel.BackColor = highlightedBackgroundColor;
 				workspaceLabel.ForeColor = highlightedForegroundColor;
 			}
 			else
 			{
-				int count = workspace.GetWindowsCount();
+				var count = workspace.GetWindowsCount();
 				if (count > 9)
 				{
 					count = 9;
@@ -97,11 +95,11 @@ namespace Windawesome
 			}
 		}
 
-		private void WorkspacesWidget_WorkspaceChangedFromTo(Workspace workspace)
+		private void OnWorkspaceChangedFromTo(Workspace workspace)
 		{
 			if (isShown)
 			{
-				if (flashWorkspaces && flashingWorkspaces.Count > 0 && workspace.isCurrentWorkspace && flashingWorkspaces.Contains(workspace))
+				if (flashWorkspaces && flashingWorkspaces.Count > 0 && workspace.IsCurrentWorkspace && flashingWorkspaces.Contains(workspace))
 				{
 					if (flashingWorkspaces.Count == 1)
 					{
@@ -114,9 +112,9 @@ namespace Windawesome
 			}
 		}
 
-		private void WorkspacesWidget_WindowFlashing(LinkedList<Tuple<Workspace, Window>> list)
+		private static void OnWindowFlashing(LinkedList<Tuple<Workspace, Window>> list)
 		{
-			if (list.All(t => !t.Item1.isCurrentWorkspace))
+			if (list.All(t => !t.Item1.IsCurrentWorkspace))
 			{
 				flashingWorkspaces.Add(list.First.Value.Item1);
 				if (flashingWorkspaces.Count == 1)
@@ -126,20 +124,20 @@ namespace Windawesome
 			}
 		}
 
-		private void flashTimer_Tick(object sender, EventArgs e)
+		private void OnTimerTick(object sender, EventArgs e)
 		{
 			if (isShown)
 			{
 				foreach (var flashingWorkspace in flashingWorkspaces)
 				{
-					if (workspaceLabels[flashingWorkspace.ID - 1].BackColor == flashingBackgroundColor)
+					if (workspaceLabels[flashingWorkspace.id - 1].BackColor == flashingBackgroundColor)
 					{
 						SetWorkspaceLabelColor(flashingWorkspace, null);
 					}
 					else
 					{
-						workspaceLabels[flashingWorkspace.ID - 1].BackColor = flashingBackgroundColor;
-						workspaceLabels[flashingWorkspace.ID - 1].ForeColor = flashingForegroundColor;
+						workspaceLabels[flashingWorkspace.id - 1].BackColor = flashingBackgroundColor;
+						workspaceLabels[flashingWorkspace.id - 1].ForeColor = flashingForegroundColor;
 					}
 				}
 			}
@@ -159,36 +157,34 @@ namespace Windawesome
 
 			if (anyFlashWorkspaces)
 			{
-				Windawesome.WindowFlashing += WorkspacesWidget_WindowFlashing;
+				Windawesome.WindowFlashing += OnWindowFlashing;
 			}
 		}
 
 		public void InitializeWidget(Bar bar)
 		{
-			this.bar = bar;
-
 			if (flashWorkspaces)
 			{
-				flashTimer.Tick += flashTimer_Tick;
+				flashTimer.Tick += OnTimerTick;
 			}
 
 			isShown = false;
 
-			workspaceLabels = new Label[config.workspacesCount];
+			workspaceLabels = new Label[config.WorkspacesCount];
 
 			Workspace.WorkspaceApplicationAdded += SetWorkspaceLabelColor;
 			Workspace.WorkspaceApplicationRemoved += SetWorkspaceLabelColor;
-			Workspace.WorkspaceChangedFrom += WorkspacesWidget_WorkspaceChangedFromTo;
-			Workspace.WorkspaceChangedTo += WorkspacesWidget_WorkspaceChangedFromTo;
+			Workspace.WorkspaceChangedFrom += OnWorkspaceChangedFromTo;
+			Workspace.WorkspaceChangedTo += OnWorkspaceChangedFromTo;
 
-			for (int i = 1; i < config.workspaces.Length; i++)
+			for (var i = 1; i < config.Workspaces.Length; i++)
 			{
-				var workspace = config.workspaces[i];
-				string name = i.ToString() + (workspace.name == "" ? "" : ":" + workspace.name);
+				var workspace = config.Workspaces[i];
+				var name = i + (workspace.name == "" ? "" : ":" + workspace.name);
 
-				Label label = bar.CreateLabel(" " + name + " ", 0);
+				var label = bar.CreateLabel(" " + name + " ", 0);
 				label.TextAlign = ContentAlignment.MiddleCenter;
-				label.Click += workspaceLabel_Click;
+				label.Click += OnWorkspaceLabelClick;
 				workspaceLabels[i - 1] = label;
 				SetWorkspaceLabelColor(workspace, null);
 			}
@@ -210,9 +206,9 @@ namespace Windawesome
 
 			if (isLeft)
 			{
-				for (int i = 1; i <= config.workspacesCount; i++)
+				for (var i = 1; i <= config.WorkspacesCount; i++)
 				{
-					Label label = workspaceLabels[i - 1];
+					var label = workspaceLabels[i - 1];
 					label.Location = new Point(left, 0);
 					left += label.Width;
 				}
@@ -220,11 +216,9 @@ namespace Windawesome
 			}
 			else
 			{
-				for (int i = config.workspacesCount; i > 0; i--)
+				for (var i = config.WorkspacesCount; i > 0; i--)
 				{
-					string name = i.ToString() + (config.workspaces[i].name == "" ? "" : ":" + config.workspaces[i].name);
-
-					Label label = workspaceLabels[i - 1];
+					var label = workspaceLabels[i - 1];
 					right -= label.Width;
 					label.Location = new Point(right, 0);
 				}

@@ -20,8 +20,8 @@ namespace Windawesome
 		private static readonly NativeMethods.NONCLIENTMETRICS originalNonClientMetrics;
 		private static IntPtr onWindowShownHandle;
 		private static Action<IntPtr> onWindowShownHandler;
-		private readonly bool changedNonClientMetrics = false;
-		private readonly bool finishedInitializing = false;
+		private readonly bool changedNonClientMetrics;
+		private readonly bool finishedInitializing;
 		private readonly IntPtr getForegroundPrivilageAtom;
 		private static Tuple<NativeMethods.MOD, Keys> uniqueHotkey;
 		private static IntPtr forceForegroundWindow;
@@ -30,8 +30,8 @@ namespace Windawesome
 
 		public delegate bool HandleMessageDelegate(ref Message m);
 
-		public static IntPtr handle { get; private set; }
-		public static int previousWorkspace { get; private set; }
+		public static IntPtr HandleStatic { get; private set; }
+		public static int PreviousWorkspace { get; private set; }
 		public static readonly bool isRunningElevated;
 		public static readonly bool isAtLeastVista;
 		public static readonly bool isAtLeast7;
@@ -51,7 +51,7 @@ namespace Windawesome
 		internal delegate void WindawesomeExitingEventHandler();
 		internal static event WindawesomeExitingEventHandler WindawesomeExiting;
 
-		public static void OnLayoutUpdated()
+		public static void DoLayoutUpdated()
 		{
 			if (LayoutUpdated != null)
 			{
@@ -59,7 +59,7 @@ namespace Windawesome
 			}
 		}
 
-		private static void OnWindowTitleOrIconChanged(Workspace workspace, Window window, string newText)
+		private static void DoWindowTitleOrIconChanged(Workspace workspace, Window window, string newText)
 		{
 			if (WindowTitleOrIconChanged != null)
 			{
@@ -67,17 +67,12 @@ namespace Windawesome
 			}
 		}
 
-		private static void OnWindowFlashing(LinkedList<Tuple<Workspace, Window>> list)
+		private static void DoWindowFlashing(LinkedList<Tuple<Workspace, Window>> list)
 		{
 			if (WindowFlashing != null)
 			{
 				WindowFlashing(list);
 			}
-		}
-
-		private static void OnWindawesomeExiting()
-		{
-			WindawesomeExiting();
 		}
 
 		#endregion
@@ -94,7 +89,7 @@ namespace Windawesome
 
 		public Workspace CurrentWorkspace
 		{
-			get { return config.workspaces[0]; }
+			get { return config.Workspaces[0]; }
 		}
 
 		#region Windawesome Construction, Initialization and Destruction
@@ -120,23 +115,19 @@ namespace Windawesome
 
 		internal Windawesome()
 		{
-			var cp = new CreateParams();
-			cp.Caption = "";
-			cp.ClassName = "Message";
-			cp.Parent = (IntPtr) (-3); // HWND_MESSAGE
-			this.CreateHandle(cp);
+			this.CreateHandle(new CreateParams { Caption = "", ClassName = "Message", Parent = (IntPtr) (-3) });
 
-			handle = this.Handle;
+			HandleStatic = this.Handle;
 
 			config = new Config();
 			config.LoadPlugins(this);
-			config.workspaces = config.workspaces.Resize(config.workspaces.Length + 1);
-			config.workspaces[0] = config.workspaces[config.startingWorkspace];
-			previousWorkspace = config.workspaces[0].ID;
-			config.bars.ForEach(b => b.InitializeBar(this, config));
-			config.plugins.ForEach(p => p.InitializePlugin(this, config));
+			config.Workspaces = config.Workspaces.Resize(config.Workspaces.Length + 1);
+			config.Workspaces[0] = config.Workspaces[config.StartingWorkspace];
+			PreviousWorkspace = config.Workspaces[0].id;
+			config.Bars.ForEach(b => b.InitializeBar(this, config));
+			config.Plugins.ForEach(p => p.InitializePlugin(this, config));
 
-			workspaceBarsEquivalentClasses = new int[config.workspacesCount];
+			workspaceBarsEquivalentClasses = new int[config.WorkspacesCount];
 			FindWorkspaceBarsEquivalentClasses();
 
 			applications = new Dictionary<IntPtr, LinkedList<Tuple<Workspace, Window>>>(30);
@@ -146,23 +137,23 @@ namespace Windawesome
 			// add all windows to their respective workspace
 			NativeMethods.EnumWindows((hWnd, _) => AddWindowToWorkspace(hWnd) || true, IntPtr.Zero);
 
-			Windawesome.WindawesomeExiting += Windawesome_WindawesomeExiting;
+			WindawesomeExiting += OnWindawesomeExiting;
 
 			// add a handler for when the working area changes
-			Microsoft.Win32.SystemEvents.UserPreferenceChanged += SystemEvents_UserPreferenceChanged;
+			Microsoft.Win32.SystemEvents.UserPreferenceChanged += OnSystemEventsUserPreferenceChanged;
 
 			// set the global border and padded border widths
 			var metrics = originalNonClientMetrics;
-			if (config.borderWidth >= 0 && metrics.iBorderWidth != config.borderWidth)
+			if (config.BorderWidth >= 0 && metrics.iBorderWidth != config.BorderWidth)
 			{
-				metrics.iBorderWidth = config.borderWidth;
+				metrics.iBorderWidth = config.BorderWidth;
 #if !DEBUG
 				changedNonClientMetrics = true;
 #endif
 			}
-			if (isAtLeastVista && config.paddedBorderWidth >= 0 && metrics.iPaddedBorderWidth != config.paddedBorderWidth)
+			if (isAtLeastVista && config.PaddedBorderWidth >= 0 && metrics.iPaddedBorderWidth != config.PaddedBorderWidth)
 			{
-				metrics.iPaddedBorderWidth = config.paddedBorderWidth;
+				metrics.iPaddedBorderWidth = config.PaddedBorderWidth;
 #if !DEBUG
 				changedNonClientMetrics = true;
 #endif
@@ -175,9 +166,9 @@ namespace Windawesome
 			}
 
 			// register hotkey for forcing a foreground window
-			uniqueHotkey = config.uniqueHotkey;
+			uniqueHotkey = config.UniqueHotkey;
 			getForegroundPrivilageAtom = (IntPtr) NativeMethods.GlobalAddAtom("WindawesomeShortcutGetForegroundPrivilage");
-			if (!NativeMethods.RegisterHotKey(this.Handle, (ushort) getForegroundPrivilageAtom, config.uniqueHotkey.Item1, config.uniqueHotkey.Item2))
+			if (!NativeMethods.RegisterHotKey(this.Handle, (ushort) getForegroundPrivilageAtom, config.UniqueHotkey.Item1, config.UniqueHotkey.Item2))
 			{
 				OutputWarning("There was a problem registering the unique hotkey! Probably this key-combination is in " +
 					"use by some other program! Please use a unique one, otherwise Windawesome won't be able to switch " +
@@ -185,25 +176,25 @@ namespace Windawesome
 			}
 
 			// register a shell hook
-			NativeMethods.RegisterShellHookWindow(handle);
+			NativeMethods.RegisterShellHookWindow(HandleStatic);
 			shellMessageNum = NativeMethods.RegisterWindowMessage("SHELLHOOK");
 
 			// initialize all workspaces
-			config.workspaces.Skip(1).Where(ws => ws.ID != config.startingWorkspace).
+			config.Workspaces.Skip(1).Where(ws => ws.id != config.StartingWorkspace).
 				ForEach(ws => ws.GetWindows().ForEach(w => hiddenApplications.Add(w.hWnd)));
-			config.workspaces.Skip(1).ForEach(ws => ws.Initialize(ws.ID == config.startingWorkspace));
+			config.Workspaces.Skip(1).ForEach(ws => ws.Initialize(ws.id == config.StartingWorkspace));
 
 			// switches to the default starting workspace
-			PostAction(() => config.workspaces[0].SwitchTo());
+			PostAction(() => config.Workspaces[0].SwitchTo());
 
 			finishedInitializing = true;
 		}
 
-		private void SystemEvents_UserPreferenceChanged(object sender, Microsoft.Win32.UserPreferenceChangedEventArgs e)
+		private void OnSystemEventsUserPreferenceChanged(object sender, Microsoft.Win32.UserPreferenceChangedEventArgs e)
 		{
 			if (e.Category == Microsoft.Win32.UserPreferenceCategory.Desktop)
 			{
-				if (SystemInformation.WorkingArea != config.workspaces[0].workingArea)
+				if (SystemInformation.WorkingArea != config.Workspaces[0].workingArea)
 				{
 					// because Windows resets the working area when the UAC prompt is shown,
 					// as well as shows the taskbar when a full-screen application is exited... twice. :)
@@ -211,27 +202,27 @@ namespace Windawesome
 					// how to reproduce: start any program that triggers a UAC prompt or start
 					// IrfanView 4.28 with some picture, enter full-screen with "Return" and then exit
 					// with "Return" again
-					PostAction(() => config.workspaces[0].ShowHideWindowsTaskbar());
-					PostAction(() => config.workspaces[0].ShowHideWindowsTaskbar());
+					PostAction(() => config.Workspaces[0].ShowHideWindowsTaskbar());
+					PostAction(() => config.Workspaces[0].ShowHideWindowsTaskbar());
 				}
 			}
 		}
 
-		private void Windawesome_WindawesomeExiting()
+		private void OnWindawesomeExiting()
 		{
-			Microsoft.Win32.SystemEvents.UserPreferenceChanged -= SystemEvents_UserPreferenceChanged;
+			Microsoft.Win32.SystemEvents.UserPreferenceChanged -= OnSystemEventsUserPreferenceChanged;
 
 			NativeMethods.UnregisterHotKey(this.Handle, (ushort) getForegroundPrivilageAtom);
 			NativeMethods.GlobalDeleteAtom((ushort) getForegroundPrivilageAtom);
 
 			// unregister shell hook
-			NativeMethods.DeregisterShellHookWindow(handle);
+			NativeMethods.DeregisterShellHookWindow(HandleStatic);
 
 			// roll back any changes to Windows
-			config.workspaces.Skip(1).ForEach(workspace => workspace.RevertToInitialValues());
+			config.Workspaces.Skip(1).ForEach(workspace => workspace.RevertToInitialValues());
 
-			config.plugins.ForEach(p => p.Dispose());
-			config.bars.ForEach(b => b.Dispose());
+			config.Plugins.ForEach(p => p.Dispose());
+			config.Bars.ForEach(b => b.Dispose());
 
 			if (changedNonClientMetrics)
 			{
@@ -243,23 +234,20 @@ namespace Windawesome
 
 		private void FindWorkspaceBarsEquivalentClasses()
 		{
-			HashSet<Bar>[] setArray = new HashSet<Bar>[config.workspacesCount];
-			Dictionary<Bar, bool>[] dictArray = new Dictionary<Bar, bool>[config.workspacesCount];
+			var setArray = new HashSet<Bar>[config.WorkspacesCount];
 
 			int i = 0, last = 0;
-			foreach (var workspace in config.workspaces.Skip(1))
+			foreach (var workspace in config.Workspaces.Skip(1))
 			{
-				HashSet<Bar> set = new HashSet<Bar>(workspace.bars);
-				Dictionary<Bar, bool> dict = new Dictionary<Bar, bool>(workspace.bars.Length);
-				for (int m = 0; m < workspace.bars.Length; m++)
-				{
-					dict.Add(workspace.bars[m], workspace.topBars[m]);
-				}
+				var set = new HashSet<Bar>(workspace.bars);
 
 				int j;
 				for (j = 0; j < i; j++)
 				{
-					if (set.SetEquals(setArray[j]) && workspace.bars.All(bar => dict[bar] == dictArray[j][bar]))
+					if (set.SetEquals(setArray[j]) && // if the bars are the same
+						// and whenever one is at the top, the other one is at the top too
+						workspace.bars.All(bar => workspace.topBars[Array.IndexOf(workspace.bars, bar)] ==
+							config.Workspaces[j + 1].topBars[Array.IndexOf(config.Workspaces[j + 1].bars, bar)]))
 					{
 						workspaceBarsEquivalentClasses[i] = workspaceBarsEquivalentClasses[j];
 						break;
@@ -270,14 +258,13 @@ namespace Windawesome
 					workspaceBarsEquivalentClasses[i] = ++last;
 				}
 
-				dictArray[i] = dict;
 				setArray[i++] = set;
 			}
 		}
 
 		public void Quit()
 		{
-			OnWindawesomeExiting();
+			WindawesomeExiting();
 			this.DestroyHandle();
 		}
 
@@ -289,12 +276,12 @@ namespace Windawesome
 		{
 			if (NativeMethods.IsAppWindow(hWnd))
 			{
-				string className = NativeMethods.GetWindowClassName(hWnd);
-				string displayName = NativeMethods.GetText(hWnd);
+				var className = NativeMethods.GetWindowClassName(hWnd);
+				var displayName = NativeMethods.GetText(hWnd);
 				var style = NativeMethods.GetWindowStyleLongPtr(hWnd);
 				var exStyle = NativeMethods.GetWindowExStyleLongPtr(hWnd);
 
-				var programRule = config.programRules.First(r => r.IsMatch(className, displayName, style, exStyle));
+				var programRule = config.ProgramRules.First(r => r.IsMatch(className, displayName, style, exStyle));
 				if (!programRule.isManaged)
 				{
 					return false;
@@ -304,11 +291,11 @@ namespace Windawesome
 
 				if (finishedInitializing)
 				{
-					if (!programRule.switchToOnCreated && matchingRules.FirstOrDefault(r => r.workspace == 0 || r.workspace == config.workspaces[0].ID) == null)
+					if (!programRule.switchToOnCreated && matchingRules.FirstOrDefault(r => r.workspace == 0 || r.workspace == config.Workspaces[0].id) == null)
 					{
 						hiddenApplications.Add(hWnd);
 						NativeMethods.ShowWindowAsync(hWnd, NativeMethods.SW.SW_HIDE);
-						config.workspaces[0].SetForeground();
+						config.Workspaces[0].SetForeground();
 					}
 					else
 					{
@@ -322,7 +309,7 @@ namespace Windawesome
 				// matchingRules.workspaces could be { 0, 1 } and you could be at workspace 1.
 				// Then, "hWnd" would be added twice if it were not for this check
 				if (workspacesCount > 1 && matchingRules.FirstOrDefault(r => r.workspace == 0) != null &&
-					matchingRules.FirstOrDefault(r => r.workspace == config.workspaces[0].ID) != null)
+					matchingRules.FirstOrDefault(r => r.workspace == config.Workspaces[0].id) != null)
 				{
 					matchingRules = matchingRules.Where(r => r.workspace == 0);
 				}
@@ -348,8 +335,8 @@ namespace Windawesome
 					{
 						return false;
 					}
-					string classNameOwned = NativeMethods.GetWindowClassName(hOwned);
-					string displayNameOwned = NativeMethods.GetText(hOwned);
+					var classNameOwned = NativeMethods.GetWindowClassName(hOwned);
+					var displayNameOwned = NativeMethods.GetText(hOwned);
 					var styleOwned = NativeMethods.GetWindowStyleLongPtr(hOwned);
 					var exStyleOwned = NativeMethods.GetWindowExStyleLongPtr(hOwned);
 					windowTemplate = new Window(hOwned, classNameOwned, displayNameOwned, workspacesCount,
@@ -367,15 +354,15 @@ namespace Windawesome
 				{
 					var window = new Window(windowTemplate, false)
 						{
-							isFloating = rule.isFloating,
-							showInTabs = rule.showInTabs,
-							titlebar = rule.titlebar,
-							inTaskbar = rule.inTaskbar,
-							windowBorders = rule.windowBorders,
-							redrawOnShow = rule.redrawOnShow
+							IsFloating = rule.isFloating,
+							ShowInTabs = rule.showInTabs,
+							Titlebar = rule.titlebar,
+							InTaskbar = rule.inTaskbar,
+							WindowBorders = rule.windowBorders,
+							RedrawOnShow = rule.redrawOnShow
 						};
-					list.AddLast(new Tuple<Workspace, Window>(config.workspaces[rule.workspace], window));
-					config.workspaces[rule.workspace].WindowCreated(window);
+					list.AddLast(new Tuple<Workspace, Window>(config.Workspaces[rule.workspace], window));
+					config.Workspaces[rule.workspace].WindowCreated(window);
 				}
 
 				return true;
@@ -386,7 +373,7 @@ namespace Windawesome
 
 		private static void OutputWarning(string warning)
 		{
-			System.IO.File.AppendAllLines("warnings.txt", new string[]
+			System.IO.File.AppendAllLines("warnings.txt", new[]
 				{
 					"------------------------------------",
 					DateTime.Now.ToString(),
@@ -396,7 +383,7 @@ namespace Windawesome
 
 		private void RefreshApplicationsHash()
 		{
-			HashSet<IntPtr> set = new HashSet<IntPtr>();
+			var set = new HashSet<IntPtr>();
 
 			NativeMethods.EnumWindows((hWnd, _) =>
 				{
@@ -510,26 +497,25 @@ namespace Windawesome
 			RefreshApplicationsHash();
 
 			// repositions all windows in all workspaces
-			config.workspaces.Skip(1).Where(ws => !ws.isCurrentWorkspace).ForEach(ws => ws.hasChanges = true);
-			config.workspaces[0].Reposition();
+			config.Workspaces.Skip(1).Where(ws => !ws.IsCurrentWorkspace).ForEach(ws => ws.hasChanges = true);
+			config.Workspaces[0].Reposition();
 
 			// redraw all windows in current workspace
-			config.workspaces[0].GetWindows().ForEach(w => w.Redraw());
+			config.Workspaces[0].GetWindows().ForEach(w => w.Redraw());
 		}
 
 		public void ChangeApplicationToWorkspace(IntPtr hWnd, int workspace)
 		{
-			var currentWorkspace = config.workspaces[0];
-			var newWorkspace = config.workspaces[workspace];
+			var newWorkspace = config.Workspaces[workspace];
 
-			var window = currentWorkspace.GetWindow(hWnd);
-			if (workspace != currentWorkspace.ID && window != null && !newWorkspace.ContainsWindow(hWnd))
+			var window = this.CurrentWorkspace.GetWindow(hWnd);
+			if (workspace != this.CurrentWorkspace.id && window != null && !newWorkspace.ContainsWindow(hWnd))
 			{
-				currentWorkspace.WindowDestroyed(window, false);
+				this.CurrentWorkspace.WindowDestroyed(window, false);
 				newWorkspace.WindowCreated(window);
 
 				var list = applications[window.hWnd];
-				list.Remove(new Tuple<Workspace, Window>(currentWorkspace, window));
+				list.Remove(new Tuple<Workspace, Window>(this.CurrentWorkspace, window));
 				list.AddFirst(new Tuple<Workspace, Window>(newWorkspace, window));
 
 				SwitchToWorkspace(workspace);
@@ -538,11 +524,10 @@ namespace Windawesome
 
 		public void AddApplicationToWorkspace(IntPtr hWnd, int workspace)
 		{
-			var currentWorkspace = config.workspaces[0];
-			var newWorkspace = config.workspaces[workspace];
+			var newWorkspace = config.Workspaces[workspace];
 
-			var window = currentWorkspace.GetWindow(hWnd);
-			if (workspace != currentWorkspace.ID && window != null && !newWorkspace.ContainsWindow(hWnd))
+			var window = this.CurrentWorkspace.GetWindow(hWnd);
+			if (workspace != this.CurrentWorkspace.id && window != null && !newWorkspace.ContainsWindow(hWnd))
 			{
 				var newWindow = new Window(window, true);
 
@@ -550,7 +535,7 @@ namespace Windawesome
 
 				var list = applications[window.hWnd];
 				list.AddFirst(new Tuple<Workspace, Window>(newWorkspace, newWindow));
-				list.Where(t => ++t.Item2.workspacesCount == 2).ForEach(t => t.Item1.AddToSharedWindows(t.Item2));
+				list.Where(t => ++t.Item2.WorkspacesCount == 2).ForEach(t => t.Item1.AddToSharedWindows(t.Item2));
 
 				SwitchToWorkspace(workspace);
 			}
@@ -558,12 +543,10 @@ namespace Windawesome
 
 		public void RemoveApplicationFromCurrentWorkspace(IntPtr hWnd)
 		{
-			var currentWorkspace = config.workspaces[0];
-
-			var window = currentWorkspace.GetWindow(hWnd);
+			var window = this.CurrentWorkspace.GetWindow(hWnd);
 			if (window != null)
 			{
-				if (window.workspacesCount == 1)
+				if (window.WorkspacesCount == 1)
 				{
 					QuitApplication(window.hWnd);
 				}
@@ -573,10 +556,10 @@ namespace Windawesome
 					window.Hide();
 
 					var list = applications[window.hWnd];
-					list.Remove(new Tuple<Workspace, Window>(currentWorkspace, window));
-					list.Where(t => --t.Item2.workspacesCount == 1).ForEach(t => t.Item1.AddToRemovedSharedWindows(t.Item2));
+					list.Remove(new Tuple<Workspace, Window>(this.CurrentWorkspace, window));
+					list.Where(t => --t.Item2.WorkspacesCount == 1).ForEach(t => t.Item1.AddToRemovedSharedWindows(t.Item2));
 
-					currentWorkspace.WindowDestroyed(window);
+					this.CurrentWorkspace.WindowDestroyed(window);
 				}
 			}
 		}
@@ -593,48 +576,46 @@ namespace Windawesome
 
 		public void SwitchToWorkspace(int workspace, bool setForeground = true)
 		{
-			var currentWorkspace = config.workspaces[0];
-
-			if (workspace != currentWorkspace.ID)
+			if (workspace != this.CurrentWorkspace.id)
 			{
-				currentWorkspace.GetWindows().ForEach(w => hiddenApplications.Add(w.hWnd));
-				currentWorkspace.Unswitch();
+				this.CurrentWorkspace.GetWindows().ForEach(w => hiddenApplications.Add(w.hWnd));
+				this.CurrentWorkspace.Unswitch();
 
-				previousWorkspace = currentWorkspace.ID;
-				config.workspaces[0] = config.workspaces[workspace];
+				PreviousWorkspace = this.CurrentWorkspace.id;
+				config.Workspaces[0] = config.Workspaces[workspace];
 
-				config.workspaces[0].SwitchTo(setForeground);
+				config.Workspaces[0].SwitchTo(setForeground);
 			}
 		}
 
 		public void ToggleShowHideBar(Bar bar)
 		{
-			config.workspaces[0].ToggleShowHideBar(bar);
+			config.Workspaces[0].ToggleShowHideBar(bar);
 		}
 
 		public void ToggleWindowFloating(IntPtr hWnd)
 		{
-			config.workspaces[0].ToggleWindowFloating(hWnd);
+			config.Workspaces[0].ToggleWindowFloating(hWnd);
 		}
 
 		public void ToggleShowHideWindowInTaskbar(IntPtr hWnd)
 		{
-			config.workspaces[0].ToggleShowHideWindowInTaskbar(hWnd);
+			config.Workspaces[0].ToggleShowHideWindowInTaskbar(hWnd);
 		}
 
 		public void ToggleShowHideWindowTitlebar(IntPtr hWnd)
 		{
-			config.workspaces[0].ToggleShowHideWindowTitlebar(hWnd);
+			config.Workspaces[0].ToggleShowHideWindowTitlebar(hWnd);
 		}
 
 		public void ToggleShowHideWindowBorder(IntPtr hWnd)
 		{
-			config.workspaces[0].ToggleShowHideWindowBorder(hWnd);
+			config.Workspaces[0].ToggleShowHideWindowBorder(hWnd);
 		}
 
 		public void ToggleTaskbarVisibility()
 		{
-			config.workspaces[0].ToggleWindowsTaskbarVisibility();
+			config.Workspaces[0].ToggleWindowsTaskbarVisibility();
 		}
 
 		public void SwitchToApplication(IntPtr hWnd)
@@ -649,7 +630,7 @@ namespace Windawesome
 				LinkedList<Tuple<Workspace, Window>> list;
 				if (applications.TryGetValue(hWnd, out list))
 				{
-					SwitchToWorkspace(list.First.Value.Item1.ID, false);
+					SwitchToWorkspace(list.First.Value.Item1.id, false);
 					SwitchToApplicationInCurrentWorkspace(hWnd);
 				}
 			}
@@ -674,7 +655,7 @@ namespace Windawesome
 
 			Window window;
 			if ((window = applications.Values.Select(list => list.First.Value.Item2).
-				FirstOrDefault(w => classNameRegex.IsMatch(w.className) && displayNameRegex.IsMatch(w.caption))) != null)
+				FirstOrDefault(w => classNameRegex.IsMatch(w.className) && displayNameRegex.IsMatch(w.Caption))) != null)
 			{
 				SwitchToApplication(window.hWnd);
 			}
@@ -697,10 +678,10 @@ namespace Windawesome
 		// only switches to applications in the current workspace
 		public bool SwitchToApplicationInCurrentWorkspace(IntPtr hWnd)
 		{
-			var window = config.workspaces[0].GetWindow(hWnd);
+			var window = config.Workspaces[0].GetWindow(hWnd);
 			if (window != null)
 			{
-				if (window.isMinimized)
+				if (window.IsMinimized)
 				{
 					// OpenIcon does not restore the window to its previous size (e.g. maximized)
 					NativeMethods.ShowWindowAsync(hWnd, NativeMethods.SW.SW_RESTORE);
@@ -731,7 +712,7 @@ namespace Windawesome
 		public static void GetWindowSmallIconAsBitmap(IntPtr hWnd, Action<Bitmap> action)
 		{
 			NativeMethods.SendMessageCallbackDelegate firstCallback = null;
-			firstCallback = (hWnd1, _1, _2, lResult) =>
+			firstCallback = (hWnd1, unused1, unused2, lResult) =>
 				{
 					delegatesSet.Remove(firstCallback);
 
@@ -748,7 +729,7 @@ namespace Windawesome
 					}
 
 					NativeMethods.SendMessageCallbackDelegate secondCallback = null;
-					secondCallback = (hWnd2, _3, _4, hIcon) =>
+					secondCallback = (hWnd2, unused3, unused4, hIcon) =>
 						{
 							delegatesSet.Remove(secondCallback);
 
@@ -783,15 +764,15 @@ namespace Windawesome
 								return ;
 							}
 
-							System.Threading.Tasks.Task.Factory.StartNew(hWnd3object =>
+							System.Threading.Tasks.Task.Factory.StartNew(hWnd3Object =>
 								{
-									var hWnd3 = (IntPtr) hWnd3object;
+									var hWnd3 = (IntPtr) hWnd3Object;
 									Bitmap bitmap = null;
 									try
 									{
-										int processID;
-										NativeMethods.GetWindowThreadProcessId(hWnd3, out processID);
-										var process = System.Diagnostics.Process.GetProcessById(processID);
+										int processId;
+										NativeMethods.GetWindowThreadProcessId(hWnd3, out processId);
+										var process = System.Diagnostics.Process.GetProcessById(processId);
 
 										var info = new NativeMethods.SHFILEINFO();
 
@@ -836,7 +817,7 @@ namespace Windawesome
 		public static void PostAction(Action action)
 		{
 			postedActions.Enqueue(action);
-			NativeMethods.PostMessage(handle, postActionMessageNum, UIntPtr.Zero, IntPtr.Zero);
+			NativeMethods.PostMessage(HandleStatic, postActionMessageNum, UIntPtr.Zero, IntPtr.Zero);
 		}
 
 		public static void ExecuteOnWindowShown(IntPtr hWnd, Action<IntPtr> action)
@@ -865,7 +846,7 @@ namespace Windawesome
 					{
 						AddWindowToWorkspace(lParam);
 					}
-					else if (!config.workspaces[0].ContainsWindow(lParam))
+					else if (!config.Workspaces[0].ContainsWindow(lParam))
 					{
 						// there is a problem with some windows showing up when others are created
 						// how to reproduce: start BitComet 1.26 on some workspace, switch to another one
@@ -874,8 +855,8 @@ namespace Windawesome
 						// another problem is that some windows continuously keep showing when hidden
 						// how to reproduce: TortoiseSVN. About box. Click check for updates. This window
 						// keeps showing up when changing workspaces
-						NativeMethods.SendNotifyMessage(handle, shellMessageNum,
-							(UIntPtr) NativeMethods.ShellEvents.HSHELL_WINDOWACTIVATED, lParam);
+						NativeMethods.SendNotifyMessage(HandleStatic, shellMessageNum,
+							(UIntPtr) (uint) NativeMethods.ShellEvents.HSHELL_WINDOWACTIVATED, lParam);
 					}
 					else if (lParam == onWindowShownHandle)
 					{
@@ -884,7 +865,7 @@ namespace Windawesome
 					}
 					break;
 				case NativeMethods.ShellEvents.HSHELL_WINDOWDESTROYED: // window destroyed or minimized to tray
-					if (hiddenApplications.Remove(lParam) == HashMultiSet<IntPtr>.RemoveResult.NOT_FOUND)
+					if (hiddenApplications.Remove(lParam) == HashMultiSet<IntPtr>.RemoveResult.NotFound)
 					{
 						IntPtr owned;
 						if (ownerWindows.TryGetValue(lParam, out owned))
@@ -917,13 +898,13 @@ namespace Windawesome
 									RefreshApplicationsHash();
 								}
 							}
-							else if (!config.workspaces[0].ContainsWindow(lParam))
+							else if (!config.Workspaces[0].ContainsWindow(lParam))
 							{
 								SwitchToApplication(lParam);
 							}
 						}
 
-						config.workspaces[0].WindowActivated(lParam);
+						config.Workspaces[0].WindowActivated(lParam);
 					}
 					break;
 				case NativeMethods.ShellEvents.HSHELL_GETMINRECT: // window minimized or restored
@@ -931,11 +912,11 @@ namespace Windawesome
 					var hWnd = Marshal.ReadIntPtr(lParam);
 					if (NativeMethods.IsIconic(hWnd))
 					{
-						config.workspaces[0].WindowMinimized(hWnd);
+						config.Workspaces[0].WindowMinimized(hWnd);
 					}
 					else
 					{
-						config.workspaces[0].WindowRestored(hWnd);
+						config.Workspaces[0].WindowRestored(hWnd);
 					}
 					break;
 				case NativeMethods.ShellEvents.HSHELL_FLASH: // window flashing in taskbar
@@ -943,7 +924,7 @@ namespace Windawesome
 						LinkedList<Tuple<Workspace, Window>> list;
 						if (ApplicationsTryGetValue(lParam, out list))
 						{
-							OnWindowFlashing(list);
+							DoWindowFlashing(list);
 						}
 						break;
 					}
@@ -955,8 +936,8 @@ namespace Windawesome
 							var text = NativeMethods.GetText(lParam);
 							foreach (var t in list)
 							{
-								t.Item2.caption = text;
-								OnWindowTitleOrIconChanged(t.Item1, t.Item2, text);
+								t.Item2.Caption = text;
+								DoWindowTitleOrIconChanged(t.Item1, t.Item2, text);
 							}
 						}
 						else
@@ -966,18 +947,18 @@ namespace Windawesome
 						break;
 					}
 				case NativeMethods.ShellEvents.HSHELL_WINDOWREPLACING:
-					NativeMethods.PostMessage(handle, shellMessageNum,
-						(UIntPtr) NativeMethods.ShellEvents.HSHELL_WINDOWCREATED, lParam);
+					NativeMethods.PostMessage(HandleStatic, shellMessageNum,
+						(UIntPtr) (uint) NativeMethods.ShellEvents.HSHELL_WINDOWCREATED, lParam);
 					break;
 				case NativeMethods.ShellEvents.HSHELL_WINDOWREPLACED:
-					NativeMethods.PostMessage(handle, shellMessageNum,
-						(UIntPtr) NativeMethods.ShellEvents.HSHELL_WINDOWDESTROYED, lParam);
+					NativeMethods.PostMessage(HandleStatic, shellMessageNum,
+						(UIntPtr) (uint) NativeMethods.ShellEvents.HSHELL_WINDOWDESTROYED, lParam);
 					break;
 			}
 		}
 
-		private bool inShellMessage = false;
-		protected override void WndProc(ref System.Windows.Forms.Message m)
+		private bool inShellMessage;
+		protected override void WndProc(ref Message m)
 		{
 			HandleMessageDelegate messageDelegate;
 			if (m.Msg == shellMessageNum)
@@ -996,22 +977,22 @@ namespace Windawesome
 				m.Result = IntPtr.Zero;
 				return ;
 			}
-			else if (m.Msg == postActionMessageNum)
+			if (m.Msg == postActionMessageNum)
 			{
 				postedActions.Dequeue()();
 				return ;
 			}
-			else if (m.Msg == NativeMethods.WM_HOTKEY && m.WParam == getForegroundPrivilageAtom)
+			if (m.Msg == NativeMethods.WM_HOTKEY && m.WParam == this.getForegroundPrivilageAtom)
 			{
 				NativeMethods.SetForegroundWindow(forceForegroundWindow);
 				NativeMethods.SetWindowPos(forceForegroundWindow, NativeMethods.HWND_TOP, 0, 0, 0, 0,
-					NativeMethods.SWP.SWP_ASYNCWINDOWPOS | NativeMethods.SWP.SWP_NOMOVE |
-					NativeMethods.SWP.SWP_NOOWNERZORDER | NativeMethods.SWP.SWP_NOSIZE);
+				    NativeMethods.SWP.SWP_ASYNCWINDOWPOS | NativeMethods.SWP.SWP_NOMOVE |
+				    NativeMethods.SWP.SWP_NOOWNERZORDER | NativeMethods.SWP.SWP_NOSIZE);
 				return ;
 			}
-			else if (messageHandlers.TryGetValue(m.Msg, out messageDelegate))
+			if (messageHandlers.TryGetValue(m.Msg, out messageDelegate))
 			{
-				bool res = false;
+				var res = false;
 				foreach (HandleMessageDelegate handler in messageDelegate.GetInvocationList())
 				{
 					res |= handler(ref m);
@@ -1031,7 +1012,7 @@ namespace Windawesome
 
 	public sealed class HashMultiSet<T> : IEnumerable<T>
 	{
-		private Dictionary<T, BoxedInt> set;
+		private readonly Dictionary<T, BoxedInt> set;
 		private sealed class BoxedInt
 		{
 			public int i = 1;
@@ -1048,12 +1029,12 @@ namespace Windawesome
 			if (set.TryGetValue(item, out count))
 			{
 				count.i++;
-				return AddResult.ADDED;
+				return AddResult.Added;
 			}
 			else
 			{
 				set[item] = new BoxedInt();
-				return AddResult.ADDED_FIRST;
+				return AddResult.AddedFirst;
 			}
 		}
 
@@ -1065,16 +1046,16 @@ namespace Windawesome
 				if (count.i == 1)
 				{
 					set.Remove(item);
-					return RemoveResult.REMOVED_LAST;
+					return RemoveResult.RemovedLast;
 				}
 				else
 				{
 					count.i--;
-					return RemoveResult.REMOVED;
+					return RemoveResult.Removed;
 				}
 			}
 
-			return RemoveResult.NOT_FOUND;
+			return RemoveResult.NotFound;
 		}
 
 		public bool Contains(T item)
@@ -1084,25 +1065,22 @@ namespace Windawesome
 
 		public enum AddResult : byte
 		{
-			ADDED_FIRST,
-			ADDED
+			AddedFirst,
+			Added
 		}
 
 		public enum RemoveResult : byte
 		{
-			NOT_FOUND,
-			REMOVED_LAST,
-			REMOVED
+			NotFound,
+			RemovedLast,
+			Removed
 		}
 
 		#region IEnumerable<T> Members
 
 		public IEnumerator<T> GetEnumerator()
 		{
-			foreach (var key in set.Keys)
-			{
-				yield return key;
-			}
+			return set.Keys.GetEnumerator();
 		}
 
 		#endregion
@@ -1111,10 +1089,7 @@ namespace Windawesome
 
 		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
 		{
-			foreach (var key in set.Keys)
-			{
-				yield return key;
-			}
+			return set.Keys.GetEnumerator();
 		}
 
 		#endregion
