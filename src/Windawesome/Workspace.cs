@@ -10,24 +10,46 @@ namespace Windawesome
 	{
 		public readonly int id;
 		public ILayout Layout { get; private set; }
-		public readonly Bar[] bars;
-		public readonly bool[] topBars;
-		public readonly bool[] showBars;
+		public readonly BarInfo[] bars;
 		public readonly string name;
 		public bool ShowWindowsTaskbar { get; private set; }
 		public bool IsCurrentWorkspace { get; private set; }
 		public readonly bool repositionOnSwitchedTo;
 
+		public class BarInfo
+		{
+			public Bar bar;
+			public bool topBar;
+			public bool showBar;
+			public Rectangle barPosition;
+
+			public override int GetHashCode()
+			{
+				return bar.GetHashCode() + barPosition.GetHashCode() + topBar.GetHashCode() + showBar.GetHashCode();
+			}
+
+			public override bool Equals(object obj)
+			{
+				var other = obj as BarInfo;
+				return other != null && other.bar == this.bar && other.barPosition == this.barPosition &&
+					other.showBar == this.showBar && other.topBar == this.topBar;
+			}
+		}
+
+		private class ShownBarInfo
+		{
+			public Bar bar;
+			public bool topBar;
+		}
+
 		private static int count;
 		private static bool isWindowsTaskbarShown;
-		private static Bar[] barsShown;
-		private static bool[] topBarsShown;
 		private static readonly IntPtr taskbarHandle;
 		private static readonly IntPtr startButtonHandle;
+		private static IEnumerable<ShownBarInfo> shownBars;
 
 		private int floatingWindowsCount;
 		internal Rectangle workingArea;
-		private readonly Rectangle[] barPositions;
 
 		private LinkedList<Window> windows; // all windows, sorted in Z-order, topmost window first
 		private readonly LinkedList<Window> managedWindows; // windows.Where(w => !w.isFloating && !w.isMinimized), not sorted
@@ -148,8 +170,7 @@ namespace Windawesome
 				startButtonHandle = NativeMethods.FindWindow("Button", "Start");
 			}
 
-			barsShown = new Bar[0];
-			topBarsShown = new bool[0];
+			shownBars = new ShownBarInfo[0];
 
 			count = 0;
 		}
@@ -170,14 +191,17 @@ namespace Windawesome
 
 			this.id = ++count;
 			this.Layout = layout;
-			this.bars = bars.ToArray();
-			this.topBars = topBars == null ? bars.Select(_ => true).ToArray() : topBars.ToArray();
-			this.showBars = showBars == null ? bars.Select(_ => true).ToArray() : showBars.ToArray();
+			this.bars = new BarInfo[bars.Count()];
+			var i = 0;
+			foreach (var bar in bars.
+				Zip(topBars  ?? bars.Select(_ => true), (b, tb) => new { bar = b, topBar = tb }).
+				Zip(showBars ?? bars.Select(_ => true), (a, sb) => new { a.bar, a.topBar, showBar = sb }))
+			{
+				this.bars[i++] = new BarInfo { bar = bar.bar, topBar = bar.topBar, showBar = bar.showBar };
+			}
 			this.name = name;
 			this.ShowWindowsTaskbar = showWindowsTaskbar;
 			this.repositionOnSwitchedTo = repositionOnSwitchedTo;
-
-			barPositions = new Rectangle[this.bars.Length];
 		}
 
 		public override int GetHashCode()
@@ -197,8 +221,14 @@ namespace Windawesome
 
 			SetBarPositions();
 
-			bars.Where(bar => bar.leftmost != workingArea.Left || bar.rightmost != workingArea.Right).ForEach(bar =>
-				bar.ResizeWidgets(workingArea.Left, workingArea.Right));
+			ResizeBarWidgets();
+		}
+
+		private void ResizeBarWidgets()
+		{
+			this.bars.
+				Where(bs => bs.bar.Leftmost != this.workingArea.Left || bs.bar.Rightmost != this.workingArea.Right).
+				ForEach(bs => bs.bar.ResizeWidgets(this.workingArea.Left, this.workingArea.Right));
 		}
 
 		private void SetWindowsTaskbarArea()
@@ -227,35 +257,24 @@ namespace Windawesome
 
 		private void SetBarPositions()
 		{
-			for (var i = 0; i < barsShown.Length; i++)
-			{
-				if (topBarsShown[i])
-				{
-					workingArea.Y -= barsShown[i].barHeight;
-				}
-				workingArea.Height += barsShown[i].barHeight;
-			}
+			RestoreWorkingArea();
 
-			for (var i = 0; i < bars.Length; i++)
+			foreach (var bs in bars.Where(bs => bs.showBar))
 			{
-				if (showBars[i])
+				int y;
+				if (bs.topBar)
 				{
-					var bar = bars[i];
-					int y;
-					if (topBars[i])
-					{
-						y = workingArea.Y;
-						workingArea.Y += bar.barHeight;
-					}
-					else
-					{
-						y = workingArea.Bottom - bar.barHeight;
-					}
-					workingArea.Height -= bar.barHeight;
-
-					barPositions[i].Location = new Point(workingArea.X, y);
-					barPositions[i].Size = new Size(workingArea.Width, bar.barHeight);
+					y = this.workingArea.Y;
+					this.workingArea.Y += bs.bar.barHeight;
 				}
+				else
+				{
+					y = this.workingArea.Bottom - bs.bar.barHeight;
+				}
+				this.workingArea.Height -= bs.bar.barHeight;
+	
+				bs.barPosition.Location = new Point(this.workingArea.X, y);
+				bs.barPosition.Size = new Size(this.workingArea.Width, bs.bar.barHeight);
 			}
 		}
 
@@ -320,14 +339,7 @@ namespace Windawesome
 					ToggleWindowsTaskbarVisibility();
 				}
 
-				for (var i = 0; i < barsShown.Length; i++)
-				{
-					if (topBarsShown[i])
-					{
-						workingArea.Y -= barsShown[i].barHeight;
-					}
-					workingArea.Height += barsShown[i].barHeight;
-				}
+				RestoreWorkingArea();
 
 				SetWorkingArea();
 			}
@@ -409,28 +421,25 @@ namespace Windawesome
 
 		private void ShowBars()
 		{
-			for (var i = 0; i < bars.Length; i++)
+			foreach (var bar in bars.Where(bs => bs.showBar))
 			{
-				if (showBars[i])
-				{
-					var bar = bars[i];
-					bar.form.Location = barPositions[i].Location;
-					bar.form.ClientSize = barPositions[i].Size;
-					bar.form.Show();
-				}
+				bar.bar.form.Location = bar.barPosition.Location;
+				bar.bar.form.ClientSize = bar.barPosition.Size;
+				bar.bar.form.Show();
 			}
 
-			var newBarsShown = bars.Where((_, i) => showBars[i]).ToArray();
+			var newShownBars = bars.Where(bs => bs.showBar);
+			var newBarsShown = newShownBars.Select(bs => bs.bar);
 
-			barsShown.Except(newBarsShown).ForEach(b => b.form.Hide());
-
-			barsShown = newBarsShown;
-			topBarsShown = topBars.Where((_, i) => showBars[i]).ToArray();
+			shownBars.Select(sb => sb.bar).Except(newBarsShown).ForEach(b => b.form.Hide());
+			shownBars = newBarsShown.Zip(newShownBars.Select(sb => sb.topBar), (b, tb) => new ShownBarInfo { bar = b, topBar = tb });
 
 			if (SystemInformation.WorkingArea != workingArea)
 			{
 				SetWorkingArea();
 			}
+
+			ResizeBarWidgets();
 		}
 
 		private void SetWorkingArea()
@@ -445,7 +454,39 @@ namespace Windawesome
 
 			// this is incredibly slow for some reason. Another way?
 			NativeMethods.SystemParametersInfo(NativeMethods.SPI_SETWORKAREA, NativeMethods.RECTSize,
-				ref workingAreaRECT, NativeMethods.SPIF_SENDCHANGE);
+				ref workingAreaRECT, NativeMethods.SPIF_SENDCHANGE | NativeMethods.SPIF_UPDATEINIFILE);
+		}
+
+		private void RestoreWorkingArea()
+		{
+			foreach (var shownBar in shownBars)
+			{
+				if (shownBar.topBar)
+				{
+					this.workingArea.Y -= shownBar.bar.barHeight;
+				}
+				this.workingArea.Height += shownBar.bar.barHeight;
+			}
+		}
+
+		internal void OnWorkingAreaReset()
+		{
+			workingArea = SystemInformation.WorkingArea;
+			shownBars = new ShownBarInfo[0];
+			SetWorkingAreaAndBarPositions();
+			ShowHideWindowsTaskbar();
+			Reposition();
+		}
+
+		internal void OnScreenResolutionChanged(Rectangle newWorkingArea)
+		{
+			workingArea = newWorkingArea;
+
+			this.bars.ForEach(bs =>
+				bs.bar.form.ClientSize = bs.barPosition.Size = new Size(workingArea.Width, bs.bar.barHeight));
+			ResizeBarWidgets();
+
+			Reposition();
 		}
 
 		internal void ToggleWindowsTaskbarVisibility()
@@ -629,16 +670,17 @@ namespace Windawesome
 
 		internal void ToggleShowHideBar(Bar bar)
 		{
-			var index = Array.IndexOf(bars, bar);
-			if (index != -1)
+			var barStruct = bars.FirstOrDefault(bs => bs.bar == bar);
+			if (barStruct != null)
 			{
-				showBars[index] = !showBars[index];
+				barStruct.showBar = !barStruct.showBar;
 				SetBarPositions();
 
-				barsShown = bars.Where((_, i) => showBars[i]).ToArray();
-				topBarsShown = topBars.Where((_, i) => showBars[i]).ToArray();
+				var newShownBars = bars.Where(bs => bs.showBar);
+				shownBars = newShownBars.Select(sb => sb.bar).
+					Zip(newShownBars.Select(sb => sb.topBar), (b, tb) => new ShownBarInfo { bar = b, topBar = tb });
 
-				bar.form.Visible = showBars[index];
+				bar.form.Visible = barStruct.showBar;
 				SetWorkingArea();
 				Reposition();
 			}

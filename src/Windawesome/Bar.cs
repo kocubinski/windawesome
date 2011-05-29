@@ -21,8 +21,8 @@ namespace Windawesome
 		private int rightmostLeftAlign;
 		private int leftmostRightAlign;
 
-		internal int leftmost { get; private set; }
-		internal int rightmost { get; private set; }
+		internal int Leftmost { get; private set; }
+		internal int Rightmost { get; private set; }
 
 		#region Events
 
@@ -245,8 +245,8 @@ namespace Windawesome
 
 		internal void ResizeWidgets(int leftmost, int rightmost)
 		{
-			this.leftmost = leftmost;
-			this.rightmost = rightmost;
+			this.Leftmost = leftmost;
+			this.Rightmost = rightmost;
 
 			RepositionLeftAlignedWidgets(0, leftmost);
 			RepositionRightAlignedWidgets(rightAlignedWidgets.Length - 1, rightmost);
@@ -310,9 +310,9 @@ namespace Windawesome
 		{
 			this.form.SuspendLayout();
 
-			this.leftmost = SystemInformation.WorkingArea.Left;
-			this.rightmost = SystemInformation.WorkingArea.Right;
-			var x = this.leftmost;
+			this.Leftmost = SystemInformation.WorkingArea.Left;
+			this.Rightmost = SystemInformation.WorkingArea.Right;
+			var x = this.Leftmost;
 			foreach (var controls in this.leftAlignedWidgets.Select(widget => widget.GetControls(x, -1)))
 			{
 				controls.ForEach(this.form.Controls.Add);
@@ -320,7 +320,7 @@ namespace Windawesome
 			}
 			rightmostLeftAlign = x;
 
-			x = this.rightmost;
+			x = this.Rightmost;
 			foreach (var controls in this.rightAlignedWidgets.Reverse().Select(widget => widget.GetControls(-1, x)))
 			{
 				controls.ForEach(this.form.Controls.Add);

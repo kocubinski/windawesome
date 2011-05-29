@@ -236,6 +236,12 @@
     <Content Include="..\Config\2-Program Rules.py">
       <Link>2-Program Rules.py</Link>
     </Content>
+    <Content Include="..\Docs\API.txt">
+      <Link>API.txt</Link>
+    </Content>
+    <Content Include="..\Docs\Usage.txt">
+      <Link>Usage.txt</Link>
+    </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

@@ -104,7 +104,7 @@ namespace Windawesome
 				AppDomain.CurrentDomain.GetAssemblies().ForEach(engine.Runtime.LoadAssembly);
 			}
 
-			private static ScriptEngine GetEngineForFile(FileInfo file)
+			private static ScriptEngine GetEngineForFile(FileSystemInfo file)
 			{
 				switch (file.Extension)
 				{

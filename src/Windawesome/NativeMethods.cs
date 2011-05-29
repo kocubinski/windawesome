@@ -1450,6 +1450,7 @@ namespace Windawesome
 		#region SystemParametersInfo
 
 		public const uint SPI_SETWORKAREA = 0x002F;
+		public const uint SPIF_UPDATEINIFILE = 0x01;
 		public const uint SPIF_SENDCHANGE = 0x02;
 		public const uint SPI_GETNONCLIENTMETRICS = 0x0029;
 		public const uint SPI_SETNONCLIENTMETRICS = 0x002A;

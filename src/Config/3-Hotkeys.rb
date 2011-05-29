@@ -56,18 +56,13 @@ subscribe modifiers.Alt, key.W do
 end
 
 # start Cygwin's MinTTY shell
-subscribe modifiers.Alt, key.Return do
-	className = Windawesome::NativeMethods.get_window_class_name Windawesome::NativeMethods.get_foreground_window
-	if className != "MediaPlayerClassicW"
-		windawesome.run_application "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\Cygwin\\mintty.lnk"
-	else
-		false
-	end
+subscribe modifiers.Alt | modifiers.Shift, key.Return do
+	windawesome.run_application "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\Cygwin\\mintty.lnk"
 end
 
 # start Bitcomet
 subscribe modifiers.Alt, key.B do
-	windawesome.run_application "C:\\Program Files\\BitComet\\BitComet.exe"
+	windawesome.run_application "C:\\Program Files (x86)\\BitComet\\BitComet_x64.exe"
 end
 
 # toggle window floating
