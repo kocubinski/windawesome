@@ -528,9 +528,8 @@ namespace Windawesome
 			{
 				window.IsMinimized = true;
 
-				if (managedWindows.Contains(window))
+				if (managedWindows.Remove(window))
 				{
-					managedWindows.Remove(window);
 					Layout.WindowMinimized(window, managedWindows, workingArea);
 				}
 
