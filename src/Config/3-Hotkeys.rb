@@ -7,6 +7,12 @@ def subscribe(modifiers, key)
 	}
 end
 
+flashing_window = nil
+
+Windawesome::Windawesome.window_flashing do |l|
+    flashing_window = l.first.value.item2.hWnd
+end
+
 modifiers = Windawesome::ShortcutsManager::KeyModifiers
 key = System::Windows::Forms::Keys
 
@@ -28,6 +34,17 @@ end
 # minimize application
 subscribe modifiers.Alt, key.A do
 	windawesome.minimize_application Windawesome::NativeMethods.get_foreground_window
+end
+
+# maximize or restore application
+subscribe modifiers.Alt, key.Z do
+    window = Windawesome::NativeMethods.get_foreground_window
+	ws = Windawesome::NativeMethods.get_window_style_long_ptr.invoke window
+	if ws.has_flag Windawesome::NativeMethods::WS.WS_MAXIMIZE
+        windawesome.restore_application window
+    elsif ws.has_flag Windawesome::NativeMethods::WS.WS_CAPTION and ws.has_flag Windawesome::NativeMethods::WS.WS_MAXIMIZEBOX
+        windawesome.maximize_application window
+    end
 end
 
 # switch to previous workspace
@@ -52,7 +69,7 @@ end
 
 # start Foobar2000
 subscribe modifiers.Alt, key.W do
-	windawesome.run_application "C:\\Program Files (x86)\\foobar2000\\foobar2000.exe"
+	windawesome.run_application "C:\\Program Files (x86)\\foobar2000-1.1.6\\Prog\\foobar2000.exe"
 end
 
 # start Cygwin's MinTTY shell
@@ -63,6 +80,13 @@ end
 # start Bitcomet
 subscribe modifiers.Alt, key.B do
 	windawesome.run_application "C:\\Program Files (x86)\\BitComet\\BitComet_x64.exe"
+end
+
+# switch to flashing window
+subscribe modifiers.Alt, key.U do
+    if flashing_window
+        windawesome.switch_to_application flashing_window   
+    end
 end
 
 # toggle window floating

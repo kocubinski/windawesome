@@ -176,6 +176,7 @@ namespace Windawesome
 	{
 		internal readonly Regex className;
 		internal readonly Regex displayName;
+		internal readonly Regex processName;
 		internal readonly NativeMethods.WS styleContains;
 		internal readonly NativeMethods.WS styleNotContains;
 		internal readonly NativeMethods.WS_EX styleExContains;
@@ -186,14 +187,14 @@ namespace Windawesome
 		internal readonly bool handleOwnedWindows;
 		internal readonly Rule[] rules;
 
-		internal bool IsMatch(string cName, string dName, NativeMethods.WS style, NativeMethods.WS_EX exStyle)
+		internal bool IsMatch(string cName, string dName, string pName, NativeMethods.WS style, NativeMethods.WS_EX exStyle)
 		{
-			return className.IsMatch(cName) && displayName.IsMatch(dName) &&
+			return className.IsMatch(cName) && displayName.IsMatch(dName) && processName.IsMatch(pName) &&
 				(style & styleContains) == styleContains && (style & styleNotContains) == 0 &&
 				(exStyle & styleExContains) == styleExContains && (exStyle & styleExNotContains) == 0;
 		}
 
-		public ProgramRule(string className = ".*", string displayName = ".*",
+		public ProgramRule(string className = ".*", string displayName = ".*", string processName = ".*",
 			NativeMethods.WS styleContains = (NativeMethods.WS) 0, NativeMethods.WS styleNotContains = (NativeMethods.WS) 0,
 			NativeMethods.WS_EX styleExContains = (NativeMethods.WS_EX) 0, NativeMethods.WS_EX styleExNotContains = (NativeMethods.WS_EX) 0,
 			bool isManaged = true, int windowCreatedDelay = 350, bool switchToOnCreated = true,
@@ -201,6 +202,7 @@ namespace Windawesome
 		{
 			this.className = new Regex(className, RegexOptions.Compiled);
 			this.displayName = new Regex(displayName, RegexOptions.Compiled);
+			this.processName = new Regex(processName, RegexOptions.Compiled);
 			this.styleContains = styleContains;
 			this.styleNotContains = styleNotContains;
 			this.styleExContains = styleExContains;
@@ -219,7 +221,7 @@ namespace Windawesome
 		{
 			public Rule(int workspace = 0, bool isFloating = false, bool showInTabs = true,
 				State titlebar = State.AS_IS, State inTaskbar = State.AS_IS, State windowBorders = State.AS_IS,
-				bool redrawOnShow = false)
+				bool redrawOnShow = false, bool activateLastActivePopup = true)
 			{
 				this.workspace = workspace;
 				this.isFloating = isFloating;
@@ -228,6 +230,7 @@ namespace Windawesome
 				this.inTaskbar = inTaskbar;
 				this.windowBorders = windowBorders;
 				this.redrawOnShow = redrawOnShow;
+				this.activateLastActivePopup = activateLastActivePopup;
 			}
 
 			internal readonly int workspace;
@@ -237,6 +240,7 @@ namespace Windawesome
 			internal readonly State inTaskbar;
 			internal readonly State windowBorders;
 			internal readonly bool redrawOnShow;
+			internal readonly bool activateLastActivePopup;
 		}
 	}
 }

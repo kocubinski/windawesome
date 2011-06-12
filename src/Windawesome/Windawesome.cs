@@ -27,6 +27,7 @@ namespace Windawesome
 		private static Tuple<NativeMethods.MOD, Keys> uniqueHotkey;
 		private static IntPtr forceForegroundWindow;
 		private readonly Rectangle[] originalWorkingArea;
+		private Size screenResolution;
 
 		internal static int[] workspaceBarsEquivalentClasses;
 
@@ -144,6 +145,7 @@ namespace Windawesome
 			// add a handler for when the working area changes
 			SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
 			SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
+			SystemEvents.SessionEnding += OnSessionEnding;
 
 			// set the global border and padded border widths
 			var metrics = originalNonClientMetrics;
@@ -190,18 +192,73 @@ namespace Windawesome
 			// switches to the default starting workspace
 			PostAction(() => config.Workspaces[0].SwitchTo());
 
+			screenResolution = SystemInformation.PrimaryMonitorSize;
 			originalWorkingArea = new Rectangle[config.WorkspacesCount];
-			PostAction(() =>
-				{
-					originalWorkingArea[0] = SystemInformation.WorkingArea;
-					for (var i = 1; i < config.WorkspacesCount; i++)
-					{
-						originalWorkingArea[i] = originalWorkingArea[0];
-					}
-				});
+			originalWorkingArea[0] = SystemInformation.WorkingArea;
+			for (var i = 1; i < config.WorkspacesCount; i++)
+			{
+				originalWorkingArea[i] = originalWorkingArea[0];
+			}
 
 			finishedInitializing = true;
 		}
+
+		private void OnWindawesomeExiting()
+		{
+			SystemEvents.UserPreferenceChanged -= OnUserPreferenceChanged;
+			SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
+			SystemEvents.SessionEnding -= OnSessionEnding;
+
+			// unregister shell hook
+			NativeMethods.DeregisterShellHookWindow(HandleStatic);
+
+			NativeMethods.UnregisterHotKey(this.Handle, (ushort) getForegroundPrivilageAtom);
+			NativeMethods.GlobalDeleteAtom((ushort) getForegroundPrivilageAtom);
+
+			// roll back any changes to Windows
+			config.Workspaces.Skip(1).ForEach(workspace => workspace.RevertToInitialValues());
+
+			config.Plugins.ForEach(p => p.Dispose());
+			config.Bars.ForEach(b => b.Dispose());
+
+			if (changedNonClientMetrics)
+			{
+				var metrics = originalNonClientMetrics;
+				NativeMethods.SystemParametersInfo(NativeMethods.SPI_SETNONCLIENTMETRICS, metrics.cbSize,
+					ref metrics, NativeMethods.SPIF_SENDCHANGE);
+			}
+		}
+
+		private void FindWorkspaceBarsEquivalentClasses()
+		{
+			var listOfUniqueBars = new LinkedList<Tuple<HashSet<Workspace.BarInfo>, int>>();
+
+			int i = 0, last = 0;
+			foreach (var set in
+				this.config.Workspaces.Skip(1).Select(workspace => new HashSet<Workspace.BarInfo>(workspace.bars)))
+			{
+				Tuple<HashSet<Workspace.BarInfo>, int> matchingBar;
+				if ((matchingBar = listOfUniqueBars.FirstOrDefault(uniqueBar => set.SetEquals(uniqueBar.Item1))) != null)
+				{
+					workspaceBarsEquivalentClasses[i++] = matchingBar.Item2;
+				}
+				else
+				{
+					workspaceBarsEquivalentClasses[i++] = ++last;
+					listOfUniqueBars.AddLast(new Tuple<HashSet<Workspace.BarInfo>, int>(set, last));
+				}
+			}
+		}
+
+		public void Quit()
+		{
+			WindawesomeExiting();
+			this.DestroyHandle();
+		}
+
+		#endregion
+
+		#region Helpers
 
 		private void OnUserPreferenceChanged(object sender, UserPreferenceChangedEventArgs e)
 		{
@@ -225,9 +282,9 @@ namespace Windawesome
 					{
 						// something new has shown that has changed the working area
 
-						config.Workspaces[0].OnWorkingAreaReset();
+						config.Workspaces[0].OnWorkingAreaReset(newWorkingArea);
 
-						originalWorkingArea[CurrentWorkspace.id - 1] = newWorkingArea;
+						originalWorkingArea[config.Workspaces[0].id - 1] = newWorkingArea;
 
 						FindWorkspaceBarsEquivalentClasses();
 					}
@@ -241,76 +298,44 @@ namespace Windawesome
 			// other than the Windows taskbar when changing resolution, otherwise the working area is left intact
 			// (only scaled, of course, because of the resolution change)
 
-			var newWorkingArea = SystemInformation.WorkingArea;
+			var newScreenResolution = SystemInformation.PrimaryMonitorSize;
 
-			for (var i = 0; i < config.WorkspacesCount; i++)
+			if (newScreenResolution != screenResolution)
 			{
-				config.Workspaces[i + 1].OnScreenResolutionChanged(newWorkingArea);
+				var newWorkingArea = SystemInformation.WorkingArea;
 
-				originalWorkingArea[i] = newWorkingArea;
-			}
-		}
-
-		private void OnWindawesomeExiting()
-		{
-			SystemEvents.UserPreferenceChanged -= OnUserPreferenceChanged;
-			SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
-
-			NativeMethods.UnregisterHotKey(this.Handle, (ushort) getForegroundPrivilageAtom);
-			NativeMethods.GlobalDeleteAtom((ushort) getForegroundPrivilageAtom);
-
-			// unregister shell hook
-			NativeMethods.DeregisterShellHookWindow(HandleStatic);
-
-			// roll back any changes to Windows
-			config.Workspaces.Skip(1).ForEach(workspace => workspace.RevertToInitialValues());
-
-			config.Plugins.ForEach(p => p.Dispose());
-			config.Bars.ForEach(b => b.Dispose());
-
-			if (changedNonClientMetrics)
-			{
-				var metrics = originalNonClientMetrics;
-				NativeMethods.SystemParametersInfo(NativeMethods.SPI_SETNONCLIENTMETRICS, metrics.cbSize,
-					ref metrics, NativeMethods.SPIF_SENDCHANGE);
-			}
-		}
-
-		private void FindWorkspaceBarsEquivalentClasses()
-		{
-			var setArray = new HashSet<Workspace.BarInfo>[config.WorkspacesCount];
-
-			int i = 0, last = 0;
-			foreach (var set in
-				this.config.Workspaces.Skip(1).Select(workspace => new HashSet<Workspace.BarInfo>(workspace.bars)))
-			{
-				int j;
-				for (j = 0; j < i; j++)
+				if (newWorkingArea.Y == config.Workspaces[0].workingArea.Y &&
+					screenResolution.Height - config.Workspaces[0].workingArea.Bottom ==
+						newScreenResolution.Height - newWorkingArea.Bottom)
 				{
-					if (set.SetEquals(setArray[j]))
+					for (var i = 0; i < config.WorkspacesCount; i++)
 					{
-						workspaceBarsEquivalentClasses[i] = workspaceBarsEquivalentClasses[j];
-						break;
+						config.Workspaces[i + 1].OnScreenResolutionChanged(newWorkingArea);
+
+						originalWorkingArea[i] = newWorkingArea; // TODO: this is wrong, should get the working area when reset
 					}
 				}
-				if (j == i)
+				else
 				{
-					workspaceBarsEquivalentClasses[i] = ++last;
+					// working area has been reset. This could be either because there is a docked program, other than
+					// the Windows Taskbar, or it could be because a Remote Desktop Connection has been established
+
+					for (var i = 0; i < config.WorkspacesCount; i++)
+					{
+						config.Workspaces[i + 1].OnWorkingAreaReset(newWorkingArea);
+
+						originalWorkingArea[i] = newWorkingArea;
+					}
 				}
 
-				setArray[i++] = set;
+				screenResolution = newScreenResolution;
 			}
 		}
 
-		public void Quit()
+		private void OnSessionEnding(object sender, SessionEndingEventArgs e)
 		{
-			WindawesomeExiting();
-			this.DestroyHandle();
+			Quit();
 		}
-
-		#endregion
-
-		#region Helpers
 
 		private bool AddWindowToWorkspace(IntPtr hWnd)
 		{
@@ -320,8 +345,11 @@ namespace Windawesome
 				var displayName = NativeMethods.GetText(hWnd);
 				var style = NativeMethods.GetWindowStyleLongPtr(hWnd);
 				var exStyle = NativeMethods.GetWindowExStyleLongPtr(hWnd);
+				int processId;
+				NativeMethods.GetWindowThreadProcessId(hWnd, out processId);
+				var processName = System.Diagnostics.Process.GetProcessById(processId).ProcessName;
 
-				var programRule = config.ProgramRules.First(r => r.IsMatch(className, displayName, style, exStyle));
+				var programRule = config.ProgramRules.First(r => r.IsMatch(className, displayName, processName, style, exStyle));
 				if (!programRule.isManaged)
 				{
 					return false;
@@ -351,7 +379,7 @@ namespace Windawesome
 				if (workspacesCount > 1 && matchingRules.FirstOrDefault(r => r.workspace == 0) != null &&
 					matchingRules.FirstOrDefault(r => r.workspace == config.Workspaces[0].id) != null)
 				{
-					matchingRules = matchingRules.Where(r => r.workspace == 0);
+					matchingRules = matchingRules.Where(r => r.workspace != 0);
 				}
 
 				var list = new LinkedList<Tuple<Workspace, Window>>();
@@ -399,7 +427,8 @@ namespace Windawesome
 							Titlebar = rule.titlebar,
 							InTaskbar = rule.inTaskbar,
 							WindowBorders = rule.windowBorders,
-							RedrawOnShow = rule.redrawOnShow
+							RedrawOnShow = rule.redrawOnShow,
+							ActivateLastActivePopup = rule.activateLastActivePopup
 						};
 					list.AddLast(new Tuple<Workspace, Window>(config.Workspaces[rule.workspace], window));
 					config.Workspaces[rule.workspace].WindowCreated(window);
@@ -678,7 +707,7 @@ namespace Windawesome
 
 		public void RunApplication(string path, string arguments = "")
 		{
-			if (isRunningElevated)
+			if (isAtLeastVista && isRunningElevated)
 			{
 				PostAction(() => NativeMethods.RunApplicationNonElevated(path, arguments));
 			}
@@ -713,6 +742,16 @@ namespace Windawesome
 		public void MinimizeApplication(IntPtr hWnd)
 		{
 			NativeMethods.SendNotifyMessage(hWnd, NativeMethods.WM_SYSCOMMAND, NativeMethods.SC_MINIMIZE, IntPtr.Zero);
+		}
+
+		public void MaximizeApplication(IntPtr hWnd)
+		{
+			NativeMethods.SendNotifyMessage(hWnd, NativeMethods.WM_SYSCOMMAND, NativeMethods.SC_MAXIMIZE, IntPtr.Zero);
+		}
+
+		public void RestoreApplication(IntPtr hWnd)
+		{
+			NativeMethods.SendNotifyMessage(hWnd, NativeMethods.WM_SYSCOMMAND, NativeMethods.SC_RESTORE, IntPtr.Zero);
 		}
 
 		// only switches to applications in the current workspace

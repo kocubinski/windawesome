@@ -4,6 +4,7 @@ from Windawesome import ILayout, TileLayout, FullScreenLayout, FloatingLayout, I
 from Windawesome import Bar, LayoutWidget, WorkspacesWidget, ApplicationTabsWidget, SystemTrayWidget, CpuMonitorWidget
 from Windawesome import LoggerPlugin, ShortcutsManager
 from Windawesome.NativeMethods import MOD
+from Windawesome.Workspace import BarInfo
 from System import Tuple
 from System.Windows.Forms import Keys
 
@@ -28,15 +29,15 @@ config.Bars = Enumerable.ToArray[Bar]([
 ])
 
 config.Workspaces = Enumerable.ToArray[Workspace]([
-	Workspace(config.Layouts[2], [config.Bars[0]], name = 'main'),
-	Workspace(config.Layouts[1], [config.Bars[1]], name = 'web'),
-	Workspace(config.Layouts[1], [config.Bars[1]]),
-	Workspace(config.Layouts[0], [config.Bars[1]], name = 'chat'),
-	Workspace(config.Layouts[1], [config.Bars[1]]),
-	Workspace(config.Layouts[1], [config.Bars[1]]),
-	Workspace(config.Layouts[1], [config.Bars[1]]),
-	Workspace(config.Layouts[1], [config.Bars[1]], name = 'mail'),
-	Workspace(config.Layouts[1], [config.Bars[1]], name = 'BC')
+	Workspace(config.Layouts[2], [BarInfo(config.Bars[0])], name = 'main'),
+	Workspace(config.Layouts[1], [BarInfo(config.Bars[1])], name = 'web'),
+	Workspace(config.Layouts[1], [BarInfo(config.Bars[1])]),
+	Workspace(config.Layouts[0], [BarInfo(config.Bars[1])], name = 'chat'),
+	Workspace(config.Layouts[1], [BarInfo(config.Bars[1])]),
+	Workspace(config.Layouts[1], [BarInfo(config.Bars[1])]),
+	Workspace(config.Layouts[1], [BarInfo(config.Bars[1])]),
+	Workspace(config.Layouts[1], [BarInfo(config.Bars[1])], name = 'mail'),
+	Workspace(config.Layouts[1], [BarInfo(config.Bars[1])], name = 'BC')
 ])
 config.StartingWorkspace = 1 # workspace indices start from one!
 config.WorkspacesCount = config.Workspaces.Length

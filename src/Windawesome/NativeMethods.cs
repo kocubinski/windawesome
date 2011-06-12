@@ -155,6 +155,8 @@ namespace Windawesome
 		public const uint WM_QUERYDRAGICON = 0x0037;
 
 		public static readonly UIntPtr SC_MINIMIZE = (UIntPtr) 0xF020;
+		public static readonly UIntPtr SC_MAXIMIZE = (UIntPtr) 0xF030;
+		public static readonly UIntPtr SC_RESTORE  = (UIntPtr) 0xF120;
 		public static readonly UIntPtr SC_CLOSE = (UIntPtr) 0xF060;
 
 		public static readonly UIntPtr ICON_SMALL = UIntPtr.Zero;
@@ -162,8 +164,6 @@ namespace Windawesome
 		#endregion
 
 		#region SHAppBarMessage/RegisterWindowMessage
-
-		public static readonly int RECTSize = Marshal.SizeOf(typeof (RECT));
 
 		[StructLayout(LayoutKind.Sequential)]
 		public struct RECT
@@ -180,7 +180,7 @@ namespace Windawesome
 			public int cbSize;
 			public IntPtr hWnd;
 			public uint uCallbackMessage;
-			public int uEdge;
+			public uint uEdge;
 			public RECT rc;
 			public IntPtr lParam;
 
@@ -584,6 +584,9 @@ namespace Windawesome
 
 		[DllImport("user32.dll")]
 		public static extern IntPtr SetParent(IntPtr hWndChild, [Optional] IntPtr hWndNewParent);
+
+		[DllImport("user32.dll")]
+		public static extern IntPtr GetLastActivePopup(IntPtr hWnd);
 
 		// icon stuff
 

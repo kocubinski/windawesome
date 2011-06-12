@@ -15,7 +15,7 @@ class DateTimeWidget
 
 		@updateTimer = Timer.new
 		@updateTimer.interval = updateTime
-		@updateTimer.tick.add lambda { |s, ea|
+		@updateTimer.tick do |s, ea|
 			oldWidth = @label.width
 			@label.text = " " + DateTime.now.to_string(@string) + " "
 			@label.width = TextRenderer.measure_text(@label.text, @label.font).width
@@ -23,7 +23,7 @@ class DateTimeWidget
 				self.reposition_controls @left, @right
 				@bar.do_fixed_width_widget_width_changed self
 			end
-		}
+		end
 	end
 
 	def get_widget_type
