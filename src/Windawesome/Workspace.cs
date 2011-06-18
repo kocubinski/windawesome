@@ -316,7 +316,7 @@ namespace Windawesome
 			// activates the topmost non-minimized window
 			if (setForeground)
 			{
-				SetForeground();
+				SetTopWindowAsForeground();
 			}
 
 			IsCurrentWorkspace = true;
@@ -373,12 +373,18 @@ namespace Windawesome
 			foreach (var window in windows)
 			{
 				NativeMethods.ShowWindowAsync(window.hWnd, NativeMethods.SW.SW_SHOWNA);
+
 				if (restoreZOrder)
 				{
-					NativeMethods.SetWindowPos(window.hWnd, prevWindowHandle, 0, 0, 0, 0,
+					NativeMethods.SetWindowPos(window.owner != IntPtr.Zero ? window.owner : window.hWnd, prevWindowHandle, 0, 0, 0, 0,
 						NativeMethods.SWP.SWP_ASYNCWINDOWPOS |
 						NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
 					prevWindowHandle = window.hWnd;
+				}
+
+				if (window.HideOwnedPopups)
+				{
+					NativeMethods.ShowOwnedPopups(window.owner != IntPtr.Zero ? window.owner : window.hWnd, true);
 				}
 
 				if (window.RedrawOnShow)
@@ -503,17 +509,11 @@ namespace Windawesome
 			Reposition();
 		}
 
-		internal void SetForeground()
+		internal void SetTopWindowAsForeground()
 		{
 			if (windows.Count > 0 && !windows.First.Value.IsMinimized)
 			{
-				var hasOwner = windows.First.Value.owner != IntPtr.Zero;
-				var hWnd = hasOwner ? windows.First.Value.owner : windows.First.Value.hWnd;
-				if (windows.First.Value.ActivateLastActivePopup)
-				{
-					hWnd = NativeMethods.GetLastActivePopup(hWnd);
-				}
-				Windawesome.ForceForegroundWindow(hWnd);
+				Windawesome.ForceForegroundWindow(windows.First.Value);
 			}
 			else
 			{
@@ -657,7 +657,7 @@ namespace Windawesome
 
 			if (IsCurrentWorkspace && setForeground)
 			{
-				SetForeground();
+				SetTopWindowAsForeground();
 			}
 
 			DoWorkspaceApplicationRemoved(this, window);
@@ -848,6 +848,7 @@ namespace Windawesome
 		public readonly bool is64BitProcess;
 		public bool RedrawOnShow { get; internal set; }
 		public bool ActivateLastActivePopup { get; internal set; }
+		public bool HideOwnedPopups { get; internal set; }
 		public readonly IntPtr owner;
 
 		private readonly NativeMethods.WS titlebarStyle;
@@ -899,6 +900,8 @@ namespace Windawesome
 			originalWindowPlacement = window.originalWindowPlacement;
 			is64BitProcess = window.is64BitProcess;
 			owner = window.owner;
+			ActivateLastActivePopup = window.ActivateLastActivePopup;
+			HideOwnedPopups = window.HideOwnedPopups;
 
 			titlebarStyle = window.titlebarStyle;
 
@@ -1030,6 +1033,10 @@ namespace Windawesome
 		internal void Hide()
 		{
 			NativeMethods.ShowWindowAsync(hWnd, NativeMethods.SW.SW_HIDE);
+			if (HideOwnedPopups)
+			{
+				NativeMethods.ShowOwnedPopups(owner != IntPtr.Zero ? owner : hWnd, false);
+			}
 		}
 
 		internal void RevertToInitialValues()

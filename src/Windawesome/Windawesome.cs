@@ -19,8 +19,7 @@ namespace Windawesome
 		private static readonly Queue<Action> postedActions;
 		private static readonly Dictionary<int, HandleMessageDelegate> messageHandlers;
 		private static readonly NativeMethods.NONCLIENTMETRICS originalNonClientMetrics;
-		private static IntPtr onWindowShownHandle;
-		private static Action<IntPtr> onWindowShownHandler;
+		private static readonly Dictionary<IntPtr, Action<IntPtr>> onWindowShown;
 		private readonly bool changedNonClientMetrics;
 		private readonly bool finishedInitializing;
 		private readonly IntPtr getForegroundPrivilageAtom;
@@ -114,6 +113,8 @@ namespace Windawesome
 
 			postedActions = new Queue<Action>(5);
 			postActionMessageNum = NativeMethods.RegisterWindowMessage("POST_ACTION_MESSAGE");
+
+			onWindowShown = new Dictionary<IntPtr, Action<IntPtr>>(3);
 		}
 
 		internal Windawesome()
@@ -363,7 +364,7 @@ namespace Windawesome
 					{
 						hiddenApplications.Add(hWnd);
 						NativeMethods.ShowWindowAsync(hWnd, NativeMethods.SW.SW_HIDE);
-						config.Workspaces[0].SetForeground();
+						config.Workspaces[0].SetTopWindowAsForeground();
 					}
 					else
 					{
@@ -428,7 +429,8 @@ namespace Windawesome
 							InTaskbar = rule.inTaskbar,
 							WindowBorders = rule.windowBorders,
 							RedrawOnShow = rule.redrawOnShow,
-							ActivateLastActivePopup = rule.activateLastActivePopup
+							ActivateLastActivePopup = rule.activateLastActivePopup,
+							HideOwnedPopups = programRule.hideOwnedPopups
 						};
 					list.AddLast(new Tuple<Workspace, Window>(config.Workspaces[rule.workspace], window));
 					config.Workspaces[rule.workspace].WindowCreated(window);
@@ -468,6 +470,17 @@ namespace Windawesome
 			// remove all non-existent applications
 			applications.Keys.Where(app => !set.Contains(app)).ToArray().
 				ForEach(RemoveApplicationFromAllWorkspaces);
+		}
+
+		internal static void ForceForegroundWindow(Window window)
+		{
+			var hasOwner = window.owner != IntPtr.Zero;
+			var hWnd = hasOwner ? window.owner : window.hWnd;
+			if (window.ActivateLastActivePopup)
+			{
+				hWnd = NativeMethods.GetLastActivePopup(hWnd);
+			}
+			ForceForegroundWindow(hWnd);
 		}
 
 		internal static void ForceForegroundWindow(IntPtr hWnd)
@@ -766,7 +779,7 @@ namespace Windawesome
 					NativeMethods.ShowWindowAsync(hWnd, NativeMethods.SW.SW_RESTORE);
 				}
 
-				ForceForegroundWindow(hWnd);
+				ForceForegroundWindow(window);
 
 				return true;
 			}
@@ -907,8 +920,7 @@ namespace Windawesome
 			}
 			else
 			{
-				onWindowShownHandle = hWnd;
-				onWindowShownHandler = action;
+				onWindowShown[hWnd] = action;
 			}
 		}
 
@@ -921,6 +933,7 @@ namespace Windawesome
 			switch ((NativeMethods.ShellEvents) wParam)
 			{
 				case NativeMethods.ShellEvents.HSHELL_WINDOWCREATED: // window created or restored from tray
+					Action<IntPtr> onWindowShownAction;
 					if (!applications.ContainsKey(lParam))
 					{
 						AddWindowToWorkspace(lParam);
@@ -937,10 +950,10 @@ namespace Windawesome
 						NativeMethods.SendNotifyMessage(HandleStatic, shellMessageNum,
 							(UIntPtr) (uint) NativeMethods.ShellEvents.HSHELL_WINDOWACTIVATED, lParam);
 					}
-					else if (lParam == onWindowShownHandle)
+					else if (onWindowShown.TryGetValue(lParam, out onWindowShownAction))
 					{
-						onWindowShownHandle = IntPtr.Zero;
-						onWindowShownHandler(lParam);
+						onWindowShown.Remove(lParam);
+						onWindowShownAction(lParam);
 					}
 					break;
 				case NativeMethods.ShellEvents.HSHELL_WINDOWDESTROYED: // window destroyed or minimized to tray

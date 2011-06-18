@@ -588,6 +588,10 @@ namespace Windawesome
 		[DllImport("user32.dll")]
 		public static extern IntPtr GetLastActivePopup(IntPtr hWnd);
 
+		[DllImport("user32.dll")]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		public static extern bool ShowOwnedPopups(IntPtr hWnd, [MarshalAs(UnmanagedType.Bool)] bool fShow);
+
 		// icon stuff
 
 		#region CopyIcon/DestroyIcon

@@ -20,13 +20,14 @@ BOOL IsAppWindow(HWND hWnd)
 {
 	if (IsWindowVisible(hWnd) && !GetParent(hWnd))
 	{
-		HWND hWndOwner = GetWindow(hWnd, GW_OWNER);
+		//HWND hWndOwner = GetWindow(hWnd, GW_OWNER);
 		LONG_PTR exStyle = GetWindowLongPtr(hWnd, GWL_EXSTYLE);
-		if ((!(exStyle & WS_EX_TOOLWINDOW) && !hWndOwner) ||
-			( (exStyle & WS_EX_APPWINDOW)  && hWndOwner))
-		{
-			return TRUE;
-		}
+		return !(exStyle & WS_CHILD);
+		//if ((!(exStyle & WS_EX_TOOLWINDOW) && !hWndOwner) ||
+		//	( (exStyle & WS_EX_APPWINDOW)  && hWndOwner))
+		//{
+		//	return TRUE;
+		//}
 	}
 
 	return FALSE;

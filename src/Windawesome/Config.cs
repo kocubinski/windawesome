@@ -185,6 +185,7 @@ namespace Windawesome
 		internal readonly int windowCreatedDelay;
 		internal readonly bool switchToOnCreated;
 		internal readonly bool handleOwnedWindows;
+		internal readonly bool hideOwnedPopups;
 		internal readonly Rule[] rules;
 
 		internal bool IsMatch(string cName, string dName, string pName, NativeMethods.WS style, NativeMethods.WS_EX exStyle)
@@ -198,7 +199,7 @@ namespace Windawesome
 			NativeMethods.WS styleContains = (NativeMethods.WS) 0, NativeMethods.WS styleNotContains = (NativeMethods.WS) 0,
 			NativeMethods.WS_EX styleExContains = (NativeMethods.WS_EX) 0, NativeMethods.WS_EX styleExNotContains = (NativeMethods.WS_EX) 0,
 			bool isManaged = true, int windowCreatedDelay = 350, bool switchToOnCreated = true,
-			bool handleOwnedWindows = false, IEnumerable<Rule> rules = null)
+			bool handleOwnedWindows = false, bool hideOwnedPopups = true, IEnumerable<Rule> rules = null)
 		{
 			this.className = new Regex(className, RegexOptions.Compiled);
 			this.displayName = new Regex(displayName, RegexOptions.Compiled);
@@ -211,6 +212,7 @@ namespace Windawesome
 			this.windowCreatedDelay = windowCreatedDelay;
 			this.switchToOnCreated = switchToOnCreated;
 			this.handleOwnedWindows = handleOwnedWindows;
+			this.hideOwnedPopups = hideOwnedPopups;
 			if (isManaged)
 			{
 				this.rules = rules == null ? new[] { new Rule() } : rules.ToArray();
