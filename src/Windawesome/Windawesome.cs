@@ -187,7 +187,7 @@ namespace Windawesome
 
 			// initialize all workspaces
 			config.Workspaces.Skip(1).Where(ws => ws.id != config.StartingWorkspace).
-                ForEach(ws => ws.GetWindows().ForEach(w => hiddenApplications.AddUnique(w.hWnd)));
+				ForEach(ws => ws.GetWindows().ForEach(w => hiddenApplications.AddUnique(w.hWnd)));
 			config.Workspaces.Skip(1).ForEach(ws => ws.Initialize(ws.id == config.StartingWorkspace));
 
 			// switches to the default starting workspace
@@ -373,20 +373,20 @@ namespace Windawesome
 					}
 					else
 					{
-                        PostAction(() =>
-                            {
-                                SwitchToApplication(hWnd);
-                                if (programRule.redrawDesktopOnWindowCreated)
-                                {
-                                    // If you have a Windows Explorer window open on one workspace (and it is the only non-minimized window open) and you start
-                                    // mintty (which defaults to another workspace) then the desktop is not redrawn right (you can see that if mintty
-                                    // is set to be transparent
-                                    NativeMethods.RedrawWindow(IntPtr.Zero, IntPtr.Zero, IntPtr.Zero,
-                                        NativeMethods.RedrawWindowFlags.RDW_ALLCHILDREN |
-                                        NativeMethods.RedrawWindowFlags.RDW_ERASE |
-                                        NativeMethods.RedrawWindowFlags.RDW_INVALIDATE);
-                                }
-                            });
+						PostAction(() =>
+							{
+								SwitchToApplication(hWnd);
+								if (programRule.redrawDesktopOnWindowCreated)
+								{
+									// If you have a Windows Explorer window open on one workspace (and it is the only non-minimized window open) and you start
+									// mintty (which defaults to another workspace) then the desktop is not redrawn right (you can see that if mintty
+									// is set to be transparent
+									NativeMethods.RedrawWindow(IntPtr.Zero, IntPtr.Zero, IntPtr.Zero,
+										NativeMethods.RedrawWindowFlags.RDW_ALLCHILDREN |
+										NativeMethods.RedrawWindowFlags.RDW_ERASE |
+										NativeMethods.RedrawWindowFlags.RDW_INVALIDATE);
+								}
+							});
 					}
 
 					System.Threading.Thread.Sleep(programRule.windowCreatedDelay);
@@ -1096,8 +1096,8 @@ namespace Windawesome
 			{
 				NativeMethods.SetForegroundWindow(forceForegroundWindow);
 				NativeMethods.SetWindowPos(forceForegroundWindow, NativeMethods.HWND_TOP, 0, 0, 0, 0,
-				    NativeMethods.SWP.SWP_ASYNCWINDOWPOS | NativeMethods.SWP.SWP_NOMOVE |
-				    NativeMethods.SWP.SWP_NOOWNERZORDER | NativeMethods.SWP.SWP_NOSIZE);
+					NativeMethods.SWP.SWP_ASYNCWINDOWPOS | NativeMethods.SWP.SWP_NOMOVE |
+					NativeMethods.SWP.SWP_NOOWNERZORDER | NativeMethods.SWP.SWP_NOSIZE);
 				return ;
 			}
 			HandleMessageDelegate messageDelegate;
@@ -1149,18 +1149,18 @@ namespace Windawesome
 			}
 		}
 
-        public AddResult AddUnique(T item)
-        {
-            if (set.ContainsKey(item))
-            {
-                return AddResult.AlreadyContained;
-            }
-            else
-            {
-                set[item] = new BoxedInt();
-                return AddResult.AddedFirst;
-            }
-        }
+		public AddResult AddUnique(T item)
+		{
+			if (set.ContainsKey(item))
+			{
+				return AddResult.AlreadyContained;
+			}
+			else
+			{
+				set[item] = new BoxedInt();
+				return AddResult.AddedFirst;
+			}
+		}
 
 		public RemoveResult Remove(T item)
 		{
@@ -1191,7 +1191,7 @@ namespace Windawesome
 		{
 			AddedFirst,
 			Added,
-            AlreadyContained
+			AlreadyContained
 		}
 
 		public enum RemoveResult : byte

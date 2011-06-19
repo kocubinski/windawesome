@@ -456,12 +456,12 @@ namespace Windawesome
 		private void SetWorkingArea()
 		{
 			var workingAreaRECT = new NativeMethods.RECT
-			    {
-			        left = this.workingArea.Left,
-			        top = this.workingArea.Top,
-			        right = this.workingArea.Right,
-			        bottom = this.workingArea.Bottom
-			    };
+				{
+					left = this.workingArea.Left,
+					top = this.workingArea.Top,
+					right = this.workingArea.Right,
+					bottom = this.workingArea.Bottom
+				};
 
 			// this is incredibly slow for some reason. Another way?
 			NativeMethods.SystemParametersInfo(NativeMethods.SPI_SETWORKAREA, 1,
@@ -845,7 +845,7 @@ namespace Windawesome
 		public bool IsMinimized { get; internal set; }
 		public string DisplayName { get; internal set; }
 		public readonly string className;
-        public readonly string processName;
+		public readonly string processName;
 		public readonly bool is64BitProcess;
 		public bool RedrawOnShow { get; internal set; }
 		public bool ActivateLastActivePopup { get; internal set; }
@@ -866,7 +866,7 @@ namespace Windawesome
 			this.hWnd = hWnd;
 			this.className = className;
 			this.DisplayName = displayName;
-            this.processName = processName;
+			this.processName = processName;
 			this.WorkspacesCount = workspacesCount;
 			this.is64BitProcess = is64BitProcess;
 			this.owner = owner;
@@ -897,7 +897,7 @@ namespace Windawesome
 			hWnd = window.hWnd;
 			className = window.className;
 			this.DisplayName = window.DisplayName;
-            processName = window.processName;
+			processName = window.processName;
 			windowPlacement = window.windowPlacement;
 			this.WorkspacesCount = window.WorkspacesCount;
 			originalWindowPlacement = window.originalWindowPlacement;
@@ -1043,14 +1043,14 @@ namespace Windawesome
 		}
 
 		internal void RevertToInitialValues()
-        {
-            // TODO: better to do something like this:
-            //NativeMethods.SetWindowStyleLongPtr(hWnd, originalStyle);
-            //NativeMethods.SetWindowExStyleLongPtr(hWnd, originalExStyle);
-            //Redraw();
-            // but it doesn't work - some windows lose their Taskbar buttons, although they are still visible in
-            // the ALT-TAB menu. Some other windows gain a Taskbar button, while not visible
-            // in the ALT-TAB menu. In both cases the ALT-TAB menu is correct
+		{
+			// TODO: better to do something like this:
+			//NativeMethods.SetWindowStyleLongPtr(hWnd, originalStyle);
+			//NativeMethods.SetWindowExStyleLongPtr(hWnd, originalExStyle);
+			//Redraw();
+			// but it doesn't work - some windows lose their Taskbar buttons, although they are still visible in
+			// the ALT-TAB menu. Some other windows gain a Taskbar button, while not visible
+			// in the ALT-TAB menu. In both cases the ALT-TAB menu is correct
 
 			if (this.Titlebar != State.AS_IS)
 			{

@@ -63,27 +63,27 @@ namespace Windawesome
 		private Form CreateForm()
 		{
 			var newForm = new Form
-			    {
-			        StartPosition = FormStartPosition.Manual,
-			        FormBorderStyle = FormBorderStyle.FixedToolWindow,
-			        AutoValidate = AutoValidate.Disable,
-			        CausesValidation = false,
-			        ControlBox = false,
-			        MaximizeBox = false,
-			        MinimizeBox = false,
-			        ShowIcon = false,
-			        ShowInTaskbar = false,
-			        SizeGripStyle = SizeGripStyle.Hide,
-			        AutoScaleMode = AutoScaleMode.Font,
-			        AutoScroll = false,
-			        AutoSize = false,
-			        HelpButton = false,
-			        TopLevel = true,
-			        WindowState = FormWindowState.Normal,
-			        TopMost = true,
+				{
+					StartPosition = FormStartPosition.Manual,
+					FormBorderStyle = FormBorderStyle.FixedToolWindow,
+					AutoValidate = AutoValidate.Disable,
+					CausesValidation = false,
+					ControlBox = false,
+					MaximizeBox = false,
+					MinimizeBox = false,
+					ShowIcon = false,
+					ShowInTaskbar = false,
+					SizeGripStyle = SizeGripStyle.Hide,
+					AutoScaleMode = AutoScaleMode.Font,
+					AutoScroll = false,
+					AutoSize = false,
+					HelpButton = false,
+					TopLevel = true,
+					WindowState = FormWindowState.Normal,
+					TopMost = true,
 					MinimumSize = new Size(0, this.barHeight),
-			        Height = this.barHeight
-			    };
+					Height = this.barHeight
+				};
 
 			newForm.VisibleChanged += this.OnFormVisibleChanged;
 			newForm.FormClosing += (s, ea) => ea.Cancel = true;

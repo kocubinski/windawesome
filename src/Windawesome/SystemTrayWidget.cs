@@ -166,7 +166,7 @@ namespace Windawesome
 
 			pictureBox.MouseDoubleClick += (s, e) =>
 				NativeMethods.SendNotifyMessage(trayIcon.hWnd, trayIcon.callbackMessage,
-			        (UIntPtr) trayIcon.id, NativeMethods.WM_LBUTTONDBLCLK);
+					(UIntPtr) trayIcon.id, NativeMethods.WM_LBUTTONDBLCLK);
 			pictureBox.MouseDown += (s, e) =>
 				{
 					switch (e.Button)

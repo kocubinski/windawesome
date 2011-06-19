@@ -69,10 +69,10 @@ namespace Windawesome
 			panel.BackColor = normalBackgroundColor;
 
 			var pictureBox = new PictureBox
-			    {
-			        Size = new Size(this.bar.barHeight, this.bar.barHeight),
-			        SizeMode = PictureBoxSizeMode.CenterImage
-			    };
+				{
+					Size = new Size(this.bar.barHeight, this.bar.barHeight),
+					SizeMode = PictureBoxSizeMode.CenterImage
+				};
 			pictureBox.Click += this.OnApplicationTabClick;
 			panel.Controls.Add(pictureBox);
 

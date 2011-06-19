@@ -41,15 +41,15 @@ BOOL UnregisterSystemTrayHook()
 
 typedef struct
 {
-    DWORD dwHz;
-    DWORD dwMessage;
-    NOTIFYICONDATA nid; // this is a 64-bit structure, when running in 64-bit mode, but should be 32!
+	DWORD dwHz;
+	DWORD dwMessage;
+	NOTIFYICONDATA nid; // this is a 64-bit structure, when running in 64-bit mode, but should be 32!
 } SHELLTRAYDATA;
 
 static LRESULT CALLBACK HookCallback(int code, WPARAM wParam, LPARAM lParam)
 {
-    if (code >= 0)
-    {
+	if (code >= 0)
+	{
 		CWPRETSTRUCT *pInfo = (CWPRETSTRUCT*) lParam;
 
 		if (pInfo->message == WM_COPYDATA)

@@ -97,23 +97,23 @@ namespace Windawesome
 
 		//private void Listen(Window window)
 		//{
-		//    if (window.titlebar == State.SHOWN || window.windowBorders == State.SHOWN)
-		//    {
-		//        NativeMethods.SendNotifyMessage(window.hWnd, START_WINDOW_PROC_MESSAGE, UIntPtr.Zero, IntPtr.Zero);
-		//    }
-		//    else if (window.titlebar == State.HIDDEN && window.windowBorders == State.HIDDEN)
-		//    {
-		//        NativeMethods.SendNotifyMessage(window.hWnd, STOP_WINDOW_PROC_MESSAGE, UIntPtr.Zero, IntPtr.Zero);
-		//    }
-		//    else if (window.titlebar == State.AS_IS || window.windowBorders == State.AS_IS)
-		//    {
-		//        var style = NativeMethods.GetWindowStyleLongPtr(window.hWnd);
+		//		if (window.titlebar == State.SHOWN || window.windowBorders == State.SHOWN)
+		//		{
+		//				NativeMethods.SendNotifyMessage(window.hWnd, START_WINDOW_PROC_MESSAGE, UIntPtr.Zero, IntPtr.Zero);
+		//		}
+		//		else if (window.titlebar == State.HIDDEN && window.windowBorders == State.HIDDEN)
+		//		{
+		//				NativeMethods.SendNotifyMessage(window.hWnd, STOP_WINDOW_PROC_MESSAGE, UIntPtr.Zero, IntPtr.Zero);
+		//		}
+		//		else if (window.titlebar == State.AS_IS || window.windowBorders == State.AS_IS)
+		//		{
+		//				var style = NativeMethods.GetWindowStyleLongPtr(window.hWnd);
 
-		//        if ((style & NativeMethods.WS.WS_CAPTION) != 0 || (style & NativeMethods.WS.WS_SIZEBOX) != 0)
-		//        {
-		//            NativeMethods.SendNotifyMessage(window.hWnd, START_WINDOW_PROC_MESSAGE, UIntPtr.Zero, IntPtr.Zero);
-		//        }
-		//    }
+		//				if ((style & NativeMethods.WS.WS_CAPTION) != 0 || (style & NativeMethods.WS.WS_SIZEBOX) != 0)
+		//				{
+		//						NativeMethods.SendNotifyMessage(window.hWnd, START_WINDOW_PROC_MESSAGE, UIntPtr.Zero, IntPtr.Zero);
+		//				}
+		//		}
 		//}
 
 		#region IPlugin Members

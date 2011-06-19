@@ -6,11 +6,11 @@ config.ProgramRules = Enumerable.ToArray[ProgramRule]([
 	ProgramRule(
 		className = "^TApplication$",
 		displayName = "^Find and Run Robot*",
-        isManaged = False
+		isManaged = False
 	),
 	ProgramRule(
 		className = "^TApplication$",
-        handleOwnedWindows = True
+		handleOwnedWindows = True
 	),
 	ProgramRule(
 		className = "^Vim$",

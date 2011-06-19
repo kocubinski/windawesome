@@ -10,7 +10,7 @@ end
 flashing_window = nil
 
 Windawesome::Windawesome.window_flashing do |l|
-    flashing_window = l.first.value.item2.hWnd
+	flashing_window = l.first.value.item2.hWnd
 end
 
 modifiers = Windawesome::ShortcutsManager::KeyModifiers
@@ -38,13 +38,13 @@ end
 
 # maximize or restore application
 subscribe modifiers.Alt, key.Z do
-    window = Windawesome::NativeMethods.get_foreground_window
+	window = Windawesome::NativeMethods.get_foreground_window
 	ws = Windawesome::NativeMethods.get_window_style_long_ptr.invoke window
 	if ws.has_flag Windawesome::NativeMethods::WS.WS_MAXIMIZE
-        windawesome.restore_application window
-    elsif ws.has_flag Windawesome::NativeMethods::WS.WS_CAPTION and ws.has_flag Windawesome::NativeMethods::WS.WS_MAXIMIZEBOX
-        windawesome.maximize_application window
-    end
+		windawesome.restore_application window
+	elsif ws.has_flag Windawesome::NativeMethods::WS.WS_CAPTION and ws.has_flag Windawesome::NativeMethods::WS.WS_MAXIMIZEBOX
+		windawesome.maximize_application window
+	end
 end
 
 # switch to previous workspace
@@ -84,9 +84,9 @@ end
 
 # switch to flashing window
 subscribe modifiers.Alt, key.U do
-    if flashing_window
-        windawesome.switch_to_application flashing_window   
-    end
+	if flashing_window
+		windawesome.switch_to_application flashing_window
+	end
 end
 
 # toggle window floating

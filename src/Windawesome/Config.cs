@@ -35,7 +35,7 @@ namespace Windawesome
 			const string layoutsDirName = "Layouts";
 			const string widgetsDirName = "Widgets";
 			const string pluginsDirName = "Plugins";
-			const string configDirName  = "Config";
+			const string configDirName	= "Config";
 
 			if (!Directory.Exists(configDirName) || Directory.EnumerateFiles(configDirName).FirstOrDefault() == null)
 			{
@@ -186,8 +186,8 @@ namespace Windawesome
 		internal readonly bool switchToOnCreated;
 		internal readonly bool handleOwnedWindows;
 		internal readonly bool hideOwnedPopups;
-        internal readonly bool redrawDesktopOnWindowCreated;
-        internal readonly int tryAgainAfter;
+		internal readonly bool redrawDesktopOnWindowCreated;
+		internal readonly int tryAgainAfter;
 		internal readonly Rule[] rules;
 
 		internal bool IsMatch(string cName, string dName, string pName, NativeMethods.WS style, NativeMethods.WS_EX exStyle)
@@ -202,7 +202,7 @@ namespace Windawesome
 			NativeMethods.WS_EX styleExContains = (NativeMethods.WS_EX) 0, NativeMethods.WS_EX styleExNotContains = (NativeMethods.WS_EX) 0,
 			bool isManaged = true, int windowCreatedDelay = 350, bool switchToOnCreated = true,
 			bool handleOwnedWindows = false, bool hideOwnedPopups = true, bool redrawDesktopOnWindowCreated = false,
-            int tryAgainAfter = -1, IEnumerable<Rule> rules = null)
+			int tryAgainAfter = -1, IEnumerable<Rule> rules = null)
 		{
 			this.className = new Regex(className, RegexOptions.Compiled);
 			this.displayName = new Regex(displayName, RegexOptions.Compiled);
@@ -216,8 +216,8 @@ namespace Windawesome
 			this.switchToOnCreated = switchToOnCreated;
 			this.handleOwnedWindows = handleOwnedWindows;
 			this.hideOwnedPopups = hideOwnedPopups;
-            this.redrawDesktopOnWindowCreated = redrawDesktopOnWindowCreated;
-            this.tryAgainAfter = tryAgainAfter;
+			this.redrawDesktopOnWindowCreated = redrawDesktopOnWindowCreated;
+			this.tryAgainAfter = tryAgainAfter;
 			if (isManaged)
 			{
 				this.rules = rules == null ? new[] { new Rule() } : rules.ToArray();
