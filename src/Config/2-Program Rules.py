@@ -111,10 +111,6 @@ config.ProgramRules = Enumerable.ToArray[ProgramRule]([
 	ProgramRule(className = "^MsiDialogCloseClass$", isManaged = False),
 	ProgramRule(className = "^MsiDialogNoCloseClass$", isManaged = False),
 	ProgramRule(
-		className = "^cygwin/x X rl-xterm-XTerm-\d+$",
-		rules = [ProgramRule.Rule(workspace = 5, inTaskbar = State.SHOWN)]
-	),
-	ProgramRule(
 		className = "^#32770$", # all dialogs
 		rules = [ProgramRule.Rule(isFloating = True)] # should be floating
 	),

@@ -66,5 +66,7 @@ namespace Windawesome
 		 * This is called for every Bar that contains this instance of the widget
 		 */
 		void Dispose();
+
+		// TODO: must add a way to "refresh" the widget - to be used when RefreshWindawesome is called for example
 	}
 }

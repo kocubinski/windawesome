@@ -172,6 +172,14 @@ namespace Windawesome
 		AS_IS  = 2
 	}
 
+	public enum OnHiddenWindowShownAction
+	{
+		SwitchToWindowsWorkspace,
+		MoveWindowToCurrentWorkspace,
+		TemporarilyShowWindowOnCurrentWorkspace,
+		HideWindow
+	}
+
 	public class ProgramRule
 	{
 		internal readonly Regex className;
@@ -188,6 +196,7 @@ namespace Windawesome
 		internal readonly bool hideOwnedPopups;
 		internal readonly bool redrawDesktopOnWindowCreated;
 		internal readonly int tryAgainAfter;
+		internal readonly OnHiddenWindowShownAction onHiddenWindowShownAction;
 		internal readonly Rule[] rules;
 
 		internal bool IsMatch(string cName, string dName, string pName, NativeMethods.WS style, NativeMethods.WS_EX exStyle)
@@ -202,7 +211,8 @@ namespace Windawesome
 			NativeMethods.WS_EX styleExContains = (NativeMethods.WS_EX) 0, NativeMethods.WS_EX styleExNotContains = (NativeMethods.WS_EX) 0,
 			bool isManaged = true, int windowCreatedDelay = 350, bool switchToOnCreated = true,
 			bool handleOwnedWindows = false, bool hideOwnedPopups = true, bool redrawDesktopOnWindowCreated = false,
-			int tryAgainAfter = -1, IEnumerable<Rule> rules = null)
+			int tryAgainAfter = -1, OnHiddenWindowShownAction onHiddenWindowShownAction = OnHiddenWindowShownAction.SwitchToWindowsWorkspace,
+			int showOnWorkspacesCount = -1, IEnumerable<Rule> rules = null)
 		{
 			this.className = new Regex(className, RegexOptions.Compiled);
 			this.displayName = new Regex(displayName, RegexOptions.Compiled);
@@ -218,9 +228,25 @@ namespace Windawesome
 			this.hideOwnedPopups = hideOwnedPopups;
 			this.redrawDesktopOnWindowCreated = redrawDesktopOnWindowCreated;
 			this.tryAgainAfter = tryAgainAfter;
+			this.onHiddenWindowShownAction = onHiddenWindowShownAction;
 			if (isManaged)
 			{
-				this.rules = rules == null ? new[] { new Rule() } : rules.ToArray();
+				if (showOnWorkspacesCount > -1)
+				{
+					if (rules == null)
+					{
+						rules = new Rule[] { };
+					}
+
+					// This is slow (n ^ 2), but it doesn't matter in this case
+					this.rules = rules.Concat(
+						Enumerable.Range(1, showOnWorkspacesCount).Where(i => rules.All(r => r.workspace != i)).Select(i => new Rule(i))).
+						ToArray();
+				}
+				else
+				{
+					this.rules = rules == null ? new[] { new Rule() } : rules.ToArray();
+				}
 			}
 		}
 

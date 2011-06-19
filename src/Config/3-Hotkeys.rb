@@ -31,6 +31,11 @@ subscribe modifiers.Alt, key.Q do
 	windawesome.quit_application Windawesome::NativeMethods.get_foreground_window
 end
 
+# dismiss application
+subscribe modifiers.Alt, key.D do
+	windawesome.dismiss_temporarily_shown_window Windawesome::NativeMethods.get_foreground_window
+end
+
 # minimize application
 subscribe modifiers.Alt, key.A do
 	windawesome.minimize_application Windawesome::NativeMethods.get_foreground_window
@@ -84,9 +89,7 @@ end
 
 # switch to flashing window
 subscribe modifiers.Alt, key.U do
-	if flashing_window
-		windawesome.switch_to_application flashing_window
-	end
+	windawesome.switch_to_application flashing_window if flashing_window
 end
 
 # toggle window floating

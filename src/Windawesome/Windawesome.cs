@@ -20,6 +20,7 @@ namespace Windawesome
 		private static readonly Dictionary<int, HandleMessageDelegate> messageHandlers;
 		private static readonly NativeMethods.NONCLIENTMETRICS originalNonClientMetrics;
 		private static readonly Dictionary<IntPtr, Action<IntPtr>> onWindowShown;
+		private readonly Dictionary<IntPtr, Window> temporarilyShownWindows;
 		private readonly bool changedNonClientMetrics;
 		private readonly bool finishedInitializing;
 		private readonly IntPtr getForegroundPrivilageAtom;
@@ -138,6 +139,8 @@ namespace Windawesome
 			hiddenApplications = new HashMultiSet<IntPtr>();
 			ownerWindows = new Dictionary<IntPtr, IntPtr>(2);
 
+			temporarilyShownWindows = new Dictionary<IntPtr, Window>(2);
+
 			// add all windows to their respective workspace
 			NativeMethods.EnumWindows((hWnd, _) => AddWindowToWorkspace(hWnd) || true, IntPtr.Zero);
 
@@ -186,9 +189,12 @@ namespace Windawesome
 			shellMessageNum = NativeMethods.RegisterWindowMessage("SHELLHOOK");
 
 			// initialize all workspaces
-			config.Workspaces.Skip(1).Where(ws => ws.id != config.StartingWorkspace).
-				ForEach(ws => ws.GetWindows().ForEach(w => hiddenApplications.AddUnique(w.hWnd)));
-			config.Workspaces.Skip(1).ForEach(ws => ws.Initialize(ws.id == config.StartingWorkspace));
+			foreach (var ws in config.Workspaces.Skip(1).Where(ws => ws.id != config.StartingWorkspace))
+			{
+				ws.GetWindows().ForEach(w => hiddenApplications.AddUnique(w.hWnd));
+				ws.Initialize(false);
+			}
+			config.Workspaces[0].Initialize(true);
 
 			// switches to the default starting workspace
 			PostAction(() => config.Workspaces[0].SwitchTo());
@@ -369,6 +375,10 @@ namespace Windawesome
 					{
 						hiddenApplications.Add(hWnd);
 						NativeMethods.ShowWindowAsync(hWnd, NativeMethods.SW.SW_HIDE);
+						if (programRule.hideOwnedPopups)
+						{
+							NativeMethods.ShowOwnedPopups(hWnd, false);
+						}
 						config.Workspaces[0].SetTopWindowAsForeground();
 					}
 					else
@@ -448,7 +458,8 @@ namespace Windawesome
 							WindowBorders = rule.windowBorders,
 							RedrawOnShow = rule.redrawOnShow,
 							ActivateLastActivePopup = rule.activateLastActivePopup,
-							HideOwnedPopups = programRule.hideOwnedPopups
+							HideOwnedPopups = programRule.hideOwnedPopups,
+							onHiddenWindowShownAction = programRule.onHiddenWindowShownAction
 						};
 					list.AddLast(new Tuple<Workspace, Window>(config.Workspaces[rule.workspace], window));
 					config.Workspaces[rule.workspace].WindowCreated(window);
@@ -604,30 +615,30 @@ namespace Windawesome
 			config.Workspaces[0].GetWindows().ForEach(w => w.Redraw());
 		}
 
-		public void ChangeApplicationToWorkspace(IntPtr hWnd, int workspace)
+		public void ChangeApplicationToWorkspace(IntPtr hWnd, int toWorkspace, int fromWorkspace = 0)
 		{
-			var newWorkspace = config.Workspaces[workspace];
+			var newWorkspace = config.Workspaces[toWorkspace];
 
-			var window = this.CurrentWorkspace.GetWindow(hWnd);
-			if (workspace != this.CurrentWorkspace.id && window != null && !newWorkspace.ContainsWindow(hWnd))
+			var window = config.Workspaces[fromWorkspace].GetWindow(hWnd);
+			if (toWorkspace != fromWorkspace && window != null && !newWorkspace.ContainsWindow(hWnd))
 			{
-				this.CurrentWorkspace.WindowDestroyed(window, false);
+				config.Workspaces[fromWorkspace].WindowDestroyed(window, false);
 				newWorkspace.WindowCreated(window);
 
 				var list = applications[window.hWnd];
-				list.Remove(new Tuple<Workspace, Window>(this.CurrentWorkspace, window));
+				list.Remove(new Tuple<Workspace, Window>(config.Workspaces[fromWorkspace], window));
 				list.AddFirst(new Tuple<Workspace, Window>(newWorkspace, window));
 
-				SwitchToWorkspace(workspace);
+				SwitchToWorkspace(toWorkspace);
 			}
 		}
 
-		public void AddApplicationToWorkspace(IntPtr hWnd, int workspace)
+		public void AddApplicationToWorkspace(IntPtr hWnd, int toWorkspace, int fromWorkspace = 0)
 		{
-			var newWorkspace = config.Workspaces[workspace];
+			var newWorkspace = config.Workspaces[toWorkspace];
 
-			var window = this.CurrentWorkspace.GetWindow(hWnd);
-			if (workspace != this.CurrentWorkspace.id && window != null && !newWorkspace.ContainsWindow(hWnd))
+			var window = config.Workspaces[fromWorkspace].GetWindow(hWnd);
+			if (toWorkspace != config.Workspaces[fromWorkspace].id && window != null && !newWorkspace.ContainsWindow(hWnd))
 			{
 				var newWindow = new Window(window, true);
 
@@ -637,7 +648,7 @@ namespace Windawesome
 				list.AddFirst(new Tuple<Workspace, Window>(newWorkspace, newWindow));
 				list.Where(t => ++t.Item2.WorkspacesCount == 2).ForEach(t => t.Item1.AddToSharedWindows(t.Item2));
 
-				SwitchToWorkspace(workspace);
+				SwitchToWorkspace(toWorkspace);
 			}
 		}
 
@@ -685,6 +696,8 @@ namespace Windawesome
 				config.Workspaces[0] = config.Workspaces[workspace];
 
 				config.Workspaces[0].SwitchTo(setForeground);
+
+				temporarilyShownWindows.Clear();
 			}
 		}
 
@@ -943,6 +956,18 @@ namespace Windawesome
 			}
 		}
 
+		public void DismissTemporarilyShownWindow(IntPtr hWnd)
+		{
+			Window window;
+			if (temporarilyShownWindows.TryGetValue(hWnd, out window))
+			{
+				hiddenApplications.Add(hWnd);
+				window.Hide();
+				config.Workspaces[0].SetTopWindowAsForeground();
+				temporarilyShownWindows.Remove(hWnd);
+			}
+		}
+
 		#endregion
 
 		#region Message Loop Stuff
@@ -952,27 +977,47 @@ namespace Windawesome
 			switch ((NativeMethods.ShellEvents) wParam)
 			{
 				case NativeMethods.ShellEvents.HSHELL_WINDOWCREATED: // window created or restored from tray
-					Action<IntPtr> onWindowShownAction;
-					if (!applications.ContainsKey(lParam))
 					{
-						AddWindowToWorkspace(lParam);
-					}
-					else if (!config.Workspaces[0].ContainsWindow(lParam))
-					{
-						// there is a problem with some windows showing up when others are created
-						// how to reproduce: start BitComet 1.26 on some workspace, switch to another one
-						// and start explorer.exe (the file manager)
+						Action<IntPtr> onWindowShownAction;
+						LinkedList<Tuple<Workspace, Window>> list;
+						if (!applications.TryGetValue(lParam, out list)) // if a new window has shown
+						{
+							AddWindowToWorkspace(lParam);
+						}
+						else if (!config.Workspaces[0].ContainsWindow(lParam)) // if a hidden window has shown
+						{
+							// there is a problem with some windows showing up when others are created.
+							// how to reproduce: start BitComet 1.26 on some workspace, switch to another one
+							// and start explorer.exe (the file manager)
 
-						// another problem is that some windows continuously keep showing when hidden
-						// how to reproduce: TortoiseSVN. About box. Click check for updates. This window
-						// keeps showing up when changing workspaces
-						NativeMethods.SendNotifyMessage(HandleStatic, shellMessageNum,
-							(UIntPtr) (uint) NativeMethods.ShellEvents.HSHELL_WINDOWACTIVATED, lParam);
-					}
-					else if (onWindowShown.TryGetValue(lParam, out onWindowShownAction))
-					{
-						onWindowShown.Remove(lParam);
-						onWindowShownAction(lParam);
+							// another problem is that some windows continuously keep showing when hidden.
+							// how to reproduce: TortoiseSVN. About box. Click check for updates. This window
+							// keeps showing up when changing workspaces
+							switch (list.First.Value.Item2.onHiddenWindowShownAction)
+							{
+								case OnHiddenWindowShownAction.SwitchToWindowsWorkspace:
+									NativeMethods.SendNotifyMessage(HandleStatic, shellMessageNum,
+										(UIntPtr) (uint) NativeMethods.ShellEvents.HSHELL_WINDOWACTIVATED, lParam);
+									break;
+								case OnHiddenWindowShownAction.MoveWindowToCurrentWorkspace:
+									ChangeApplicationToWorkspace(lParam, config.Workspaces[0].id, list.First.Value.Item1.id);
+									break;
+								case OnHiddenWindowShownAction.TemporarilyShowWindowOnCurrentWorkspace:
+									temporarilyShownWindows.Add(lParam, list.First.Value.Item2);
+									break;
+								case OnHiddenWindowShownAction.HideWindow:
+									hiddenApplications.Add(lParam);
+									list.First.Value.Item2.Hide();
+									System.Threading.Thread.Sleep(300);
+									config.Workspaces[0].SetTopWindowAsForeground();
+									break;
+							}
+						}
+						else if (onWindowShown.TryGetValue(lParam, out onWindowShownAction))
+						{
+							onWindowShown.Remove(lParam);
+							onWindowShownAction(lParam);
+						}
 					}
 					break;
 				case NativeMethods.ShellEvents.HSHELL_WINDOWDESTROYED: // window destroyed or minimized to tray
@@ -993,7 +1038,7 @@ namespace Windawesome
 					break;
 				case NativeMethods.ShellEvents.HSHELL_WINDOWACTIVATED: // window activated
 				case NativeMethods.ShellEvents.HSHELL_RUDEAPPACTIVATED:
-					if (!hiddenApplications.Contains(lParam))
+					if (!hiddenApplications.Contains(lParam) && !temporarilyShownWindows.ContainsKey(lParam))
 					{
 						if (lParam != IntPtr.Zero)
 						{
