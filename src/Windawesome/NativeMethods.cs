@@ -582,17 +582,78 @@ namespace Windawesome
 
 		#endregion
 
-		[DllImport("user32.dll")]
-		public static extern IntPtr SetParent(IntPtr hWndChild, [Optional] IntPtr hWndNewParent);
+        #region RedrawWindow
 
-		[DllImport("user32.dll")]
+        [Flags()]
+        public enum RedrawWindowFlags : uint
+        {
+            /// <summary>
+            /// Invalidates the rectangle or region that you specify in lprcUpdate or hrgnUpdate.
+            /// You can set only one of these parameters to a non-NULL value. If both are NULL, RDW_INVALIDATE invalidates the entire window.
+            /// </summary>
+            RDW_INVALIDATE = 0x1,
+
+            /// <summary>Causes the OS to post a WM_PAINT message to the window regardless of whether a portion of the window is invalid.</summary>
+            RDW_INTERNALPAINT = 0x2,
+
+            /// <summary>
+            /// Causes the window to receive a WM_ERASEBKGND message when the window is repainted.
+            /// Specify this value in combination with the RDW_INVALIDATE value; otherwise, RDW_ERASE has no effect.
+            /// </summary>
+            RDW_ERASE = 0x4,
+
+            /// <summary>
+            /// Validates the rectangle or region that you specify in lprcUpdate or hrgnUpdate.
+            /// You can set only one of these parameters to a non-NULL value. If both are NULL, RDW_VALIDATE validates the entire window.
+            /// This value does not affect internal WM_PAINT messages.
+            /// </summary>
+            RDW_VALIDATE = 0x8,
+
+            RDW_NOINTERNALPAINT = 0x10,
+
+            /// <summary>Suppresses any pending WM_ERASEBKGND messages.</summary>
+            RDW_NOERASE = 0x20,
+
+            /// <summary>Excludes child windows, if any, from the repainting operation.</summary>
+            RDW_NOCHILDREN = 0x40,
+
+            /// <summary>Includes child windows, if any, in the repainting operation.</summary>
+            RDW_ALLCHILDREN = 0x80,
+
+            /// <summary>Causes the affected windows, which you specify by setting the RDW_ALLCHILDREN and RDW_NOCHILDREN values, to receive WM_ERASEBKGND and WM_PAINT messages before the RedrawWindow returns, if necessary.</summary>
+            RDW_UPDATENOW = 0x100,
+
+            /// <summary>
+            /// Causes the affected windows, which you specify by setting the RDW_ALLCHILDREN and RDW_NOCHILDREN values, to receive WM_ERASEBKGND messages before RedrawWindow returns, if necessary.
+            /// The affected windows receive WM_PAINT messages at the ordinary time.
+            /// </summary>
+            RDW_ERASENOW = 0x200,
+
+            RDW_FRAME = 0x400,
+
+            RDW_NOFRAME = 0x800
+        }
+
+        [DllImport("user32.dll")]
+        public static extern bool RedrawWindow(IntPtr hWnd, IntPtr lprcUpdate, IntPtr hrgnUpdate, RedrawWindowFlags flags);
+
+        #endregion
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr SetParent(IntPtr hWndChild, [Optional] IntPtr hWndNewParent);
+
+        #region GetLastActivePopup/ShowOwnedPopups
+
+        [DllImport("user32.dll")]
 		public static extern IntPtr GetLastActivePopup(IntPtr hWnd);
 
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
 		public static extern bool ShowOwnedPopups(IntPtr hWnd, [MarshalAs(UnmanagedType.Bool)] bool fShow);
 
-		// icon stuff
+        #endregion
+
+        // icon stuff
 
 		#region CopyIcon/DestroyIcon
 

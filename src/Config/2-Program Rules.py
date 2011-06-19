@@ -72,8 +72,14 @@ config.ProgramRules = Enumerable.ToArray[ProgramRule]([
 		rules = [ProgramRule.Rule(workspace = 1)]
 	),
 	ProgramRule(
+		className = "^OpusApp$",
+		displayName = ".*Microsoft Word Viewer$",
+		tryAgainAfter = 200
+	),
+	ProgramRule(
 		className = "^mintty$",
 		windowCreatedDelay = 100,
+		redrawDesktopOnWindowCreated = True,
 		rules = [ProgramRule.Rule(workspace = 3, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
 	),
 	ProgramRule(

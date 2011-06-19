@@ -843,8 +843,9 @@ namespace Windawesome
 		public State WindowBorders { get; internal set; }
 		public int WorkspacesCount { get; internal set; } // if > 1 window is shared between two or more workspaces
 		public bool IsMinimized { get; internal set; }
-		public string Caption { get; internal set; }
+		public string DisplayName { get; internal set; }
 		public readonly string className;
+        public readonly string processName;
 		public readonly bool is64BitProcess;
 		public bool RedrawOnShow { get; internal set; }
 		public bool ActivateLastActivePopup { get; internal set; }
@@ -859,12 +860,13 @@ namespace Windawesome
 		private NativeMethods.WINDOWPLACEMENT windowPlacement;
 		private readonly NativeMethods.WINDOWPLACEMENT originalWindowPlacement;
 
-		internal Window(IntPtr hWnd, string className, string caption, int workspacesCount, bool is64BitProcess,
+		internal Window(IntPtr hWnd, string className, string displayName, string processName, int workspacesCount, bool is64BitProcess,
 			NativeMethods.WS originalStyle, NativeMethods.WS_EX originalExStyle, IntPtr owner)
 		{
 			this.hWnd = hWnd;
 			this.className = className;
-			this.Caption = caption;
+			this.DisplayName = displayName;
+            this.processName = processName;
 			this.WorkspacesCount = workspacesCount;
 			this.is64BitProcess = is64BitProcess;
 			this.owner = owner;
@@ -894,7 +896,8 @@ namespace Windawesome
 		{
 			hWnd = window.hWnd;
 			className = window.className;
-			this.Caption = window.Caption;
+			this.DisplayName = window.DisplayName;
+            processName = window.processName;
 			windowPlacement = window.windowPlacement;
 			this.WorkspacesCount = window.WorkspacesCount;
 			originalWindowPlacement = window.originalWindowPlacement;
@@ -1040,7 +1043,15 @@ namespace Windawesome
 		}
 
 		internal void RevertToInitialValues()
-		{
+        {
+            // TODO: better to do something like this:
+            //NativeMethods.SetWindowStyleLongPtr(hWnd, originalStyle);
+            //NativeMethods.SetWindowExStyleLongPtr(hWnd, originalExStyle);
+            //Redraw();
+            // but it doesn't work - some windows lose their Taskbar buttons, although they are still visible in
+            // the ALT-TAB menu. Some other windows gain a Taskbar button, while not visible
+            // in the ALT-TAB menu. In both cases the ALT-TAB menu is correct
+
 			if (this.Titlebar != State.AS_IS)
 			{
 				this.Titlebar = State.SHOWN;

@@ -187,7 +187,7 @@ namespace Windawesome
 
 			// initialize all workspaces
 			config.Workspaces.Skip(1).Where(ws => ws.id != config.StartingWorkspace).
-				ForEach(ws => ws.GetWindows().ForEach(w => hiddenApplications.Add(w.hWnd)));
+                ForEach(ws => ws.GetWindows().ForEach(w => hiddenApplications.AddUnique(w.hWnd)));
 			config.Workspaces.Skip(1).ForEach(ws => ws.Initialize(ws.id == config.StartingWorkspace));
 
 			// switches to the default starting workspace
@@ -338,7 +338,7 @@ namespace Windawesome
 			Quit();
 		}
 
-		private bool AddWindowToWorkspace(IntPtr hWnd)
+		private bool AddWindowToWorkspace(IntPtr hWnd, bool firstTry = true)
 		{
 			if (NativeMethods.IsAppWindow(hWnd))
 			{
@@ -351,6 +351,11 @@ namespace Windawesome
 				var processName = System.Diagnostics.Process.GetProcessById(processId).ProcessName;
 
 				var programRule = config.ProgramRules.First(r => r.IsMatch(className, displayName, processName, style, exStyle));
+				if (firstTry && finishedInitializing && programRule.tryAgainAfter >= 0)
+				{
+					System.Threading.Thread.Sleep(programRule.tryAgainAfter);
+					return AddWindowToWorkspace(hWnd, false);
+				}
 				if (!programRule.isManaged)
 				{
 					return false;
@@ -368,7 +373,20 @@ namespace Windawesome
 					}
 					else
 					{
-						PostAction(() => SwitchToApplication(hWnd));
+                        PostAction(() =>
+                            {
+                                SwitchToApplication(hWnd);
+                                if (programRule.redrawDesktopOnWindowCreated)
+                                {
+                                    // If you have a Windows Explorer window open on one workspace (and it is the only non-minimized window open) and you start
+                                    // mintty (which defaults to another workspace) then the desktop is not redrawn right (you can see that if mintty
+                                    // is set to be transparent
+                                    NativeMethods.RedrawWindow(IntPtr.Zero, IntPtr.Zero, IntPtr.Zero,
+                                        NativeMethods.RedrawWindowFlags.RDW_ALLCHILDREN |
+                                        NativeMethods.RedrawWindowFlags.RDW_ERASE |
+                                        NativeMethods.RedrawWindowFlags.RDW_INVALIDATE);
+                                }
+                            });
 					}
 
 					System.Threading.Thread.Sleep(programRule.windowCreatedDelay);
@@ -408,13 +426,13 @@ namespace Windawesome
 					var displayNameOwned = NativeMethods.GetText(hOwned);
 					var styleOwned = NativeMethods.GetWindowStyleLongPtr(hOwned);
 					var exStyleOwned = NativeMethods.GetWindowExStyleLongPtr(hOwned);
-					windowTemplate = new Window(hOwned, classNameOwned, displayNameOwned, workspacesCount,
+					windowTemplate = new Window(hOwned, classNameOwned, displayNameOwned, processName, workspacesCount,
 						Environment.Is64BitOperatingSystem && NativeMethods.Is64BitProcess(hWnd), styleOwned, exStyleOwned, hWnd);
 					applications[hOwned] = list;
 				}
 				else
 				{
-					windowTemplate = new Window(hWnd, className, displayName, workspacesCount,
+					windowTemplate = new Window(hWnd, className, displayName, processName, workspacesCount,
 						Environment.Is64BitOperatingSystem && NativeMethods.Is64BitProcess(hWnd), style, exStyle, IntPtr.Zero);
 					applications[hWnd] = list;
 				}
@@ -730,14 +748,15 @@ namespace Windawesome
 			}
 		}
 
-		public void RunOrShowApplication(string className, string path, string displayName = ".*", string arguments = "")
+		public void RunOrShowApplication(string className, string path, string displayName = ".*", string processName = ".*", string arguments = "")
 		{
 			var classNameRegex = new System.Text.RegularExpressions.Regex(className, System.Text.RegularExpressions.RegexOptions.Compiled);
 			var displayNameRegex = new System.Text.RegularExpressions.Regex(displayName, System.Text.RegularExpressions.RegexOptions.Compiled);
+			var processNameRegex = new System.Text.RegularExpressions.Regex(processName, System.Text.RegularExpressions.RegexOptions.Compiled);
 
 			Window window;
 			if ((window = applications.Values.Select(list => list.First.Value.Item2).
-				FirstOrDefault(w => classNameRegex.IsMatch(w.className) && displayNameRegex.IsMatch(w.Caption))) != null)
+				FirstOrDefault(w => classNameRegex.IsMatch(w.className) && displayNameRegex.IsMatch(w.DisplayName) && processNameRegex.IsMatch(w.processName))) != null)
 			{
 				SwitchToApplication(window.hWnd);
 			}
@@ -1028,7 +1047,7 @@ namespace Windawesome
 							var text = NativeMethods.GetText(lParam);
 							foreach (var t in list)
 							{
-								t.Item2.Caption = text;
+								t.Item2.DisplayName = text;
 								DoWindowTitleOrIconChanged(t.Item1, t.Item2, text);
 							}
 						}
@@ -1130,6 +1149,19 @@ namespace Windawesome
 			}
 		}
 
+        public AddResult AddUnique(T item)
+        {
+            if (set.ContainsKey(item))
+            {
+                return AddResult.AlreadyContained;
+            }
+            else
+            {
+                set[item] = new BoxedInt();
+                return AddResult.AddedFirst;
+            }
+        }
+
 		public RemoveResult Remove(T item)
 		{
 			BoxedInt count;
@@ -1158,7 +1190,8 @@ namespace Windawesome
 		public enum AddResult : byte
 		{
 			AddedFirst,
-			Added
+			Added,
+            AlreadyContained
 		}
 
 		public enum RemoveResult : byte

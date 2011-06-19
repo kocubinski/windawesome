@@ -34,7 +34,7 @@ namespace Windawesome
 		{
 			if (workspace.Layout.LayoutName() == "Tile" || workspace.Layout.LayoutName() == "Full Screen")
 			{
-				if (!IsMatch(window.className, window.Caption))
+				if (!IsMatch(window.className, window.DisplayName))
 				{
 					if (Environment.Is64BitProcess && window.is64BitProcess)
 					{

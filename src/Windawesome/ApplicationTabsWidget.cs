@@ -87,7 +87,7 @@ namespace Windawesome
 					}
 				});
 
-			var label = bar.CreateLabel(window.Caption, bar.barHeight, 0);
+			var label = bar.CreateLabel(window.DisplayName, bar.barHeight, 0);
 			label.Click += this.OnApplicationTabClick;
 			panel.Controls.Add(label);
 

@@ -29,25 +29,25 @@ namespace Windawesome
 		private void OnWorkspaceApplicationAdded(Workspace workspace, Window window)
 		{
 			writer.WriteLine("ADDED - class '{0}'; caption '{1}'; workspace '{2}'",
-				window.className, window.Caption, workspace.id);
+				window.className, window.DisplayName, workspace.id);
 		}
 
 		private void OnWorkspaceApplicationRemoved(Workspace workspace, Window window)
 		{
 			writer.WriteLine("REMOVED - class '{0}'; caption '{1}'; workspace '{2}'",
-				window.className, window.Caption, workspace.id);
+				window.className, window.DisplayName, workspace.id);
 		}
 
 		private void OnWorkspaceApplicationMinimized(Workspace workspace, Window window)
 		{
 			writer.WriteLine("MINIMIZED - class '{0}'; caption '{1}'; workspace '{2}'",
-				window.className, window.Caption, workspace.id);
+				window.className, window.DisplayName, workspace.id);
 		}
 
 		private void OnWorkspaceApplicationRestored(Workspace workspace, Window window)
 		{
 			writer.WriteLine("RESTORED - class '{0}'; caption '{1}'; workspace '{2}'",
-				window.className, window.Caption, workspace.id);
+				window.className, window.DisplayName, workspace.id);
 		}
 
 		private void OnWorkspaceChangedFrom(Workspace workspace)
@@ -66,7 +66,7 @@ namespace Windawesome
 			if (window != null)
 			{
 				writer.WriteLine("ACTIVATED - class '{0}'; caption '{1}'; workspace '{2}'",
-					window.className, window.Caption, windawesome.CurrentWorkspace.id);
+					window.className, window.DisplayName, windawesome.CurrentWorkspace.id);
 			}
 			else
 			{
