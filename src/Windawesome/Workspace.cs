@@ -850,7 +850,7 @@ namespace Windawesome
 		public bool RedrawOnShow { get; internal set; }
 		public bool ActivateLastActivePopup { get; internal set; }
 		public bool HideOwnedPopups { get; internal set; }
-		public OnHiddenWindowShownAction onHiddenWindowShownAction { get; internal set; }
+		public OnWindowShownAction onHiddenWindowShownAction { get; internal set; }
 		public readonly IntPtr owner;
 
 		private readonly NativeMethods.WS titlebarStyle;
@@ -900,13 +900,8 @@ namespace Windawesome
 			this.DisplayName = window.DisplayName;
 			processName = window.processName;
 			this.WorkspacesCount = window.WorkspacesCount;
-			IsMinimized = window.IsMinimized;
 			is64BitProcess = window.is64BitProcess;
-			RedrawOnShow = window.RedrawOnShow;
 			owner = window.owner;
-			ActivateLastActivePopup = window.ActivateLastActivePopup;
-			HideOwnedPopups = window.HideOwnedPopups;
-			onHiddenWindowShownAction = window.onHiddenWindowShownAction;
 
 			titlebarStyle = window.titlebarStyle;
 
@@ -918,6 +913,11 @@ namespace Windawesome
 
 			if (fullCopy)
 			{
+				RedrawOnShow = window.RedrawOnShow;
+				ActivateLastActivePopup = window.ActivateLastActivePopup;
+				HideOwnedPopups = window.HideOwnedPopups;
+				onHiddenWindowShownAction = window.onHiddenWindowShownAction;
+				IsMinimized = window.IsMinimized;
 				this.IsFloating = window.IsFloating;
 				this.ShowInTabs = window.ShowInTabs;
 				this.Titlebar = window.Titlebar;

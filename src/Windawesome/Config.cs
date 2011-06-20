@@ -172,7 +172,7 @@ namespace Windawesome
 		AS_IS  = 2
 	}
 
-	public enum OnHiddenWindowShownAction
+	public enum OnWindowShownAction
 	{
 		SwitchToWindowsWorkspace,
 		MoveWindowToCurrentWorkspace,
@@ -191,12 +191,11 @@ namespace Windawesome
 		internal readonly NativeMethods.WS_EX styleExNotContains;
 		internal readonly bool isManaged;
 		internal readonly int windowCreatedDelay;
-		internal readonly bool switchToOnCreated;
 		internal readonly bool handleOwnedWindows;
 		internal readonly bool hideOwnedPopups;
 		internal readonly bool redrawDesktopOnWindowCreated;
-		internal readonly int tryAgainAfter;
-		internal readonly OnHiddenWindowShownAction onHiddenWindowShownAction;
+		internal readonly OnWindowShownAction onWindowCreatedAction;
+		internal readonly OnWindowShownAction onHiddenWindowShownAction;
 		internal readonly Rule[] rules;
 
 		internal bool IsMatch(string cName, string dName, string pName, NativeMethods.WS style, NativeMethods.WS_EX exStyle)
@@ -209,9 +208,10 @@ namespace Windawesome
 		public ProgramRule(string className = ".*", string displayName = ".*", string processName = ".*",
 			NativeMethods.WS styleContains = (NativeMethods.WS) 0, NativeMethods.WS styleNotContains = (NativeMethods.WS) 0,
 			NativeMethods.WS_EX styleExContains = (NativeMethods.WS_EX) 0, NativeMethods.WS_EX styleExNotContains = (NativeMethods.WS_EX) 0,
-			bool isManaged = true, int windowCreatedDelay = 350, bool switchToOnCreated = true,
+			bool isManaged = true, int windowCreatedDelay = -1,
 			bool handleOwnedWindows = false, bool hideOwnedPopups = true, bool redrawDesktopOnWindowCreated = false,
-			int tryAgainAfter = -1, OnHiddenWindowShownAction onHiddenWindowShownAction = OnHiddenWindowShownAction.SwitchToWindowsWorkspace,
+			OnWindowShownAction onWindowCreatedAction = OnWindowShownAction.SwitchToWindowsWorkspace,
+			OnWindowShownAction onHiddenWindowShownAction = OnWindowShownAction.SwitchToWindowsWorkspace,
 			int showOnWorkspacesCount = -1, IEnumerable<Rule> rules = null)
 		{
 			this.className = new Regex(className, RegexOptions.Compiled);
@@ -223,11 +223,10 @@ namespace Windawesome
 			this.styleExNotContains = styleExNotContains;
 			this.isManaged = isManaged;
 			this.windowCreatedDelay = windowCreatedDelay;
-			this.switchToOnCreated = switchToOnCreated;
 			this.handleOwnedWindows = handleOwnedWindows;
 			this.hideOwnedPopups = hideOwnedPopups;
 			this.redrawDesktopOnWindowCreated = redrawDesktopOnWindowCreated;
-			this.tryAgainAfter = tryAgainAfter;
+			this.onWindowCreatedAction = onWindowCreatedAction;
 			this.onHiddenWindowShownAction = onHiddenWindowShownAction;
 			if (isManaged)
 			{

@@ -40,12 +40,20 @@ styleNotContains - the window styles that must NOT be present in the window's st
 styleExContains - the extended window styles that must be present in the window's extended style
 styleExNotContains - the extended window styles that must NOT be present in the window's extended style
 isManaged - whether Windawesome should care about that window
-windowCreatedDelay - the time, in milliseconds, to wait before taking any action after the window has been created. If Windawesome has problems with newly created windows, try setting this to a higher value
+windowCreatedDelay - the time, in milliseconds, to wait before taking any action after the window has been created (if >= 0). If Windawesome has problems with newly created windows, try setting this to a higher value
 switchToOnCreated - if true, Windawesome switches to this application even if it is not on the current workspace (i.e. it switches to the first workspace where it can find it)
 handleOwnedWindows - if true, Windawesome will handle a window that is owned by this one. Useful for applications using the VCL framework as they use a window which owns the "real" window
+hideOwnedPopups - if true, Windawesome will hide all popups that are owned of the window being hidden
+redrawDesktopOnWindowCreated - if true, Windawesome will redraw the Desktop when this window is created. Useful if you have problems with that. I've seen it with mintty (the cygwin terminal emulator)
+onHiddenWindowShownAction - specifies what to do when a hidden window suddenly shows itself. Can be one of the enum values:
+	SwitchToWindowsWorkspace - switches to that window's workspace. The default value
+	MoveWindowToCurrentWorkspace - moves the window to the current workspace
+	TemporarilyShowWindowOnCurrentWorkspace - shows the window but doesn't move it to the current workspace. Can be dismissed by calling DismissTemporarilyShownWindow
+	HideWindow - hides the window
+showOnWorkspacesCount - if >= 0, the window is going to be shown on that number workspaces, starting from the first one. So if showOnWorkspacesCount == number of workspaces, then the window is shown on all workspace. Note this is different than not managing the window
 rules - a list of Rule objects
 
-Whenever a new window is created, Windawesome tries to match it with any program rule in config.programRules. className and displayName must both match. The FIRST matching rule is used, that is why an "all-catch" rule should be at the end. After that, if a window is not managed, Windawesome does nothing more - which means you will see the window on every workspace and as a normal, floating window. Then Windawesome sleeps for windowCreatedDelay milliseconds and after that all the Rules are applied
+Whenever a new window is created, Windawesome tries to match it with any program rule in config.programRules. className, displayName and processName must all match. The FIRST matching rule is used, that is why an "all-catch" rule should be at the end. After that, if a window is not managed, Windawesome does nothing more - which means you will see the window on every workspace and as a normal, floating window.
 
 Rule:
 Each rule governs the specific settings for a window on a particular workspace

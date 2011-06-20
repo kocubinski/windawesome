@@ -1,5 +1,5 @@
 from System.Linq import Enumerable
-from Windawesome import ProgramRule, State
+from Windawesome import ProgramRule, State, OnWindowShownAction
 from Windawesome.NativeMethods import WS
 
 config.ProgramRules = Enumerable.ToArray[ProgramRule]([
@@ -15,6 +15,7 @@ config.ProgramRules = Enumerable.ToArray[ProgramRule]([
 	ProgramRule(
 		className = "^Vim$",
 		windowCreatedDelay = 200,
+        onWindowCreatedAction = OnWindowShownAction.HideWindow,
 		rules = [ProgramRule.Rule(workspace = 3, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
 	),
 	ProgramRule(
@@ -23,7 +24,6 @@ config.ProgramRules = Enumerable.ToArray[ProgramRule]([
 	),
 	ProgramRule(
 		className = "^MozillaDialogClass$",
-		windowCreatedDelay = 100,
 		rules = [ProgramRule.Rule(workspace = 2, isFloating = True)]
 	),
 	ProgramRule(
@@ -33,12 +33,11 @@ config.ProgramRules = Enumerable.ToArray[ProgramRule]([
 	ProgramRule(
 		displayName = ".*BitComet.*",
 		windowCreatedDelay = 1000,
-		switchToOnCreated = False,
+        onWindowCreatedAction = OnWindowShownAction.HideWindow,
 		rules = [ProgramRule.Rule(workspace = 9, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
 	),
 	ProgramRule(
 		displayName = ".*SA Dictionary 2010.*",
-		windowCreatedDelay = 100,
 		rules = [ProgramRule.Rule(isFloating = True)]
 	),
 	ProgramRule(
@@ -64,33 +63,31 @@ config.ProgramRules = Enumerable.ToArray[ProgramRule]([
 	),
 	ProgramRule(
 		className = "^__oxFrame.class__$", # ICQ, chat window
+        onWindowCreatedAction = OnWindowShownAction.TemporarilyShowWindowOnCurrentWorkspace,
 		rules = [ProgramRule.Rule(workspace = 4)]
 	),
 	ProgramRule(
 		className = "^MediaPlayerClassicW$",
-		windowCreatedDelay = 100,
 		rules = [ProgramRule.Rule(workspace = 1)]
 	),
 	ProgramRule(
 		className = "^OpusApp$",
 		displayName = ".*Microsoft Word Viewer$",
-		tryAgainAfter = 200
+		windowCreatedDelay = 200
 	),
 	ProgramRule(
 		className = "^mintty$",
-		windowCreatedDelay = 100,
 		redrawDesktopOnWindowCreated = True,
 		rules = [ProgramRule.Rule(workspace = 3, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
 	),
 	ProgramRule(
 		className = "^{97E27FAA-C0B3-4b8e-A693-ED7881E99FC1}$", # Foobar2000
-		windowCreatedDelay = 100,
 		rules = [ProgramRule.Rule(workspace = 7)]
 	),
 	ProgramRule(
 		displayName = ".*Microsoft Visual Studio.*",
 		windowCreatedDelay = 2000,
-		switchToOnCreated = False,
+        onWindowCreatedAction = OnWindowShownAction.HideWindow,
 		rules = [ProgramRule.Rule(workspace = 5, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
 	),
 	ProgramRule(

@@ -20,7 +20,7 @@ namespace Windawesome
 		private static readonly Dictionary<int, HandleMessageDelegate> messageHandlers;
 		private static readonly NativeMethods.NONCLIENTMETRICS originalNonClientMetrics;
 		private static readonly Dictionary<IntPtr, Action<IntPtr>> onWindowShown;
-		private readonly Dictionary<IntPtr, Window> temporarilyShownWindows;
+		private readonly HashSet<IntPtr> temporarilyShownWindows;
 		private readonly bool changedNonClientMetrics;
 		private readonly bool finishedInitializing;
 		private readonly IntPtr getForegroundPrivilageAtom;
@@ -139,7 +139,7 @@ namespace Windawesome
 			hiddenApplications = new HashMultiSet<IntPtr>();
 			ownerWindows = new Dictionary<IntPtr, IntPtr>(2);
 
-			temporarilyShownWindows = new Dictionary<IntPtr, Window>(2);
+			temporarilyShownWindows = new HashSet<IntPtr>();
 
 			// add all windows to their respective workspace
 			NativeMethods.EnumWindows((hWnd, _) => AddWindowToWorkspace(hWnd) || true, IntPtr.Zero);
@@ -357,9 +357,9 @@ namespace Windawesome
 				var processName = System.Diagnostics.Process.GetProcessById(processId).ProcessName;
 
 				var programRule = config.ProgramRules.First(r => r.IsMatch(className, displayName, processName, style, exStyle));
-				if (firstTry && finishedInitializing && programRule.tryAgainAfter >= 0)
+				if (firstTry && finishedInitializing && programRule.windowCreatedDelay >= 0)
 				{
-					System.Threading.Thread.Sleep(programRule.tryAgainAfter);
+					System.Threading.Thread.Sleep(programRule.windowCreatedDelay);
 					return AddWindowToWorkspace(hWnd, false);
 				}
 				if (!programRule.isManaged)
@@ -368,47 +368,58 @@ namespace Windawesome
 				}
 
 				IEnumerable<ProgramRule.Rule> matchingRules = programRule.rules;
-
-				if (finishedInitializing)
-				{
-					if (!programRule.switchToOnCreated && matchingRules.FirstOrDefault(r => r.workspace == 0 || r.workspace == config.Workspaces[0].id) == null)
-					{
-						hiddenApplications.Add(hWnd);
-						NativeMethods.ShowWindowAsync(hWnd, NativeMethods.SW.SW_HIDE);
-						if (programRule.hideOwnedPopups)
-						{
-							NativeMethods.ShowOwnedPopups(hWnd, false);
-						}
-						config.Workspaces[0].SetTopWindowAsForeground();
-					}
-					else
-					{
-						PostAction(() =>
-							{
-								SwitchToApplication(hWnd);
-								if (programRule.redrawDesktopOnWindowCreated)
-								{
-									// If you have a Windows Explorer window open on one workspace (and it is the only non-minimized window open) and you start
-									// mintty (which defaults to another workspace) then the desktop is not redrawn right (you can see that if mintty
-									// is set to be transparent
-									NativeMethods.RedrawWindow(IntPtr.Zero, IntPtr.Zero, IntPtr.Zero,
-										NativeMethods.RedrawWindowFlags.RDW_ALLCHILDREN |
-										NativeMethods.RedrawWindowFlags.RDW_ERASE |
-										NativeMethods.RedrawWindowFlags.RDW_INVALIDATE);
-								}
-							});
-					}
-
-					System.Threading.Thread.Sleep(programRule.windowCreatedDelay);
-				}
-
 				var workspacesCount = programRule.rules.Length;
 				// matchingRules.workspaces could be { 0, 1 } and you could be at workspace 1.
 				// Then, "hWnd" would be added twice if it were not for this check
-				if (workspacesCount > 1 && matchingRules.FirstOrDefault(r => r.workspace == 0) != null &&
-					matchingRules.FirstOrDefault(r => r.workspace == config.Workspaces[0].id) != null)
+				if (workspacesCount > 1 && matchingRules.Any(r => r.workspace == 0) &&
+					matchingRules.Any(r => r.workspace == config.Workspaces[0].id))
 				{
 					matchingRules = matchingRules.Where(r => r.workspace != 0);
+					workspacesCount--;
+				}
+
+				if (finishedInitializing)
+				{
+					if (matchingRules.Any(r => r.workspace == 0 || r.workspace == config.Workspaces[0].id))
+					{
+						// this means that the window must be on the current workspace anyway
+						ForceForegroundWindow(hWnd);
+					}
+					else
+					{
+						switch (programRule.onWindowCreatedAction)
+						{
+							case OnWindowShownAction.SwitchToWindowsWorkspace:
+								PostAction(() => SwitchToApplication(hWnd));
+								break;
+							case OnWindowShownAction.MoveWindowToCurrentWorkspace:
+								PostAction(() => ChangeApplicationToWorkspace(hWnd, config.Workspaces[0].id, matchingRules.First().workspace));
+								break;
+							case OnWindowShownAction.TemporarilyShowWindowOnCurrentWorkspace:
+								temporarilyShownWindows.Add(hWnd);
+								ForceForegroundWindow(hWnd);
+								break;
+							case OnWindowShownAction.HideWindow:
+								PostAction(() =>
+									{
+										hiddenApplications.Add(hWnd);
+										NativeMethods.ShowWindowAsync(hWnd, NativeMethods.SW.SW_HIDE);
+										config.Workspaces[0].SetTopWindowAsForeground();
+									});
+								break;
+						}
+					}
+				}
+
+				if (programRule.redrawDesktopOnWindowCreated)
+				{
+					// If you have a Windows Explorer window open on one workspace (and it is the only non-minimized window open) and you start
+					// mintty (which defaults to another workspace) then the desktop is not redrawn right (you can see that if mintty
+					// is set to be transparent
+					NativeMethods.RedrawWindow(IntPtr.Zero, IntPtr.Zero, IntPtr.Zero,
+						NativeMethods.RedrawWindowFlags.RDW_ALLCHILDREN |
+						NativeMethods.RedrawWindowFlags.RDW_ERASE |
+						NativeMethods.RedrawWindowFlags.RDW_INVALIDATE);
 				}
 
 				var list = new LinkedList<Tuple<Workspace, Window>>();
@@ -615,7 +626,7 @@ namespace Windawesome
 			config.Workspaces[0].GetWindows().ForEach(w => w.Redraw());
 		}
 
-		public void ChangeApplicationToWorkspace(IntPtr hWnd, int toWorkspace, int fromWorkspace = 0)
+		public void ChangeApplicationToWorkspace(IntPtr hWnd, int toWorkspace = 0, int fromWorkspace = 0)
 		{
 			var newWorkspace = config.Workspaces[toWorkspace];
 
@@ -629,11 +640,14 @@ namespace Windawesome
 				list.Remove(new Tuple<Workspace, Window>(config.Workspaces[fromWorkspace], window));
 				list.AddFirst(new Tuple<Workspace, Window>(newWorkspace, window));
 
-				SwitchToWorkspace(toWorkspace);
+				if (!SwitchToWorkspace(toWorkspace))
+				{
+					ForceForegroundWindow(window);
+				}
 			}
 		}
 
-		public void AddApplicationToWorkspace(IntPtr hWnd, int toWorkspace, int fromWorkspace = 0)
+		public void AddApplicationToWorkspace(IntPtr hWnd, int toWorkspace = 0, int fromWorkspace = 0)
 		{
 			var newWorkspace = config.Workspaces[toWorkspace];
 
@@ -648,7 +662,10 @@ namespace Windawesome
 				list.AddFirst(new Tuple<Workspace, Window>(newWorkspace, newWindow));
 				list.Where(t => ++t.Item2.WorkspacesCount == 2).ForEach(t => t.Item1.AddToSharedWindows(t.Item2));
 
-				SwitchToWorkspace(toWorkspace);
+				if (!SwitchToWorkspace(toWorkspace))
+				{
+					ForceForegroundWindow(window);
+				}
 			}
 		}
 
@@ -685,20 +702,31 @@ namespace Windawesome
 			}
 		}
 
-		public void SwitchToWorkspace(int workspace, bool setForeground = true)
+		public bool SwitchToWorkspace(int workspace, bool setForeground = true)
 		{
 			if (workspace != this.CurrentWorkspace.id)
 			{
 				this.CurrentWorkspace.GetWindows().ForEach(w => hiddenApplications.Add(w.hWnd));
 				this.CurrentWorkspace.Unswitch();
 
+				foreach (var hWnd in temporarilyShownWindows)
+				{
+					LinkedList<Tuple<Workspace, Window>> list;
+					ApplicationsTryGetValue(hWnd, out list);
+
+					hiddenApplications.Add(hWnd);
+					list.First.Value.Item2.Hide();
+				}
+
 				PreviousWorkspace = this.CurrentWorkspace.id;
 				config.Workspaces[0] = config.Workspaces[workspace];
 
 				config.Workspaces[0].SwitchTo(setForeground);
 
-				temporarilyShownWindows.Clear();
+				return true;
 			}
+
+			return false;
 		}
 
 		public void ToggleShowHideBar(Bar bar)
@@ -958,11 +986,13 @@ namespace Windawesome
 
 		public void DismissTemporarilyShownWindow(IntPtr hWnd)
 		{
-			Window window;
-			if (temporarilyShownWindows.TryGetValue(hWnd, out window))
+			if (temporarilyShownWindows.Contains(hWnd))
 			{
+				LinkedList<Tuple<Workspace, Window>> list;
+				ApplicationsTryGetValue(hWnd, out list);
+
 				hiddenApplications.Add(hWnd);
-				window.Hide();
+				list.First.Value.Item2.Hide();
 				config.Workspaces[0].SetTopWindowAsForeground();
 				temporarilyShownWindows.Remove(hWnd);
 			}
@@ -995,17 +1025,17 @@ namespace Windawesome
 							// keeps showing up when changing workspaces
 							switch (list.First.Value.Item2.onHiddenWindowShownAction)
 							{
-								case OnHiddenWindowShownAction.SwitchToWindowsWorkspace:
+								case OnWindowShownAction.SwitchToWindowsWorkspace:
 									NativeMethods.SendNotifyMessage(HandleStatic, shellMessageNum,
 										(UIntPtr) (uint) NativeMethods.ShellEvents.HSHELL_WINDOWACTIVATED, lParam);
 									break;
-								case OnHiddenWindowShownAction.MoveWindowToCurrentWorkspace:
+								case OnWindowShownAction.MoveWindowToCurrentWorkspace:
 									ChangeApplicationToWorkspace(lParam, config.Workspaces[0].id, list.First.Value.Item1.id);
 									break;
-								case OnHiddenWindowShownAction.TemporarilyShowWindowOnCurrentWorkspace:
-									temporarilyShownWindows.Add(lParam, list.First.Value.Item2);
+								case OnWindowShownAction.TemporarilyShowWindowOnCurrentWorkspace:
+									temporarilyShownWindows.Add(lParam);
 									break;
-								case OnHiddenWindowShownAction.HideWindow:
+								case OnWindowShownAction.HideWindow:
 									hiddenApplications.Add(lParam);
 									list.First.Value.Item2.Hide();
 									System.Threading.Thread.Sleep(300);
@@ -1038,7 +1068,7 @@ namespace Windawesome
 					break;
 				case NativeMethods.ShellEvents.HSHELL_WINDOWACTIVATED: // window activated
 				case NativeMethods.ShellEvents.HSHELL_RUDEAPPACTIVATED:
-					if (!hiddenApplications.Contains(lParam) && !temporarilyShownWindows.ContainsKey(lParam))
+					if (!hiddenApplications.Contains(lParam) && !temporarilyShownWindows.Contains(lParam))
 					{
 						if (lParam != IntPtr.Zero)
 						{
