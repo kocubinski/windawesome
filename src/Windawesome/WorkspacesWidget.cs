@@ -21,14 +21,16 @@ namespace Windawesome
 		private bool isLeft;
 		private bool isShown;
 		private readonly bool flashWorkspaces;
-		private static readonly Timer flashTimer;
-		private static readonly HashSet<Workspace> flashingWorkspaces;
+		private static Timer flashTimer;
+		private static Dictionary<IntPtr, Workspace> flashingWindows;
+		private static HashSet<Workspace> flashingWorkspaces;
 		private static bool anyFlashWorkspaces;
 
 		static WorkspacesWidget()
 		{
 			flashTimer = new Timer { Interval = 500 };
 
+			flashingWindows = new Dictionary<IntPtr, Workspace>(3);
 			flashingWorkspaces = new HashSet<Workspace>();
 		}
 
@@ -99,28 +101,17 @@ namespace Windawesome
 		{
 			if (isShown)
 			{
-				if (flashWorkspaces && flashingWorkspaces.Count > 0 && workspace.IsCurrentWorkspace && flashingWorkspaces.Contains(workspace))
-				{
-					if (flashingWorkspaces.Count == 1)
-					{
-						flashTimer.Stop();
-					}
-					flashingWorkspaces.Remove(workspace);
-				}
-
 				SetWorkspaceLabelColor(workspace, null);
 			}
 		}
 
 		private static void OnWindowFlashing(LinkedList<Tuple<Workspace, Window>> list)
 		{
-			if (list.All(t => !t.Item1.IsCurrentWorkspace))
+			flashingWindows[list.First.Value.Item2.hWnd] = list.First.Value.Item1;
+			flashingWorkspaces.Add(list.First.Value.Item1);
+			if (flashingWorkspaces.Count == 1 && !flashTimer.Enabled)
 			{
-				flashingWorkspaces.Add(list.First.Value.Item1);
-				if (flashingWorkspaces.Count == 1)
-				{
-					flashTimer.Start();
-				}
+				flashTimer.Start();
 			}
 		}
 
@@ -143,6 +134,24 @@ namespace Windawesome
 			}
 		}
 
+		private void OnWindowActivated(IntPtr hWnd)
+		{
+			Workspace workspace;
+			if (flashingWindows.TryGetValue(hWnd, out workspace))
+			{
+				flashingWindows.Remove(hWnd);
+				if (flashingWindows.Values.All(w => w != workspace))
+				{
+					SetWorkspaceLabelColor(workspace, null);
+					flashingWorkspaces.Remove(workspace);
+					if (flashingWorkspaces.Count == 0)
+					{
+						flashTimer.Stop();
+					}
+				}
+			}
+		}
+
 		#region IWidget Members
 
 		public WidgetType GetWidgetType()
@@ -155,6 +164,9 @@ namespace Windawesome
 			WorkspacesWidget.windawesome = windawesome;
 			WorkspacesWidget.config = config;
 
+			Workspace.WorkspaceChangedFrom += OnWorkspaceChangedFromTo;
+			Workspace.WorkspaceChangedTo += OnWorkspaceChangedFromTo;
+
 			if (anyFlashWorkspaces)
 			{
 				Windawesome.WindowFlashing += OnWindowFlashing;
@@ -166,6 +178,8 @@ namespace Windawesome
 			if (flashWorkspaces)
 			{
 				flashTimer.Tick += OnTimerTick;
+				Workspace.WindowActivatedEvent += OnWindowActivated;
+				Workspace.WorkspaceApplicationRestored += (ws, w) => OnWindowActivated(w.hWnd);
 			}
 
 			isShown = false;
@@ -174,8 +188,6 @@ namespace Windawesome
 
 			Workspace.WorkspaceApplicationAdded += SetWorkspaceLabelColor;
 			Workspace.WorkspaceApplicationRemoved += SetWorkspaceLabelColor;
-			Workspace.WorkspaceChangedFrom += OnWorkspaceChangedFromTo;
-			Workspace.WorkspaceChangedTo += OnWorkspaceChangedFromTo;
 
 			for (var i = 1; i < config.Workspaces.Length; i++)
 			{
@@ -247,7 +259,7 @@ namespace Windawesome
 
 			if (flashWorkspaces)
 			{
-				flashingWorkspaces.ForEach(w => SetWorkspaceLabelColor(w, null));
+				flashingWindows.Values.ForEach(w => SetWorkspaceLabelColor(w, null));
 			}
 		}
 

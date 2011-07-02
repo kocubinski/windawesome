@@ -198,10 +198,7 @@ namespace Windawesome
 				applicationPanels[workspaceId].Remove(window.hWnd);
 				if (isShown && workspace.IsCurrentWorkspace)
 				{
-					if (applicationPanels[workspaceId].Count > 0)
-					{
-						ActivateTopmost(workspace);
-					}
+					ActivateTopmost(workspace);
 					ResizeApplicationPanels(left, right, workspaceId);
 				}
 				else
@@ -252,7 +249,7 @@ namespace Windawesome
 		private void ActivateTopmost(Workspace workspace)
 		{
 			var topmost = workspace.GetTopmostWindow();
-			if (!topmost.IsMinimized)
+			if (topmost != null)
 			{
 				OnWindowActivated(topmost.hWnd);
 			}

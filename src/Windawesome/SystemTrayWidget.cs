@@ -312,7 +312,7 @@ namespace Windawesome
 				{
 					NativeMethods.ChangeWindowMessageFilterEx(Windawesome.HandleStatic, NativeMethods.WM_COPYDATA, NativeMethods.MSGFLT_ADD, IntPtr.Zero);
 				}
-				else if (Windawesome.isAtLeastVista)
+				else
 				{
 					NativeMethods.ChangeWindowMessageFilter(NativeMethods.WM_COPYDATA, NativeMethods.MSGFLT_ADD);
 				}

@@ -190,6 +190,7 @@ namespace Windawesome
 		internal readonly NativeMethods.WS_EX styleExContains;
 		internal readonly NativeMethods.WS_EX styleExNotContains;
 		internal readonly bool isManaged;
+		internal readonly int tryAgainAfter;
 		internal readonly int windowCreatedDelay;
 		internal readonly bool handleOwnedWindows;
 		internal readonly bool hideOwnedPopups;
@@ -208,8 +209,8 @@ namespace Windawesome
 		public ProgramRule(string className = ".*", string displayName = ".*", string processName = ".*",
 			NativeMethods.WS styleContains = (NativeMethods.WS) 0, NativeMethods.WS styleNotContains = (NativeMethods.WS) 0,
 			NativeMethods.WS_EX styleExContains = (NativeMethods.WS_EX) 0, NativeMethods.WS_EX styleExNotContains = (NativeMethods.WS_EX) 0,
-			bool isManaged = true, int windowCreatedDelay = -1,
-			bool handleOwnedWindows = false, bool hideOwnedPopups = true, bool redrawDesktopOnWindowCreated = false,
+			bool isManaged = true, int tryAgainAfter = -1, int windowCreatedDelay = 0, bool handleOwnedWindows = false,
+			bool hideOwnedPopups = true, bool redrawDesktopOnWindowCreated = false,
 			OnWindowShownAction onWindowCreatedAction = OnWindowShownAction.SwitchToWindowsWorkspace,
 			OnWindowShownAction onHiddenWindowShownAction = OnWindowShownAction.SwitchToWindowsWorkspace,
 			int showOnWorkspacesCount = -1, IEnumerable<Rule> rules = null)
@@ -222,6 +223,7 @@ namespace Windawesome
 			this.styleExContains = styleExContains;
 			this.styleExNotContains = styleExNotContains;
 			this.isManaged = isManaged;
+			this.tryAgainAfter = tryAgainAfter;
 			this.windowCreatedDelay = windowCreatedDelay;
 			this.handleOwnedWindows = handleOwnedWindows;
 			this.hideOwnedPopups = hideOwnedPopups;

@@ -82,11 +82,13 @@ namespace Windawesome
 					WindowState = FormWindowState.Normal,
 					TopMost = true,
 					MinimumSize = new Size(0, this.barHeight),
+					MaximumSize = new Size(Screen.PrimaryScreen.Bounds.Width + 1, this.barHeight + 1),
 					Height = this.barHeight
 				};
 
 			newForm.VisibleChanged += this.OnFormVisibleChanged;
 			newForm.FormClosing += (s, ea) => ea.Cancel = true;
+			// TODO: when Windawesome is run, a bar might be the active window and one could minimize it
 
 			// make the bar not activatable
 			var exStyle = NativeMethods.GetWindowExStyleLongPtr(newForm.Handle);
@@ -120,11 +122,11 @@ namespace Windawesome
 			}
 		}
 
-		public Bar(IEnumerable<IWidget> containsLeftAligned, IEnumerable<IWidget> containsRightAligned,
+		public Bar(IEnumerable<IWidget> leftAlignedWidgets, IEnumerable<IWidget> rightAlignedWidgets,
 			IEnumerable<IWidget> middleAlignedWidgets, int barHeight = 20, Font font = null, Color? backgroundColor = null)
 		{
-			leftAlignedWidgets = containsLeftAligned.ToArray();
-			rightAlignedWidgets = containsRightAligned.ToArray();
+			this.leftAlignedWidgets = leftAlignedWidgets.ToArray();
+			this.rightAlignedWidgets = rightAlignedWidgets.ToArray();
 			this.middleAlignedWidgets = middleAlignedWidgets.ToArray();
 			this.barHeight = barHeight;
 			this.font = font ?? new Font("Lucida Console", 8);
@@ -150,7 +152,7 @@ namespace Windawesome
 
 			// statically initialize any widgets not already initialized
 			leftAlignedWidgets.Concat(rightAlignedWidgets).Concat(middleAlignedWidgets).
-				Where(w => !widgetTypes.Contains(w.GetType())).
+				Where(w => !widgetTypes.Contains(w.GetType())). // this statement uses the laziness of Where
 				ForEach(w => { w.StaticInitializeWidget(windawesome, config); widgetTypes.Add(w.GetType()); });
 
 			WidgetControlsChanged = OnWidgetControlsChanged;
@@ -173,7 +175,7 @@ namespace Windawesome
 
 			// statically dispose of any widgets not already dispsed
 			leftAlignedWidgets.Concat(rightAlignedWidgets).Concat(middleAlignedWidgets).
-				Where(w => widgetTypes.Contains(w.GetType())).
+				Where(w => widgetTypes.Contains(w.GetType())). // this statement uses the laziness of Where
 				ForEach(w => { w.StaticDispose(); widgetTypes.Remove(w.GetType()); });
 
 			this.form.Dispose();

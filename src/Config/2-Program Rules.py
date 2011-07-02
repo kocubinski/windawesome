@@ -1,21 +1,31 @@
 from System.Linq import Enumerable
 from Windawesome import ProgramRule, State, OnWindowShownAction
-from Windawesome.NativeMethods import WS
+from Windawesome.NativeMethods import WS, WS_EX
 
 config.ProgramRules = Enumerable.ToArray[ProgramRule]([
 	ProgramRule(
-		className = "^TApplication$",
-		displayName = "^Find and Run Robot*",
-		isManaged = False
+		className = "^cygwin/x X rl$",
+		rules = [ProgramRule.Rule(workspace = 5)]
 	),
 	ProgramRule(
 		className = "^TApplication$",
-		handleOwnedWindows = True
+		displayName = "^Find and Run Robot$",
+        isManaged = False
+	),
+	ProgramRule(
+		className = "^TApplication$",
+		displayName = "^ImgBurn$",
+		windowCreatedDelay = 2000,
+        handleOwnedWindows = True
+	),
+	ProgramRule(
+		className = "^TApplication$",
+		windowCreatedDelay = 1000,
+        handleOwnedWindows = True
 	),
 	ProgramRule(
 		className = "^Vim$",
-		windowCreatedDelay = 200,
-        onWindowCreatedAction = OnWindowShownAction.HideWindow,
+		windowCreatedDelay = 100,
 		rules = [ProgramRule.Rule(workspace = 3, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
 	),
 	ProgramRule(
@@ -46,7 +56,7 @@ config.ProgramRules = Enumerable.ToArray[ProgramRule]([
 	),
 	ProgramRule(
 		className = "^TLoginForm.*", # Skype
-		isManaged = False
+		rules = [ProgramRule.Rule(isFloating = True)]
 	),
 	ProgramRule(
 		className = "^tSkMainForm.*", # Skype
@@ -54,15 +64,23 @@ config.ProgramRules = Enumerable.ToArray[ProgramRule]([
 	),
 	ProgramRule(
 		className = "^TConversationForm.*", # Skype
+        onWindowCreatedAction = OnWindowShownAction.TemporarilyShowWindowOnCurrentWorkspace,
 		rules = [ProgramRule.Rule(workspace = 4, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
 	),
 	ProgramRule(
 		className = "^__oxFrame.class__$", # ICQ
 		displayName = "^ICQ$",
+        onWindowCreatedAction = OnWindowShownAction.TemporarilyShowWindowOnCurrentWorkspace,
+        #onWindowCreatedAction = OnWindowShownAction.HideWindow,
 		rules = [ProgramRule.Rule(workspace = 4, isFloating = True)]
 	),
 	ProgramRule(
-		className = "^__oxFrame.class__$", # ICQ, chat window
+		className = "^__oxFrame.class__$", # ICQ some stupid small window
+		styleExContains = WS_EX.WS_EX_TOOLWINDOW,
+		isManaged = False
+	),
+	ProgramRule(
+		className = "^__oxFrame.class__$", # ICQ chat window
         onWindowCreatedAction = OnWindowShownAction.TemporarilyShowWindowOnCurrentWorkspace,
 		rules = [ProgramRule.Rule(workspace = 4)]
 	),
@@ -71,12 +89,8 @@ config.ProgramRules = Enumerable.ToArray[ProgramRule]([
 		rules = [ProgramRule.Rule(workspace = 1)]
 	),
 	ProgramRule(
-		className = "^OpusApp$",
-		displayName = ".*Microsoft Word Viewer$",
-		windowCreatedDelay = 200
-	),
-	ProgramRule(
 		className = "^mintty$",
+		windowCreatedDelay = 100,
 		redrawDesktopOnWindowCreated = True,
 		rules = [ProgramRule.Rule(workspace = 3, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
 	),
@@ -87,6 +101,12 @@ config.ProgramRules = Enumerable.ToArray[ProgramRule]([
 	ProgramRule(
 		displayName = ".*Microsoft Visual Studio.*",
 		windowCreatedDelay = 2000,
+        onWindowCreatedAction = OnWindowShownAction.HideWindow,
+		rules = [ProgramRule.Rule(workspace = 5, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
+	),
+	ProgramRule(
+		className = "^HwndWrapper\[DefaultDomain.*", # Visual Studio (Express)
+		tryAgainAfter = 2000,
         onWindowCreatedAction = OnWindowShownAction.HideWindow,
 		rules = [ProgramRule.Rule(workspace = 5, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
 	),

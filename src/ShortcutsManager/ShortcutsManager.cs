@@ -112,6 +112,7 @@ namespace Windawesome
 		}
 
 		public delegate bool KeyboardEventHandler();
+		private static readonly NativeMethods.HookProc keyboardHookProcedure = KeyboardHookProc;
 		private static IntPtr hook = IntPtr.Zero;
 		private static readonly Dictionary<Subscription, KeyboardEventHandler> subscriptions;
 		private static bool hasKeyOnlySubscriptions;
@@ -136,7 +137,7 @@ namespace Windawesome
 			{
 				if (hook == IntPtr.Zero)
 				{
-					hook = NativeMethods.SetWindowsHookEx(NativeMethods.WH_KEYBOARD_LL, KeyboardHookProc,
+					hook = NativeMethods.SetWindowsHookEx(NativeMethods.WH_KEYBOARD_LL, keyboardHookProcedure,
 						System.Diagnostics.Process.GetCurrentProcess().MainModule.BaseAddress, 0);
 				}
 
@@ -185,35 +186,35 @@ namespace Windawesome
 				{
 					KeyModifiers modifiersPressed = 0;
 					// there is no other way to distinguish between left and right modifier keys
-					if ((NativeMethods.GetKeyState(Keys.LShiftKey) & 0x80) == 0x80)
+					if ((NativeMethods.GetAsyncKeyState(Keys.LShiftKey) & 0x8000) == 0x8000)
 					{
 						modifiersPressed |= KeyModifiers.LShift;
 					}
-					if ((NativeMethods.GetKeyState(Keys.RShiftKey) & 0x80) == 0x80)
+					if ((NativeMethods.GetAsyncKeyState(Keys.RShiftKey) & 0x8000) == 0x8000)
 					{
 						modifiersPressed |= KeyModifiers.RShift;
 					}
-					if ((NativeMethods.GetKeyState(Keys.LMenu) & 0x80) == 0x80)
+					if ((NativeMethods.GetAsyncKeyState(Keys.LMenu) & 0x8000) == 0x8000)
 					{
 						modifiersPressed |= KeyModifiers.LAlt;
 					}
-					if ((NativeMethods.GetKeyState(Keys.RMenu) & 0x80) == 0x80)
+					if ((NativeMethods.GetAsyncKeyState(Keys.RMenu) & 0x8000) == 0x8000)
 					{
 						modifiersPressed |= KeyModifiers.RAlt;
 					}
-					if ((NativeMethods.GetKeyState(Keys.LControlKey) & 0x80) == 0x80)
+					if ((NativeMethods.GetAsyncKeyState(Keys.LControlKey) & 0x8000) == 0x8000)
 					{
 						modifiersPressed |= KeyModifiers.LControl;
 					}
-					if ((NativeMethods.GetKeyState(Keys.RControlKey) & 0x80) == 0x80)
+					if ((NativeMethods.GetAsyncKeyState(Keys.RControlKey) & 0x8000) == 0x8000)
 					{
 						modifiersPressed |= KeyModifiers.RControl;
 					}
-					if ((NativeMethods.GetKeyState(Keys.LWin) & 0x80) == 0x80)
+					if ((NativeMethods.GetAsyncKeyState(Keys.LWin) & 0x8000) == 0x8000)
 					{
 						modifiersPressed |= KeyModifiers.LWin;
 					}
-					if ((NativeMethods.GetKeyState(Keys.RWin) & 0x80) == 0x80)
+					if ((NativeMethods.GetAsyncKeyState(Keys.RWin) & 0x8000) == 0x8000)
 					{
 						modifiersPressed |= KeyModifiers.RWin;
 					}

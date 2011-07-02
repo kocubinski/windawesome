@@ -13,7 +13,6 @@ namespace Windawesome
 		private readonly Config config;
 		private readonly Dictionary<IntPtr, LinkedList<Tuple<Workspace, Window>>> applications; // hWnd to a list of workspaces and windows
 		private readonly HashMultiSet<IntPtr> hiddenApplications;
-		private readonly Dictionary<IntPtr, IntPtr> ownerWindows; // owner -> owned
 		private readonly uint shellMessageNum;
 		private static readonly uint postActionMessageNum;
 		private static readonly Queue<Action> postedActions;
@@ -80,16 +79,6 @@ namespace Windawesome
 
 		#endregion
 
-		private bool ApplicationsTryGetValue(IntPtr hWnd, out LinkedList<Tuple<Workspace, Window>> list)
-		{
-			IntPtr owned;
-			if (ownerWindows.TryGetValue(hWnd, out owned))
-			{
-				hWnd = owned;
-			}
-			return applications.TryGetValue(hWnd, out list);
-		}
-
 		public Workspace CurrentWorkspace
 		{
 			get { return config.Workspaces[0]; }
@@ -102,7 +91,7 @@ namespace Windawesome
 			isAtLeastVista = Environment.OSVersion.Version.Major >= 6;
 			isAtLeast7 = isAtLeastVista && Environment.OSVersion.Version.Minor >= 1;
 
-			isRunningElevated = NativeMethods.IsUserAnAdmin();
+			isRunningElevated = isAtLeastVista && NativeMethods.IsUserAnAdmin();
 
 			messageHandlers = new Dictionary<int, HandleMessageDelegate>(2);
 
@@ -120,7 +109,7 @@ namespace Windawesome
 
 		internal Windawesome()
 		{
-			this.CreateHandle(new CreateParams { Caption = "", ClassName = "Message", Parent = (IntPtr) (-3) });
+			this.CreateHandle(new CreateParams { Caption = "Windawesome", ClassName = "Message", Parent = (IntPtr) (-3) });
 
 			HandleStatic = this.Handle;
 
@@ -137,7 +126,6 @@ namespace Windawesome
 
 			applications = new Dictionary<IntPtr, LinkedList<Tuple<Workspace, Window>>>(20);
 			hiddenApplications = new HashMultiSet<IntPtr>();
-			ownerWindows = new Dictionary<IntPtr, IntPtr>(2);
 
 			temporarilyShownWindows = new HashSet<IntPtr>();
 
@@ -146,7 +134,8 @@ namespace Windawesome
 
 			WindawesomeExiting += OnWindawesomeExiting;
 
-			// add a handler for when the working area changes
+			// add a handler for when the working area or the screen resolution changes as well as
+			// a handler for the system shutting down/restarting
 			SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
 			SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
 			SystemEvents.SessionEnding += OnSessionEnding;
@@ -196,9 +185,6 @@ namespace Windawesome
 			}
 			config.Workspaces[0].Initialize(true);
 
-			// switches to the default starting workspace
-			PostAction(() => config.Workspaces[0].SwitchTo());
-
 			screenResolution = SystemInformation.PrimaryMonitorSize;
 			originalWorkingArea = new Rectangle[config.WorkspacesCount];
 			originalWorkingArea[0] = SystemInformation.WorkingArea;
@@ -206,6 +192,9 @@ namespace Windawesome
 			{
 				originalWorkingArea[i] = originalWorkingArea[0];
 			}
+
+			// switches to the default starting workspace
+			config.Workspaces[0].SwitchTo();
 
 			finishedInitializing = true;
 		}
@@ -223,11 +212,18 @@ namespace Windawesome
 			NativeMethods.GlobalDeleteAtom((ushort) getForegroundPrivilageAtom);
 
 			// roll back any changes to Windows
-			config.Workspaces.Skip(1).ForEach(workspace => workspace.RevertToInitialValues());
+			config.Workspaces[0].RevertToInitialValues();
+			foreach (var window in applications.Values.Select(l => l.First.Value.Item2))
+			{
+				Workspace.DoForWindowOrItsOwned(window, w => w.RevertToInitialValues());
+				window.Show();
+			}
 
+			// dispose of plugins and bars
 			config.Plugins.ForEach(p => p.Dispose());
 			config.Bars.ForEach(b => b.Dispose());
 
+			// revert the size of non-client area of windows
 			if (changedNonClientMetrics)
 			{
 				var metrics = originalNonClientMetrics;
@@ -357,9 +353,9 @@ namespace Windawesome
 				var processName = System.Diagnostics.Process.GetProcessById(processId).ProcessName;
 
 				var programRule = config.ProgramRules.First(r => r.IsMatch(className, displayName, processName, style, exStyle));
-				if (firstTry && finishedInitializing && programRule.windowCreatedDelay >= 0)
+				if (programRule.tryAgainAfter >= 0 && firstTry && finishedInitializing)
 				{
-					System.Threading.Thread.Sleep(programRule.windowCreatedDelay);
+					System.Threading.Thread.Sleep(programRule.tryAgainAfter);
 					return AddWindowToWorkspace(hWnd, false);
 				}
 				if (!programRule.isManaged)
@@ -369,18 +365,21 @@ namespace Windawesome
 
 				IEnumerable<ProgramRule.Rule> matchingRules = programRule.rules;
 				var workspacesCount = programRule.rules.Length;
+				var hasWorkspaceZeroRule = matchingRules.Any(r => r.workspace == 0);
+				var hasCurrentWorkspaceRule = matchingRules.Any(r => r.workspace == config.Workspaces[0].id);
 				// matchingRules.workspaces could be { 0, 1 } and you could be at workspace 1.
 				// Then, "hWnd" would be added twice if it were not for this check
-				if (workspacesCount > 1 && matchingRules.Any(r => r.workspace == 0) &&
-					matchingRules.Any(r => r.workspace == config.Workspaces[0].id))
+				if (hasWorkspaceZeroRule && hasCurrentWorkspaceRule)
 				{
 					matchingRules = matchingRules.Where(r => r.workspace != 0);
 					workspacesCount--;
 				}
 
+				var isMinimized = false;
+
 				if (finishedInitializing)
 				{
-					if (matchingRules.Any(r => r.workspace == 0 || r.workspace == config.Workspaces[0].id))
+					if (hasWorkspaceZeroRule || hasCurrentWorkspaceRule)
 					{
 						// this means that the window must be on the current workspace anyway
 						ForceForegroundWindow(hWnd);
@@ -397,17 +396,59 @@ namespace Windawesome
 								break;
 							case OnWindowShownAction.TemporarilyShowWindowOnCurrentWorkspace:
 								temporarilyShownWindows.Add(hWnd);
-								ForceForegroundWindow(hWnd);
+								ForceForegroundWindow(hWnd); // TODO: ICQ 7.5's windows do not show on top
 								break;
 							case OnWindowShownAction.HideWindow:
-								PostAction(() =>
-									{
-										hiddenApplications.Add(hWnd);
-										NativeMethods.ShowWindowAsync(hWnd, NativeMethods.SW.SW_HIDE);
-										config.Workspaces[0].SetTopWindowAsForeground();
-									});
+								config.Workspaces[0].SetTopWindowAsForeground();
+								hiddenApplications.Add(hWnd);
+								NativeMethods.ShowWindow(hWnd, NativeMethods.SW.SW_HIDE);
 								break;
 						}
+					}
+
+					if (programRule.windowCreatedDelay > 0)
+					{
+						System.Threading.Thread.Sleep(programRule.windowCreatedDelay);
+					}
+				}
+				else
+				{
+					isMinimized = NativeMethods.IsIconic(hWnd);
+				}
+
+				LinkedList<Tuple<IntPtr, string, string, NativeMethods.WS, NativeMethods.WS_EX>> ownedList = null;
+
+				if (programRule.handleOwnedWindows)
+				{
+					ownedList = new LinkedList<Tuple<IntPtr, string, string, NativeMethods.WS, NativeMethods.WS_EX>>();
+
+					NativeMethods.EnumWindows((h, hOwner) =>
+						{
+							if (NativeMethods.IsWindowVisible(h))
+							{
+								var owner = h;
+								do
+								{
+									owner = NativeMethods.GetWindow(owner, NativeMethods.GW.GW_OWNER);
+								}
+								while (owner != IntPtr.Zero && owner != hOwner);
+
+								if (owner == hOwner)
+								{
+									var classNameOwned = NativeMethods.GetWindowClassName(h);
+									var displayNameOwned = NativeMethods.GetText(h);
+									var styleOwned = NativeMethods.GetWindowStyleLongPtr(h);
+									var exStyleOwned = NativeMethods.GetWindowExStyleLongPtr(h);
+									ownedList.AddLast(new Tuple<IntPtr, string, string, NativeMethods.WS, NativeMethods.WS_EX>
+										(h, classNameOwned, displayNameOwned, styleOwned, exStyleOwned));
+								}
+							}
+							return true;
+						}, hWnd);
+
+					if (ownedList.Count == 0)
+					{
+						ownedList = null; // TODO: maybe should return false?
 					}
 				}
 
@@ -422,56 +463,19 @@ namespace Windawesome
 						NativeMethods.RedrawWindowFlags.RDW_INVALIDATE);
 				}
 
+				var is64BitProcess = Environment.Is64BitOperatingSystem && NativeMethods.Is64BitProcess(hWnd);
+
 				var list = new LinkedList<Tuple<Workspace, Window>>();
-
-				Window windowTemplate;
-				if (programRule.handleOwnedWindows)
-				{
-					NativeMethods.EnumWindows((h, hOwner) =>
-						{
-							if (NativeMethods.IsWindowVisible(h) &&
-								NativeMethods.GetWindow(h, NativeMethods.GW.GW_OWNER) == hOwner)
-							{
-								ownerWindows[hOwner] = h;
-								return false;
-							}
-							return true;
-						}, hWnd);
-
-					IntPtr hOwned;
-					if (!ownerWindows.TryGetValue(hWnd, out hOwned))
-					{
-						return false;
-					}
-					var classNameOwned = NativeMethods.GetWindowClassName(hOwned);
-					var displayNameOwned = NativeMethods.GetText(hOwned);
-					var styleOwned = NativeMethods.GetWindowStyleLongPtr(hOwned);
-					var exStyleOwned = NativeMethods.GetWindowExStyleLongPtr(hOwned);
-					windowTemplate = new Window(hOwned, classNameOwned, displayNameOwned, processName, workspacesCount,
-						Environment.Is64BitOperatingSystem && NativeMethods.Is64BitProcess(hWnd), styleOwned, exStyleOwned, hWnd);
-					applications[hOwned] = list;
-				}
-				else
-				{
-					windowTemplate = new Window(hWnd, className, displayName, processName, workspacesCount,
-						Environment.Is64BitOperatingSystem && NativeMethods.Is64BitProcess(hWnd), style, exStyle, IntPtr.Zero);
-					applications[hWnd] = list;
-				}
+				
+				applications[hWnd] = list;
 
 				foreach (var rule in matchingRules)
 				{
-					var window = new Window(windowTemplate, false)
-						{
-							IsFloating = rule.isFloating,
-							ShowInTabs = rule.showInTabs,
-							Titlebar = rule.titlebar,
-							InTaskbar = rule.inTaskbar,
-							WindowBorders = rule.windowBorders,
-							RedrawOnShow = rule.redrawOnShow,
-							ActivateLastActivePopup = rule.activateLastActivePopup,
-							HideOwnedPopups = programRule.hideOwnedPopups,
-							onHiddenWindowShownAction = programRule.onHiddenWindowShownAction
-						};
+					var window = new Window(hWnd, className, displayName, processName, workspacesCount,	is64BitProcess, style, exStyle, isMinimized,
+						ownedList == null ? null : new LinkedList<Window>(
+							ownedList.Select(w => new Window(w.Item1, w.Item2, w.Item3, processName,
+								workspacesCount, is64BitProcess, w.Item4, w.Item5, isMinimized, null, rule, programRule))),
+						rule, programRule);
 					list.AddLast(new Tuple<Workspace, Window>(config.Workspaces[rule.workspace], window));
 					config.Workspaces[rule.workspace].WindowCreated(window);
 				}
@@ -514,9 +518,8 @@ namespace Windawesome
 
 		internal static void ForceForegroundWindow(Window window)
 		{
-			var hasOwner = window.owner != IntPtr.Zero;
-			var hWnd = hasOwner ? window.owner : window.hWnd;
-			if (window.ActivateLastActivePopup)
+			var hWnd = window.hWnd;
+			if (window.activateLastActivePopup)
 			{
 				hWnd = NativeMethods.GetLastActivePopup(hWnd);
 			}
@@ -534,31 +537,33 @@ namespace Windawesome
 		{
 			uint i = 0;
 
+			NativeMethods.BlockInput(true);
+
 			// press needed modifiers
 			var shiftShouldBePressed = uniqueHotkey.Item1.HasFlag(NativeMethods.MOD.MOD_SHIFT);
-			var leftShiftPressed = (NativeMethods.GetKeyState(Keys.LShiftKey) & 0x80) == 0x80;
-			var rightShiftPressed = (NativeMethods.GetKeyState(Keys.RShiftKey) & 0x80) == 0x80;
+			var leftShiftPressed = (NativeMethods.GetAsyncKeyState(Keys.LShiftKey) & 0x8000) == 0x8000;
+			var rightShiftPressed = (NativeMethods.GetAsyncKeyState(Keys.RShiftKey) & 0x8000) == 0x8000;
 
 			PressReleaseModifierKey(leftShiftPressed, rightShiftPressed, shiftShouldBePressed,
 				Keys.ShiftKey, Keys.LShiftKey, Keys.RShiftKey, 0, NativeMethods.KEYEVENTF_KEYUP, ref i);
 
 			var winShouldBePressed = uniqueHotkey.Item1.HasFlag(NativeMethods.MOD.MOD_WIN);
-			var leftWinPressed = (NativeMethods.GetKeyState(Keys.LWin) & 0x80) == 0x80;
-			var rightWinPressed = (NativeMethods.GetKeyState(Keys.RWin) & 0x80) == 0x80;
+			var leftWinPressed = (NativeMethods.GetAsyncKeyState(Keys.LWin) & 0x8000) == 0x8000;
+			var rightWinPressed = (NativeMethods.GetAsyncKeyState(Keys.RWin) & 0x8000) == 0x8000;
 
 			PressReleaseModifierKey(leftWinPressed, rightWinPressed, winShouldBePressed,
 				Keys.LWin, Keys.LWin, Keys.RWin, 0, NativeMethods.KEYEVENTF_KEYUP, ref i);
 
 			var controlShouldBePressed = uniqueHotkey.Item1.HasFlag(NativeMethods.MOD.MOD_CONTROL);
-			var leftControlPressed = (NativeMethods.GetKeyState(Keys.LControlKey) & 0x80) == 0x80;
-			var rightControlPressed = (NativeMethods.GetKeyState(Keys.RControlKey) & 0x80) == 0x80;
+			var leftControlPressed = (NativeMethods.GetAsyncKeyState(Keys.LControlKey) & 0x8000) == 0x8000;
+			var rightControlPressed = (NativeMethods.GetAsyncKeyState(Keys.RControlKey) & 0x8000) == 0x8000;
 
 			PressReleaseModifierKey(leftControlPressed, rightControlPressed, controlShouldBePressed,
 				Keys.ControlKey, Keys.LControlKey, Keys.RControlKey, 0, NativeMethods.KEYEVENTF_KEYUP, ref i);
 
 			var altShouldBePressed = uniqueHotkey.Item1.HasFlag(NativeMethods.MOD.MOD_ALT);
-			var leftAltPressed = (NativeMethods.GetKeyState(Keys.LMenu) & 0x80) == 0x80;
-			var rightAltPressed = (NativeMethods.GetKeyState(Keys.RMenu) & 0x80) == 0x80;
+			var leftAltPressed = (NativeMethods.GetAsyncKeyState(Keys.LMenu) & 0x8000) == 0x8000;
+			var rightAltPressed = (NativeMethods.GetAsyncKeyState(Keys.RMenu) & 0x8000) == 0x8000;
 
 			PressReleaseModifierKey(leftAltPressed, rightAltPressed, altShouldBePressed,
 				Keys.Menu, Keys.LMenu, Keys.RMenu, 0, NativeMethods.KEYEVENTF_KEYUP, ref i);
@@ -581,6 +586,8 @@ namespace Windawesome
 				Keys.ShiftKey, Keys.LShiftKey, Keys.RShiftKey, NativeMethods.KEYEVENTF_KEYUP, 0, ref i);
 
 			NativeMethods.SendInput(i, input, NativeMethods.INPUTSize);
+
+			NativeMethods.BlockInput(false);
 
 			forceForegroundWindow = hWnd;
 		}
@@ -610,6 +617,58 @@ namespace Windawesome
 			}
 		}
 
+		private static Window GetOwnermostWindow(IntPtr hWnd, Workspace workspace)
+		{
+			var window = workspace.GetOwnermostWindow(hWnd);
+			while (window == null)
+			{
+				hWnd = NativeMethods.GetWindow(hWnd, NativeMethods.GW.GW_OWNER);
+				if (hWnd == IntPtr.Zero)
+				{
+					return null;
+				}
+				window = workspace.GetOwnermostWindow(hWnd);
+			}
+			return window;
+		}
+
+		private void OnHiddenWindowShown(IntPtr hWnd, LinkedList<Tuple<Workspace, Window>> list)
+		{
+			switch (list.First.Value.Item2.onHiddenWindowShownAction)
+			{
+				case OnWindowShownAction.SwitchToWindowsWorkspace:
+					SwitchToApplication(hWnd);
+					break;
+				case OnWindowShownAction.MoveWindowToCurrentWorkspace:
+					ChangeApplicationToWorkspace(hWnd, config.Workspaces[0].id, list.First.Value.Item1.id);
+					break;
+				case OnWindowShownAction.TemporarilyShowWindowOnCurrentWorkspace:
+					temporarilyShownWindows.Add(hWnd);
+					break;
+				case OnWindowShownAction.HideWindow:
+					System.Threading.Thread.Sleep(1000);
+					hiddenApplications.Add(hWnd);
+					list.First.Value.Item2.Hide();
+					config.Workspaces[0].SetTopWindowAsForeground();
+					break;
+			}
+		}
+
+		private void FollowWindow(int toWorkspace, bool follow, Window window)
+		{
+			if (follow)
+			{
+				if (!SwitchToWorkspace(toWorkspace))
+				{
+					ForceForegroundWindow(window);
+				}
+			}
+			else
+			{
+				config.Workspaces[0].SetTopWindowAsForeground();
+			}
+		}
+
 		#endregion
 
 		#region API
@@ -626,52 +685,56 @@ namespace Windawesome
 			config.Workspaces[0].GetWindows().ForEach(w => w.Redraw());
 		}
 
-		public void ChangeApplicationToWorkspace(IntPtr hWnd, int toWorkspace = 0, int fromWorkspace = 0)
+		public void ChangeApplicationToWorkspace(IntPtr hWnd, int toWorkspace = 0, int fromWorkspace = 0, bool follow = true)
 		{
+			var oldWorkspace = config.Workspaces[fromWorkspace];
 			var newWorkspace = config.Workspaces[toWorkspace];
 
-			var window = config.Workspaces[fromWorkspace].GetWindow(hWnd);
-			if (toWorkspace != fromWorkspace && window != null && !newWorkspace.ContainsWindow(hWnd))
+			if (newWorkspace.id != oldWorkspace.id)
 			{
-				config.Workspaces[fromWorkspace].WindowDestroyed(window, false);
-				newWorkspace.WindowCreated(window);
+				var window = GetOwnermostWindow(hWnd, oldWorkspace);
 
-				var list = applications[window.hWnd];
-				list.Remove(new Tuple<Workspace, Window>(config.Workspaces[fromWorkspace], window));
-				list.AddFirst(new Tuple<Workspace, Window>(newWorkspace, window));
-
-				if (!SwitchToWorkspace(toWorkspace))
+				if (window != null && !newWorkspace.ContainsWindow(hWnd))
 				{
-					ForceForegroundWindow(window);
+					oldWorkspace.WindowDestroyed(window, false);
+					newWorkspace.WindowCreated(window);
+
+					var list = applications[window.hWnd];
+					list.Remove(new Tuple<Workspace, Window>(oldWorkspace, window));
+					list.AddFirst(new Tuple<Workspace, Window>(newWorkspace, window));
+
+					FollowWindow(toWorkspace, follow, window);
 				}
 			}
 		}
 
-		public void AddApplicationToWorkspace(IntPtr hWnd, int toWorkspace = 0, int fromWorkspace = 0)
+		public void AddApplicationToWorkspace(IntPtr hWnd, int toWorkspace = 0, int fromWorkspace = 0, bool follow = true)
 		{
+			var oldWorkspace = config.Workspaces[fromWorkspace];
 			var newWorkspace = config.Workspaces[toWorkspace];
 
-			var window = config.Workspaces[fromWorkspace].GetWindow(hWnd);
-			if (toWorkspace != config.Workspaces[fromWorkspace].id && window != null && !newWorkspace.ContainsWindow(hWnd))
+			if (newWorkspace.id != oldWorkspace.id)
 			{
-				var newWindow = new Window(window, true);
+				var window = GetOwnermostWindow(hWnd, oldWorkspace);
 
-				newWorkspace.WindowCreated(newWindow);
-
-				var list = applications[window.hWnd];
-				list.AddFirst(new Tuple<Workspace, Window>(newWorkspace, newWindow));
-				list.Where(t => ++t.Item2.WorkspacesCount == 2).ForEach(t => t.Item1.AddToSharedWindows(t.Item2));
-
-				if (!SwitchToWorkspace(toWorkspace))
+				if (window != null && !newWorkspace.ContainsWindow(hWnd))
 				{
-					ForceForegroundWindow(window);
+					var newWindow = new Window(window);
+
+					newWorkspace.WindowCreated(newWindow);
+
+					var list = applications[window.hWnd];
+					list.AddFirst(new Tuple<Workspace, Window>(newWorkspace, newWindow));
+					list.Where(t => ++t.Item2.WorkspacesCount == 2).ForEach(t => t.Item1.AddToSharedWindows(t.Item2));
+
+					FollowWindow(toWorkspace, follow, window);
 				}
 			}
 		}
 
 		public void RemoveApplicationFromCurrentWorkspace(IntPtr hWnd)
 		{
-			var window = this.CurrentWorkspace.GetWindow(hWnd);
+			var window = GetOwnermostWindow(hWnd, config.Workspaces[0]);
 			if (window != null)
 			{
 				if (window.WorkspacesCount == 1)
@@ -699,6 +762,7 @@ namespace Windawesome
 			{
 				list.ForEach(tuple => tuple.Item1.WindowDestroyed(tuple.Item2));
 				applications.Remove(hWnd);
+				temporarilyShownWindows.Remove(hWnd);
 			}
 		}
 
@@ -711,17 +775,16 @@ namespace Windawesome
 
 				foreach (var hWnd in temporarilyShownWindows)
 				{
-					LinkedList<Tuple<Workspace, Window>> list;
-					ApplicationsTryGetValue(hWnd, out list);
-
 					hiddenApplications.Add(hWnd);
-					list.First.Value.Item2.Hide();
+					applications[hWnd].First.Value.Item2.Hide();
 				}
 
 				PreviousWorkspace = this.CurrentWorkspace.id;
 				config.Workspaces[0] = config.Workspaces[workspace];
 
 				config.Workspaces[0].SwitchTo(setForeground);
+
+				temporarilyShownWindows.Clear();
 
 				return true;
 			}
@@ -736,12 +799,12 @@ namespace Windawesome
 
 		public void ToggleWindowFloating(IntPtr hWnd)
 		{
-			config.Workspaces[0].ToggleWindowFloating(hWnd);
+			config.Workspaces[0].ToggleWindowFloating(GetOwnermostWindow(hWnd, config.Workspaces[0]));
 		}
 
 		public void ToggleShowHideWindowInTaskbar(IntPtr hWnd)
 		{
-			config.Workspaces[0].ToggleShowHideWindowInTaskbar(hWnd);
+			Workspace.ToggleShowHideWindowInTaskbar(GetOwnermostWindow(hWnd, config.Workspaces[0]));
 		}
 
 		public void ToggleShowHideWindowTitlebar(IntPtr hWnd)
@@ -761,11 +824,6 @@ namespace Windawesome
 
 		public void SwitchToApplication(IntPtr hWnd)
 		{
-			IntPtr owned;
-			if (ownerWindows.TryGetValue(hWnd, out owned))
-			{
-				hWnd = owned;
-			}
 			if (!SwitchToApplicationInCurrentWorkspace(hWnd))
 			{
 				LinkedList<Tuple<Workspace, Window>> list;
@@ -779,7 +837,7 @@ namespace Windawesome
 
 		public void RunApplication(string path, string arguments = "")
 		{
-			if (isAtLeastVista && isRunningElevated)
+			if (isRunningElevated)
 			{
 				PostAction(() => NativeMethods.RunApplicationNonElevated(path, arguments));
 			}
@@ -830,7 +888,7 @@ namespace Windawesome
 		// only switches to applications in the current workspace
 		public bool SwitchToApplicationInCurrentWorkspace(IntPtr hWnd)
 		{
-			var window = config.Workspaces[0].GetWindow(hWnd);
+			var window = config.Workspaces[0].GetOwnermostWindow(hWnd);
 			if (window != null)
 			{
 				if (window.IsMinimized)
@@ -988,11 +1046,8 @@ namespace Windawesome
 		{
 			if (temporarilyShownWindows.Contains(hWnd))
 			{
-				LinkedList<Tuple<Workspace, Window>> list;
-				ApplicationsTryGetValue(hWnd, out list);
-
 				hiddenApplications.Add(hWnd);
-				list.First.Value.Item2.Hide();
+				applications[hWnd].First.Value.Item2.Hide();
 				config.Workspaces[0].SetTopWindowAsForeground();
 				temporarilyShownWindows.Remove(hWnd);
 			}
@@ -1023,25 +1078,7 @@ namespace Windawesome
 							// another problem is that some windows continuously keep showing when hidden.
 							// how to reproduce: TortoiseSVN. About box. Click check for updates. This window
 							// keeps showing up when changing workspaces
-							switch (list.First.Value.Item2.onHiddenWindowShownAction)
-							{
-								case OnWindowShownAction.SwitchToWindowsWorkspace:
-									NativeMethods.SendNotifyMessage(HandleStatic, shellMessageNum,
-										(UIntPtr) (uint) NativeMethods.ShellEvents.HSHELL_WINDOWACTIVATED, lParam);
-									break;
-								case OnWindowShownAction.MoveWindowToCurrentWorkspace:
-									ChangeApplicationToWorkspace(lParam, config.Workspaces[0].id, list.First.Value.Item1.id);
-									break;
-								case OnWindowShownAction.TemporarilyShowWindowOnCurrentWorkspace:
-									temporarilyShownWindows.Add(lParam);
-									break;
-								case OnWindowShownAction.HideWindow:
-									hiddenApplications.Add(lParam);
-									list.First.Value.Item2.Hide();
-									System.Threading.Thread.Sleep(300);
-									config.Workspaces[0].SetTopWindowAsForeground();
-									break;
-							}
+							OnHiddenWindowShown(lParam, list);
 						}
 						else if (onWindowShown.TryGetValue(lParam, out onWindowShownAction))
 						{
@@ -1053,40 +1090,23 @@ namespace Windawesome
 				case NativeMethods.ShellEvents.HSHELL_WINDOWDESTROYED: // window destroyed or minimized to tray
 					if (hiddenApplications.Remove(lParam) == HashMultiSet<IntPtr>.RemoveResult.NotFound)
 					{
-						IntPtr owned;
-						if (ownerWindows.TryGetValue(lParam, out owned))
-						{
-							RemoveApplicationFromAllWorkspaces(owned);
-							hiddenApplications.Remove(owned);
-							ownerWindows.Remove(lParam);
-						}
-						else
-						{
-							RemoveApplicationFromAllWorkspaces(lParam);
-						}
+						RemoveApplicationFromAllWorkspaces(lParam);
 					}
 					break;
 				case NativeMethods.ShellEvents.HSHELL_WINDOWACTIVATED: // window activated
 				case NativeMethods.ShellEvents.HSHELL_RUDEAPPACTIVATED:
-					if (!hiddenApplications.Contains(lParam) && !temporarilyShownWindows.Contains(lParam))
+					if (!hiddenApplications.Contains(lParam))
 					{
-						if (lParam != IntPtr.Zero)
+						if (lParam != IntPtr.Zero && !temporarilyShownWindows.Contains(lParam))
 						{
-							if (!applications.ContainsKey(lParam))
+							LinkedList<Tuple<Workspace, Window>> list;
+							if (!applications.TryGetValue(lParam, out list)) // if a new window has shown
 							{
-								IntPtr owned;
-								if (ownerWindows.TryGetValue(lParam, out owned))
-								{
-									lParam = owned;
-								}
-								else
-								{
-									RefreshApplicationsHash();
-								}
+								RefreshApplicationsHash();
 							}
 							else if (!config.Workspaces[0].ContainsWindow(lParam))
 							{
-								SwitchToApplication(lParam);
+								OnHiddenWindowShown(lParam, list);
 							}
 						}
 
@@ -1108,7 +1128,7 @@ namespace Windawesome
 				case NativeMethods.ShellEvents.HSHELL_FLASH: // window flashing in taskbar
 					{
 						LinkedList<Tuple<Workspace, Window>> list;
-						if (ApplicationsTryGetValue(lParam, out list))
+						if (applications.TryGetValue(lParam, out list))
 						{
 							DoWindowFlashing(list);
 						}
@@ -1117,7 +1137,7 @@ namespace Windawesome
 				case NativeMethods.ShellEvents.HSHELL_REDRAW: // window's taskbar button has changed
 					{
 						LinkedList<Tuple<Workspace, Window>> list;
-						if (ApplicationsTryGetValue(lParam, out list))
+						if (applications.TryGetValue(lParam, out list))
 						{
 							var text = NativeMethods.GetText(lParam);
 							foreach (var t in list)
@@ -1169,7 +1189,11 @@ namespace Windawesome
 			}
 			if (m.Msg == NativeMethods.WM_HOTKEY && m.WParam == this.getForegroundPrivilageAtom)
 			{
-				NativeMethods.SetForegroundWindow(forceForegroundWindow);
+				var count = 0;
+				while (!NativeMethods.SetForegroundWindow(forceForegroundWindow) && ++count < 5)
+				{
+				}
+
 				NativeMethods.SetWindowPos(forceForegroundWindow, NativeMethods.HWND_TOP, 0, 0, 0, 0,
 					NativeMethods.SWP.SWP_ASYNCWINDOWPOS | NativeMethods.SWP.SWP_NOMOVE |
 					NativeMethods.SWP.SWP_NOOWNERZORDER | NativeMethods.SWP.SWP_NOSIZE);

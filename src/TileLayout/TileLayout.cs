@@ -213,6 +213,7 @@ namespace Windawesome
 				var prevWindowHandle = NativeMethods.HWND_TOP;
 				foreach (var window in masterOrStackWindows)
 				{
+					// TODO: this doesn't work for ICQ 7.5's windows. MoveWindow works in Debug mode, but not in Release
 					winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, window.hWnd, prevWindowHandle,
 						x, y, eachWidth, eachHight,
 						NativeMethods.SWP.SWP_FRAMECHANGED | NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOCOPYBITS);
@@ -297,7 +298,7 @@ namespace Windawesome
 
 			windows.ForEach(window => NativeMethods.ShowWindowAsync(window.hWnd, NativeMethods.SW.SW_SHOWNOACTIVATE));
 
-			this.windows = windows;
+			this.windows = new LinkedList<Window>(windows);
 
 			var winPosInfo = NativeMethods.BeginDeferWindowPos(windows.Count);
 			winPosInfo = PositionAreaWindows(winPosInfo, workingArea, true);

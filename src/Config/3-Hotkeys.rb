@@ -165,7 +165,7 @@ subscribe modifiers.Alt | modifiers.Shift, key.Right do
 	windawesome.current_workspace.layout.add_to_master_area_factor if windawesome.current_workspace.layout.layout_name == "Tile"
 end
 
-subscribe modifiers.Alt | modifiers.Shift, key.Return do
+subscribe modifiers.Control | modifiers.Alt | modifiers.Shift, key.Return do
 	if windawesome.current_workspace.layout.layout_name == "Tile"
 		window = windawesome.current_workspace.get_window Windawesome::NativeMethods.get_foreground_window
 		windawesome.current_workspace.layout.shift_window_to_main_position window

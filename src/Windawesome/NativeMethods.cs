@@ -16,7 +16,7 @@ namespace Windawesome
 				SetWindowExStyleLongPtr = (hWnd, exStyle) => SetWindowLongPtr64(hWnd, GWL_EXSTYLE, exStyle);
 				GetWindowStyleLongPtr = hWnd => GetWindowLongPtr64WS(hWnd, GWL_STYLE);
 				GetWindowExStyleLongPtr = hWnd => GetWindowLongPtr64WS_EX(hWnd, GWL_EXSTYLE);
-				GetClassLongPtr = (hWnd, nIndex) => GetClassLongPtr64(hWnd, nIndex);
+				GetClassLongPtr = GetClassLongPtr64;
 				IsAppWindow = IsAppWindow64;
 				UnsubclassWindow = UnsubclassWindow64;
 				RunApplicationNonElevated = RunApplicationNonElevated64;
@@ -29,7 +29,7 @@ namespace Windawesome
 				SetWindowExStyleLongPtr = (hWnd, exStyle) => SetWindowLong32(hWnd, GWL_EXSTYLE, exStyle);
 				GetWindowStyleLongPtr = hWnd => GetWindowLong32WS(hWnd, GWL_STYLE);
 				GetWindowExStyleLongPtr = hWnd => GetWindowLong32WS_EX(hWnd, GWL_EXSTYLE);
-				GetClassLongPtr = (hWnd, nIndex) => GetClassLong32(hWnd, nIndex);
+				GetClassLongPtr = GetClassLong32;
 				IsAppWindow = IsAppWindow32;
 				UnsubclassWindow = UnsubclassWindow32;
 				RunApplicationNonElevated = RunApplicationNonElevated32;
@@ -690,10 +690,14 @@ namespace Windawesome
 
 		// keyboard stuff
 
-		#region SendInput
+		#region SendInput/BlockInput
 
 		[DllImport("user32.dll")]
 		public static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
+
+		[DllImport("user32.dll")]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		public static extern bool BlockInput([MarshalAs(UnmanagedType.Bool)] bool fBlockIt);
 
 		[StructLayout(LayoutKind.Sequential)]
 		public struct MouseInputData
@@ -770,7 +774,7 @@ namespace Windawesome
 		#endregion
 
 		[DllImport("user32.dll")]
-		public static extern short GetKeyState(System.Windows.Forms.Keys nVirtKey);
+		public static extern short GetAsyncKeyState(System.Windows.Forms.Keys nVirtKey);
 
 		// misc stuff
 
@@ -793,25 +797,22 @@ namespace Windawesome
 		public static bool Is64BitProcess(IntPtr hWnd)
 		{
 			var result = false;
-			if ((Environment.OSVersion.Version.Major == 5 && Environment.OSVersion.Version.Minor >= 1) ||
-				  Environment.OSVersion.Version.Major > 5)
+
+			int processId;
+			GetWindowThreadProcessId(hWnd, out processId);
+			var processHandle = Windawesome.isAtLeastVista ?
+				OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, processId) :
+				OpenProcess(PROCESS_QUERY_INFORMATION, false, processId);
+			if (processHandle != IntPtr.Zero)
 			{
-				int processId;
-				GetWindowThreadProcessId(hWnd, out processId);
-				var processHandle = Windawesome.isAtLeastVista ?
-					OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, processId) :
-					OpenProcess(PROCESS_QUERY_INFORMATION, false, processId);
-				if (processHandle != IntPtr.Zero)
+				try
 				{
-					try
-					{
-						IsWow64Process(processHandle, out result);
-						result = !result;
-					}
-					finally
-					{
-						CloseHandle(processHandle);
-					}
+					IsWow64Process(processHandle, out result);
+					result = !result;
+				}
+				finally
+				{
+					CloseHandle(processHandle);
 				}
 			}
 
