@@ -18,6 +18,11 @@ config.Layouts = Enumerable.ToArray[ILayout]([TileLayout(), FullScreenLayout(), 
 config.Bars = Enumerable.ToArray[Bar]([
 	Bar(
 		[WorkspacesWidget(), LayoutWidget()],
+		[SystemTrayWidget(True), DateTimeWidget("ddd, d-MMM"), DateTimeWidget("h:mm tt", Color.FromArgb(0xA8, 0xA8, 0xA8))],
+		[ApplicationTabsWidget()]
+	),
+	Bar(
+		[WorkspacesWidget(), LayoutWidget()],
 		[SystemTrayWidget(), DateTimeWidget("ddd, d-MMM"), DateTimeWidget("h:mm tt", Color.FromArgb(0xA8, 0xA8, 0xA8))],
 		[ApplicationTabsWidget()]
 	)
@@ -25,14 +30,14 @@ config.Bars = Enumerable.ToArray[Bar]([
 
 config.Workspaces = Enumerable.ToArray[Workspace]([
 	Workspace(config.Layouts[2], [BarInfo(config.Bars[0])], name = 'main'),
-	Workspace(config.Layouts[1], [BarInfo(config.Bars[0])], name = 'web'),
-	Workspace(config.Layouts[1], [BarInfo(config.Bars[0])]),
-	Workspace(config.Layouts[0], [BarInfo(config.Bars[0])], name = 'chat'),
-	Workspace(config.Layouts[1], [BarInfo(config.Bars[0])]),
-	Workspace(config.Layouts[1], [BarInfo(config.Bars[0])]),
-	Workspace(config.Layouts[1], [BarInfo(config.Bars[0])]),
-	Workspace(config.Layouts[1], [BarInfo(config.Bars[0])], name = 'mail'),
-	Workspace(config.Layouts[1], [BarInfo(config.Bars[0])], name = 'BC')
+	Workspace(config.Layouts[1], [BarInfo(config.Bars[1])], name = 'web'),
+	Workspace(config.Layouts[1], [BarInfo(config.Bars[1])]),
+	Workspace(config.Layouts[0], [BarInfo(config.Bars[1])], name = 'chat'),
+	Workspace(config.Layouts[1], [BarInfo(config.Bars[1])]),
+	Workspace(config.Layouts[1], [BarInfo(config.Bars[1])]),
+	Workspace(config.Layouts[1], [BarInfo(config.Bars[1])]),
+	Workspace(config.Layouts[1], [BarInfo(config.Bars[1])], name = 'mail'),
+	Workspace(config.Layouts[1], [BarInfo(config.Bars[1])], name = 'BC')
 ])
 config.StartingWorkspace = 1 # workspace indices start from one!
 config.WorkspacesCount = config.Workspaces.Length

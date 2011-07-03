@@ -40,11 +40,16 @@ styleNotContains - the window styles that must NOT be present in the window's st
 styleExContains - the extended window styles that must be present in the window's extended style
 styleExNotContains - the extended window styles that must NOT be present in the window's extended style
 isManaged - whether Windawesome should care about that window
-windowCreatedDelay - the time, in milliseconds, to wait before taking any action after the window has been created (if >= 0). If Windawesome has problems with newly created windows, try setting this to a higher value
-switchToOnCreated - if true, Windawesome switches to this application even if it is not on the current workspace (i.e. it switches to the first workspace where it can find it)
+tryAgainAfter - the time, in milliseconds, to wait before trying to match the rules again (if >= 0)
+windowCreatedDelay - the time, in milliseconds, to wait before taking any action after the window has been created (if > 0). Windawesome will match te rules and then sleep. If Windawesome has problems with newly created windows, try setting this to a higher value
 handleOwnedWindows - if true, Windawesome will handle a window that is owned by this one. Useful for applications using the VCL framework as they use a window which owns the "real" window
 hideOwnedPopups - if true, Windawesome will hide all popups that are owned of the window being hidden
 redrawDesktopOnWindowCreated - if true, Windawesome will redraw the Desktop when this window is created. Useful if you have problems with that. I've seen it with mintty (the cygwin terminal emulator)
+onWindowCreatedAction - specifies what to do when a window is created. Can be one of the enum values:
+	SwitchToWindowsWorkspace - switches to that window's workspace. The default value
+	MoveWindowToCurrentWorkspace - moves the window to the current workspace
+	TemporarilyShowWindowOnCurrentWorkspace - shows the window but doesn't move it to the current workspace. Can be dismissed by calling DismissTemporarilyShownWindow
+	HideWindow - hides the window (this option doesn't always work - try putting a bigger number for windowCreatedDelay)
 onHiddenWindowShownAction - specifies what to do when a hidden window suddenly shows itself. Can be one of the enum values:
 	SwitchToWindowsWorkspace - switches to that window's workspace. The default value
 	MoveWindowToCurrentWorkspace - moves the window to the current workspace
@@ -70,9 +75,9 @@ activateLastActivePopup - whether Windawesome should activate the last active po
 Bar:
 A Bar is a horizontal... well bar, that is docked to the top or the bottom of the screen. It can contain Widgets which can be left, right or middle aligned.
 
-containsLeftAligned - a list of Widget objects which are going to be left-aligned on the bar. They will show from left to right, i.e. the leftmost edge of the first object in the list is going to be at the leftmost position on the screen
-containsRightAligned - a list of Widget objects which are going to be right-aligned on the bar. They will show from left to right, i.e. the rightmost edge of the last object in the list is going to be at the rightmost position on the screen
-containsMiddleAligned - a list of Widget objects which are going to span all the available space in the middle of the bar
+leftAlignedWidgets - a list of Widget objects which are going to be left-aligned on the bar. They will show from left to right, i.e. the leftmost edge of the first object in the list is going to be at the leftmost position on the screen
+rightAlignedWidgets - a list of Widget objects which are going to be right-aligned on the bar. They will show from left to right, i.e. the rightmost edge of the last object in the list is going to be at the rightmost position on the screen
+middleAlignedWidgets - a list of Widget objects which are going to span all the available space in the middle of the bar
 barHeight - the height of the bar, in pixels
 font - the default font to be used for any Widget, if it does not specify anything else
 backgroundColor - the default background color of the Bar

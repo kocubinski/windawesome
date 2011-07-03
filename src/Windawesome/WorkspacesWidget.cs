@@ -109,7 +109,7 @@ namespace Windawesome
 		{
 			flashingWindows[list.First.Value.Item2.hWnd] = list.First.Value.Item1;
 			flashingWorkspaces.Add(list.First.Value.Item1);
-			if (flashingWorkspaces.Count == 1 && !flashTimer.Enabled)
+			if (flashingWorkspaces.Count == 1)
 			{
 				flashTimer.Start();
 			}
@@ -164,9 +164,6 @@ namespace Windawesome
 			WorkspacesWidget.windawesome = windawesome;
 			WorkspacesWidget.config = config;
 
-			Workspace.WorkspaceChangedFrom += OnWorkspaceChangedFromTo;
-			Workspace.WorkspaceChangedTo += OnWorkspaceChangedFromTo;
-
 			if (anyFlashWorkspaces)
 			{
 				Windawesome.WindowFlashing += OnWindowFlashing;
@@ -188,6 +185,9 @@ namespace Windawesome
 
 			Workspace.WorkspaceApplicationAdded += SetWorkspaceLabelColor;
 			Workspace.WorkspaceApplicationRemoved += SetWorkspaceLabelColor;
+
+			Workspace.WorkspaceChangedFrom += OnWorkspaceChangedFromTo;
+			Workspace.WorkspaceChangedTo += OnWorkspaceChangedFromTo;
 
 			for (var i = 1; i < config.Workspaces.Length; i++)
 			{

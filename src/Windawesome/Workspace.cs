@@ -903,7 +903,7 @@ namespace Windawesome
 			this.IsMinimized = isMinimized;
 
 			this.ownedWindows = ownedWindows;
-			
+
 			IsFloating = rule.isFloating;
 			ShowInTabs = rule.showInTabs;
 			Titlebar = rule.titlebar;

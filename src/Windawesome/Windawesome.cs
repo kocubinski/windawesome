@@ -466,7 +466,7 @@ namespace Windawesome
 				var is64BitProcess = Environment.Is64BitOperatingSystem && NativeMethods.Is64BitProcess(hWnd);
 
 				var list = new LinkedList<Tuple<Workspace, Window>>();
-				
+
 				applications[hWnd] = list;
 
 				foreach (var rule in matchingRules)
