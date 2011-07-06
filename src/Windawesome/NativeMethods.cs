@@ -153,6 +153,7 @@ namespace Windawesome
 		public static readonly IntPtr WM_RBUTTONUP = (IntPtr) 0x205;
 		public const uint WM_GETICON = 0x007f;
 		public const uint WM_QUERYDRAGICON = 0x0037;
+		public const uint WM_GETTEXT = 0x000D;
 
 		public static readonly UIntPtr SC_MINIMIZE = (UIntPtr) 0xF020;
 		public static readonly UIntPtr SC_MAXIMIZE = (UIntPtr) 0xF030;
@@ -231,6 +232,8 @@ namespace Windawesome
 		#endregion
 
 		// window stuff
+
+		public static readonly IntPtr HWND_MESSAGE = (IntPtr) (-3);
 
 		#region EnumWindows
 
@@ -543,12 +546,14 @@ namespace Windawesome
 			SWP_SHOWWINDOW = 0x0040,
 			SWP_HIDEWINDOW = 0x0080,
 			SWP_NOZORDER = 0x0004,
+			SWP_NOREDRAW = 0x0008,
 			SWP_NOACTIVATE = 0x0010,
 			SWP_NOMOVE = 0x0002,
 			SWP_NOSIZE = 0x0001,
 			SWP_FRAMECHANGED = 0x0020,
 			SWP_NOCOPYBITS = 0x0100,
 			SWP_NOOWNERZORDER = 0x0200,
+			SWP_DEFERERASE = 0x2000,
 			SWP_NOSENDCHANGING = 0x0400,
 			SWP_ASYNCWINDOWPOS = 0x4000
 		}

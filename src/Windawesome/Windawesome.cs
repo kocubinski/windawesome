@@ -28,6 +28,8 @@ namespace Windawesome
 		private readonly Rectangle[] originalWorkingArea;
 		private Size screenResolution;
 
+		private static readonly Tuple<NativeMethods.MOD, Keys> altTabCombination = new Tuple<NativeMethods.MOD, Keys>(NativeMethods.MOD.MOD_ALT, Keys.Tab);
+
 		internal static int[] workspaceBarsEquivalentClasses;
 
 		public delegate bool HandleMessageDelegate(ref Message m);
@@ -109,7 +111,7 @@ namespace Windawesome
 
 		internal Windawesome()
 		{
-			this.CreateHandle(new CreateParams { Caption = "Windawesome", ClassName = "Message", Parent = (IntPtr) (-3) });
+			this.CreateHandle(new CreateParams { Caption = "Windawesome", ClassName = "Message", Parent = NativeMethods.HWND_MESSAGE });
 
 			HandleStatic = this.Handle;
 
@@ -177,14 +179,6 @@ namespace Windawesome
 			NativeMethods.RegisterShellHookWindow(HandleStatic);
 			shellMessageNum = NativeMethods.RegisterWindowMessage("SHELLHOOK");
 
-			// initialize all workspaces
-			foreach (var ws in config.Workspaces.Skip(1).Where(ws => ws.id != config.StartingWorkspace))
-			{
-				ws.GetWindows().ForEach(w => hiddenApplications.AddUnique(w.hWnd));
-				ws.Initialize(false);
-			}
-			config.Workspaces[0].Initialize(true);
-
 			screenResolution = SystemInformation.PrimaryMonitorSize;
 			originalWorkingArea = new Rectangle[config.WorkspacesCount];
 			originalWorkingArea[0] = SystemInformation.WorkingArea;
@@ -192,6 +186,14 @@ namespace Windawesome
 			{
 				originalWorkingArea[i] = originalWorkingArea[0];
 			}
+
+			// initialize all workspaces
+			foreach (var ws in config.Workspaces.Skip(1).Where(ws => ws.id != config.StartingWorkspace))
+			{
+				ws.GetWindows().ForEach(w => hiddenApplications.AddUnique(w.hWnd));
+				ws.Initialize(false, originalWorkingArea[0]);
+			}
+			config.Workspaces[0].Initialize(true, originalWorkingArea[0]);
 
 			// switches to the default starting workspace
 			config.Workspaces[0].SwitchTo();
@@ -215,7 +217,7 @@ namespace Windawesome
 			config.Workspaces[0].RevertToInitialValues();
 			foreach (var window in applications.Values.Select(l => l.First.Value.Item2))
 			{
-				Workspace.DoForWindowOrItsOwned(window, w => w.RevertToInitialValues());
+				window.DoForSelfOrOwned(w => w.RevertToInitialValues());
 				window.Show();
 			}
 
@@ -528,40 +530,40 @@ namespace Windawesome
 
 		internal static void ForceForegroundWindow(IntPtr hWnd)
 		{
-			ExecuteOnWindowShown(hWnd, SendHotkey);
+			ExecuteOnWindowShown(hWnd, h => SendHotkey(h, uniqueHotkey));
 		}
 
 		private static readonly NativeMethods.INPUT[] input = new NativeMethods.INPUT[18];
 		// sends the uniqueHotkey combination without disrupting the currently pressed modifiers
-		private static void SendHotkey(IntPtr hWnd)
+		private static void SendHotkey(IntPtr hWnd, Tuple<NativeMethods.MOD, Keys> hotkey)
 		{
 			uint i = 0;
 
 			NativeMethods.BlockInput(true);
 
 			// press needed modifiers
-			var shiftShouldBePressed = uniqueHotkey.Item1.HasFlag(NativeMethods.MOD.MOD_SHIFT);
+			var shiftShouldBePressed = hotkey.Item1.HasFlag(NativeMethods.MOD.MOD_SHIFT);
 			var leftShiftPressed = (NativeMethods.GetAsyncKeyState(Keys.LShiftKey) & 0x8000) == 0x8000;
 			var rightShiftPressed = (NativeMethods.GetAsyncKeyState(Keys.RShiftKey) & 0x8000) == 0x8000;
 
 			PressReleaseModifierKey(leftShiftPressed, rightShiftPressed, shiftShouldBePressed,
 				Keys.ShiftKey, Keys.LShiftKey, Keys.RShiftKey, 0, NativeMethods.KEYEVENTF_KEYUP, ref i);
 
-			var winShouldBePressed = uniqueHotkey.Item1.HasFlag(NativeMethods.MOD.MOD_WIN);
+			var winShouldBePressed = hotkey.Item1.HasFlag(NativeMethods.MOD.MOD_WIN);
 			var leftWinPressed = (NativeMethods.GetAsyncKeyState(Keys.LWin) & 0x8000) == 0x8000;
 			var rightWinPressed = (NativeMethods.GetAsyncKeyState(Keys.RWin) & 0x8000) == 0x8000;
 
 			PressReleaseModifierKey(leftWinPressed, rightWinPressed, winShouldBePressed,
 				Keys.LWin, Keys.LWin, Keys.RWin, 0, NativeMethods.KEYEVENTF_KEYUP, ref i);
 
-			var controlShouldBePressed = uniqueHotkey.Item1.HasFlag(NativeMethods.MOD.MOD_CONTROL);
+			var controlShouldBePressed = hotkey.Item1.HasFlag(NativeMethods.MOD.MOD_CONTROL);
 			var leftControlPressed = (NativeMethods.GetAsyncKeyState(Keys.LControlKey) & 0x8000) == 0x8000;
 			var rightControlPressed = (NativeMethods.GetAsyncKeyState(Keys.RControlKey) & 0x8000) == 0x8000;
 
 			PressReleaseModifierKey(leftControlPressed, rightControlPressed, controlShouldBePressed,
 				Keys.ControlKey, Keys.LControlKey, Keys.RControlKey, 0, NativeMethods.KEYEVENTF_KEYUP, ref i);
 
-			var altShouldBePressed = uniqueHotkey.Item1.HasFlag(NativeMethods.MOD.MOD_ALT);
+			var altShouldBePressed = hotkey.Item1.HasFlag(NativeMethods.MOD.MOD_ALT);
 			var leftAltPressed = (NativeMethods.GetAsyncKeyState(Keys.LMenu) & 0x8000) == 0x8000;
 			var rightAltPressed = (NativeMethods.GetAsyncKeyState(Keys.RMenu) & 0x8000) == 0x8000;
 
@@ -569,8 +571,8 @@ namespace Windawesome
 				Keys.Menu, Keys.LMenu, Keys.RMenu, 0, NativeMethods.KEYEVENTF_KEYUP, ref i);
 
 			// press and release key
-			input[i++] = new NativeMethods.INPUT(uniqueHotkey.Item2, 0);
-			input[i++] = new NativeMethods.INPUT(uniqueHotkey.Item2, NativeMethods.KEYEVENTF_KEYUP);
+			input[i++] = new NativeMethods.INPUT(hotkey.Item2, 0);
+			input[i++] = new NativeMethods.INPUT(hotkey.Item2, NativeMethods.KEYEVENTF_KEYUP);
 
 			// revert changes to modifiers
 			PressReleaseModifierKey(leftAltPressed, rightAltPressed, altShouldBePressed,
@@ -1078,7 +1080,8 @@ namespace Windawesome
 							// another problem is that some windows continuously keep showing when hidden.
 							// how to reproduce: TortoiseSVN. About box. Click check for updates. This window
 							// keeps showing up when changing workspaces
-							OnHiddenWindowShown(lParam, list);
+							NativeMethods.PostMessage(HandleStatic, shellMessageNum,
+								(UIntPtr) (uint) NativeMethods.ShellEvents.HSHELL_WINDOWACTIVATED, lParam);
 						}
 						else if (onWindowShown.TryGetValue(lParam, out onWindowShownAction))
 						{
@@ -1194,9 +1197,15 @@ namespace Windawesome
 				{
 				}
 
-				NativeMethods.SetWindowPos(forceForegroundWindow, NativeMethods.HWND_TOP, 0, 0, 0, 0,
-					NativeMethods.SWP.SWP_ASYNCWINDOWPOS | NativeMethods.SWP.SWP_NOMOVE |
-					NativeMethods.SWP.SWP_NOOWNERZORDER | NativeMethods.SWP.SWP_NOSIZE);
+				if (count == 5)
+				{
+					SendHotkey(IntPtr.Zero, altTabCombination);
+				}
+				else
+				{
+					NativeMethods.SetWindowPos(forceForegroundWindow, NativeMethods.HWND_TOP, 0, 0, 0, 0,
+						NativeMethods.SWP.SWP_ASYNCWINDOWPOS | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
+				}
 				return ;
 			}
 			HandleMessageDelegate messageDelegate;
