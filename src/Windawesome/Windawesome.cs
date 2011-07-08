@@ -273,7 +273,7 @@ namespace Windawesome
 				var newWorkingArea = SystemInformation.WorkingArea;
 				if (newWorkingArea != config.Workspaces[0].workingArea)
 				{
-					if (newWorkingArea == originalWorkingArea[CurrentWorkspace.id - 1])
+					if (newWorkingArea == originalWorkingArea[config.Workspaces[0].id - 1])
 					{
 						// because Windows resets the working area when the UAC prompt is shown,
 						// as well as shows the taskbar when a full-screen application is exited... twice. :)
@@ -646,8 +646,7 @@ namespace Windawesome
 					break;
 				case OnWindowShownAction.HideWindow:
 					System.Threading.Thread.Sleep(1000);
-					hiddenApplications.Add(hWnd);
-					tuple.Item2.Hide();
+					HideWindow(tuple.Item2);
 					config.Workspaces[0].SetTopWindowAsForeground();
 					break;
 			}
@@ -668,9 +667,66 @@ namespace Windawesome
 			}
 		}
 
+		private void HideWindow(Window window, bool hide = true)
+		{
+			hiddenApplications.Add(window.hWnd);
+			window.Hide(hide);
+		}
+
+		private void ShowHideWindows(IEnumerable<Window> showWindows, int maxShowWindowsCount, IEnumerable<Window> hideWindows, int maxHideWindowsCount)
+		{
+			var winPosInfo = NativeMethods.BeginDeferWindowPos(maxShowWindowsCount + maxHideWindowsCount);
+
+			foreach (var window in showWindows.Where(WindowIsNotHung))
+			{
+				winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, window.hWnd, IntPtr.Zero, 0, 0, 0, 0,
+					NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE |
+					NativeMethods.SWP.SWP_NOZORDER | NativeMethods.SWP.SWP_NOOWNERZORDER | NativeMethods.SWP.SWP_SHOWWINDOW);
+			}
+
+			foreach (var window in hideWindows.Where(WindowIsNotHung))
+			{
+				winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, window.hWnd, IntPtr.Zero, 0, 0, 0, 0,
+					NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE |
+					NativeMethods.SWP.SWP_NOZORDER | NativeMethods.SWP.SWP_NOOWNERZORDER | NativeMethods.SWP.SWP_HIDEWINDOW);
+				HideWindow(window, false);
+			}
+
+			NativeMethods.EndDeferWindowPos(winPosInfo);
+
+			showWindows.ForEach(w => w.Show(false));
+		}
+
 		#endregion
 
 		#region API
+
+		public static bool WindowIsNotHung(Window window)
+		{
+			// IsHungAppWindow is not going to work, as it starts returning true 5 seconds after the window
+			// has hung - so if a SetWindowPos, e.g., is called on such a window, it may block forever, even
+			// though IsHungAppWindow returned false
+
+			// SendMessageTimeout with a small timeout will timeout for some programs which are heavy on
+			// computation and do not respond in time - like Visual Stuido. A big timeout works, but if an
+			// application is really hung, then Windawesome is blocked for this number of milliseconds.
+			// That can be felt and is annoying. Perhaps the best scenario is:
+			// return !IsHungAppWindow && (SendMessageTimeout || GetLastWin32Error)
+			// As this will not block forever at any point and it will only block the main thread for "timeout"
+			// milliseconds the first 5 seconds when a program is hung - after that IsHungAppWindow catches it
+			// immediately and returns. However, I decided that in most cases apps are not hung, so the overhead
+			// of calling IsHungAppWindow AND SendMessageTimeout is not worth.
+
+			var res = NativeMethods.SendMessageTimeout(window.hWnd, NativeMethods.WM_NULL, UIntPtr.Zero, IntPtr.Zero,
+					NativeMethods.SMTO.SMTO_ABORTIFHUNG | NativeMethods.SMTO.SMTO_BLOCK, 1000, IntPtr.Zero) != IntPtr.Zero ||
+				System.Runtime.InteropServices.Marshal.GetLastWin32Error() != NativeMethods.ERROR_TIMEOUT;
+
+			if (!res)
+			{
+			}
+
+			return res;
+		}
 
 		public void RefreshWindawesome()
 		{
@@ -731,9 +787,9 @@ namespace Windawesome
 			}
 		}
 
-		public void RemoveApplicationFromCurrentWorkspace(IntPtr hWnd)
+		public void RemoveApplicationFromWorkspace(IntPtr hWnd, int workspace = 0)
 		{
-			var window = GetOwnermostWindow(hWnd, config.Workspaces[0]);
+			var window = GetOwnermostWindow(hWnd, config.Workspaces[workspace]);
 			if (window != null)
 			{
 				if (window.WorkspacesCount == 1)
@@ -742,14 +798,13 @@ namespace Windawesome
 				}
 				else
 				{
-					hiddenApplications.Add(window.hWnd);
-					window.Hide();
+					HideWindow(window);
 
 					var list = applications[window.hWnd];
-					list.Remove(new Tuple<Workspace, Window>(this.CurrentWorkspace, window));
+					list.Remove(new Tuple<Workspace, Window>(config.Workspaces[workspace], window));
 					list.Where(t => --t.Item2.WorkspacesCount == 1).ForEach(t => t.Item1.AddToRemovedSharedWindows(t.Item2));
 
-					this.CurrentWorkspace.WindowDestroyed(window);
+					config.Workspaces[workspace].WindowDestroyed(window);
 				}
 			}
 		}
@@ -767,9 +822,12 @@ namespace Windawesome
 
 		public bool SwitchToWorkspace(int workspace, bool setForeground = true)
 		{
-			if (workspace != this.CurrentWorkspace.id)
+			if (workspace != config.Workspaces[0].id)
 			{
-				config.Workspaces[workspace].ShowWindows();
+				var showWindows = config.Workspaces[workspace].GetWindows();
+				var hideWindows = config.Workspaces[0].GetWindows().Except(showWindows);
+				ShowHideWindows(showWindows, showWindows.Count(),
+					hideWindows, config.Workspaces[0].GetWindows().Count());
 
 				// activates the topmost non-minimized window
 				if (setForeground)
@@ -777,21 +835,13 @@ namespace Windawesome
 					config.Workspaces[workspace].SetTopWindowAsForeground();
 				}
 
-				config.Workspaces[0].GetWindows().ForEach(w => hiddenApplications.Add(w.hWnd));
-				config.Workspaces[0].HideWindows();
-
 				if (temporarilyShownWindows.Count > 0)
 				{
-					foreach (var hWnd in temporarilyShownWindows)
-					{
-						hiddenApplications.Add(hWnd);
-						applications[hWnd].First.Value.Item2.Hide();
-					}
-
+					temporarilyShownWindows.ForEach(hWnd => HideWindow(applications[hWnd].First.Value.Item2));
 					temporarilyShownWindows.Clear();
 				}
 
-				this.CurrentWorkspace.Unswitch();
+				config.Workspaces[0].Unswitch();
 
 				PreviousWorkspace = config.Workspaces[0].id;
 				config.Workspaces[0] = config.Workspaces[workspace];
@@ -903,14 +953,15 @@ namespace Windawesome
 			var window = config.Workspaces[0].GetOwnermostWindow(hWnd);
 			if (window != null)
 			{
-				if (window.IsMinimized)
+				if (window.IsMinimized && WindowIsNotHung(window))
 				{
 					// OpenIcon does not restore the window to its previous size (e.g. maximized)
 					NativeMethods.ShowWindowAsync(hWnd, NativeMethods.SW.SW_RESTORE);
+					System.Threading.Thread.Sleep(Workspace.minimizeRestoreDelay);
+					PostAction(() => ForceForegroundWindow(window));
 				}
 				else
 				{
-					// TODO: maybe try this in an "else" clause?
 					ForceForegroundWindow(window);
 				}
 
@@ -1061,8 +1112,7 @@ namespace Windawesome
 		{
 			if (temporarilyShownWindows.Contains(hWnd))
 			{
-				hiddenApplications.Add(hWnd);
-				applications[hWnd].First.Value.Item2.Hide();
+				HideWindow(applications[hWnd].First.Value.Item2);
 				config.Workspaces[0].SetTopWindowAsForeground();
 				temporarilyShownWindows.Remove(hWnd);
 			}

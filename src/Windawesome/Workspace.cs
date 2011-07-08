@@ -327,45 +327,6 @@ namespace Windawesome
 			}
 		}
 
-		internal void ShowWindows()
-		{
-			var winPosInfo = NativeMethods.BeginDeferWindowPos(windows.Count);
-
-			foreach (var window in windows.Where(WindowIsNotHung))
-			{
-				winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, window.hWnd, IntPtr.Zero, 0, 0, 0, 0,
-					NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE |
-					NativeMethods.SWP.SWP_NOZORDER | NativeMethods.SWP.SWP_NOOWNERZORDER | NativeMethods.SWP.SWP_SHOWWINDOW);
-			}
-
-			NativeMethods.EndDeferWindowPos(winPosInfo);
-
-			windows.ForEach(w => w.Show(false));
-		}
-
-		internal void HideWindows()
-		{
-			var winPosInfo = NativeMethods.BeginDeferWindowPos(windows.Count);
-
-			foreach (var window in windows.Where(WindowIsNotHung))
-			{
-				winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, window.hWnd, IntPtr.Zero, 0, 0, 0, 0,
-					NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE |
-					NativeMethods.SWP.SWP_NOZORDER | NativeMethods.SWP.SWP_NOOWNERZORDER | NativeMethods.SWP.SWP_HIDEWINDOW);
-				window.Hide(false);
-			}
-
-			NativeMethods.EndDeferWindowPos(winPosInfo);
-		}
-
-		public static bool WindowIsNotHung(Window window)
-		{
-			// TODO: this is not good
-			return NativeMethods.SendMessageTimeout(window.hWnd, NativeMethods.WM_NULL, UIntPtr.Zero, IntPtr.Zero,
-					NativeMethods.SMTO.SMTO_ABORTIFHUNG | NativeMethods.SMTO.SMTO_BLOCK, 1000, IntPtr.Zero) != IntPtr.Zero ||
-				System.Runtime.InteropServices.Marshal.GetLastWin32Error() != NativeMethods.ERROR_TIMEOUT;
-		}
-
 		public void Reposition()
 		{
 			Layout.Reposition(managedWindows, workingArea);
@@ -770,7 +731,7 @@ namespace Windawesome
 			}
 			else
 			{
-				HideWindows();
+				windows.ForEach(w => w.Hide());
 			}
 		}
 
