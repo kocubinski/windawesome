@@ -107,11 +107,14 @@ namespace Windawesome
 
 		private static void OnWindowFlashing(LinkedList<Tuple<Workspace, Window>> list)
 		{
-			flashingWindows[list.First.Value.Item2.hWnd] = list.First.Value.Item1;
-			flashingWorkspaces.Add(list.First.Value.Item1);
-			if (flashingWorkspaces.Count == 1)
+			if (list.First.Value.Item2.hWnd != NativeMethods.GetForegroundWindow())
 			{
-				flashTimer.Start();
+				flashingWindows[list.First.Value.Item2.hWnd] = list.First.Value.Item1;
+				flashingWorkspaces.Add(list.First.Value.Item1);
+				if (flashingWorkspaces.Count == 1)
+				{
+					flashTimer.Start();
+				}
 			}
 		}
 

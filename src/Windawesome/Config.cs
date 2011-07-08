@@ -187,8 +187,8 @@ namespace Windawesome
 		internal readonly Regex processName;
 		internal readonly NativeMethods.WS styleContains;
 		internal readonly NativeMethods.WS styleNotContains;
-		internal readonly NativeMethods.WS_EX styleExContains;
-		internal readonly NativeMethods.WS_EX styleExNotContains;
+		internal readonly NativeMethods.WS_EX exStyleContains;
+		internal readonly NativeMethods.WS_EX exStyleNotContains;
 		internal readonly bool isManaged;
 		internal readonly int tryAgainAfter;
 		internal readonly int windowCreatedDelay;
@@ -203,12 +203,12 @@ namespace Windawesome
 		{
 			return className.IsMatch(cName) && displayName.IsMatch(dName) && processName.IsMatch(pName) &&
 				(style & styleContains) == styleContains && (style & styleNotContains) == 0 &&
-				(exStyle & styleExContains) == styleExContains && (exStyle & styleExNotContains) == 0;
+				(exStyle & exStyleContains) == exStyleContains && (exStyle & exStyleNotContains) == 0;
 		}
 
 		public ProgramRule(string className = ".*", string displayName = ".*", string processName = ".*",
 			NativeMethods.WS styleContains = (NativeMethods.WS) 0, NativeMethods.WS styleNotContains = (NativeMethods.WS) 0,
-			NativeMethods.WS_EX styleExContains = (NativeMethods.WS_EX) 0, NativeMethods.WS_EX styleExNotContains = (NativeMethods.WS_EX) 0,
+			NativeMethods.WS_EX exStyleContains = (NativeMethods.WS_EX) 0, NativeMethods.WS_EX exStyleNotContains = (NativeMethods.WS_EX) 0,
 			bool isManaged = true, int tryAgainAfter = -1, int windowCreatedDelay = 0, bool handleOwnedWindows = false,
 			bool hideOwnedPopups = true, bool redrawDesktopOnWindowCreated = false,
 			OnWindowShownAction onWindowCreatedAction = OnWindowShownAction.SwitchToWindowsWorkspace,
@@ -220,8 +220,8 @@ namespace Windawesome
 			this.processName = new Regex(processName, RegexOptions.Compiled);
 			this.styleContains = styleContains;
 			this.styleNotContains = styleNotContains;
-			this.styleExContains = styleExContains;
-			this.styleExNotContains = styleExNotContains;
+			this.exStyleContains = exStyleContains;
+			this.exStyleNotContains = exStyleNotContains;
 			this.isManaged = isManaged;
 			this.tryAgainAfter = tryAgainAfter;
 			this.windowCreatedDelay = windowCreatedDelay;

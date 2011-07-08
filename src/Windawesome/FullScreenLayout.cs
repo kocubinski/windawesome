@@ -41,36 +41,31 @@ namespace Windawesome
 			return "Full Screen";
 		}
 
-		public void Reposition(LinkedList<Window> windows, System.Drawing.Rectangle workingArea)
+		public void Reposition(IEnumerable<Window> windows, System.Drawing.Rectangle workingArea)
 		{
 			windows.ForEach(w => MaximizeWindow(w, workingArea));
 		}
 
-		public bool NeedsToSaveAndRestoreZOrder()
-		{
-			return true;
-		}
-
-		public void WindowTitlebarToggled(Window window, LinkedList<Window> windows, System.Drawing.Rectangle workingArea)
+		public void WindowTitlebarToggled(Window window, IEnumerable<Window> windows, System.Drawing.Rectangle workingArea)
 		{
 			MaximizeWindow(window, workingArea);
 		}
 
-		public void WindowBorderToggled(Window window, LinkedList<Window> windows, System.Drawing.Rectangle workingArea)
+		public void WindowBorderToggled(Window window, IEnumerable<Window> windows, System.Drawing.Rectangle workingArea)
 		{
 			MaximizeWindow(window, workingArea);
 		}
 
-		public void WindowMinimized(Window window, LinkedList<Window> windows, System.Drawing.Rectangle workingArea)
+		public void WindowMinimized(Window window, IEnumerable<Window> windows, System.Drawing.Rectangle workingArea)
 		{
 		}
 
-		public void WindowRestored(Window window, LinkedList<Window> windows, System.Drawing.Rectangle workingArea)
+		public void WindowRestored(Window window, IEnumerable<Window> windows, System.Drawing.Rectangle workingArea)
 		{
 			MaximizeWindow(window, workingArea);
 		}
 
-		public void WindowCreated(Window window, LinkedList<Window> windows, System.Drawing.Rectangle workingArea, bool reLayout)
+		public void WindowCreated(Window window, IEnumerable<Window> windows, System.Drawing.Rectangle workingArea, bool reLayout)
 		{
 			if (reLayout)
 			{
@@ -78,7 +73,7 @@ namespace Windawesome
 			}
 		}
 
-		public void WindowDestroyed(Window window, LinkedList<Window> windows, System.Drawing.Rectangle workingArea, bool reLayout)
+		public void WindowDestroyed(Window window, IEnumerable<Window> windows, System.Drawing.Rectangle workingArea, bool reLayout)
 		{
 		}
 

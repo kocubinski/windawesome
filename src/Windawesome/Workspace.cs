@@ -15,7 +15,6 @@ namespace Windawesome
 		public bool ShowWindowsTaskbar { get; private set; }
 		public bool IsCurrentWorkspace { get; private set; }
 		public readonly bool repositionOnSwitchedTo;
-		public readonly bool restoreZOrder;
 
 		public class BarInfo
 		{
@@ -188,7 +187,7 @@ namespace Windawesome
 		}
 
 		public Workspace(ILayout layout, IEnumerable<BarInfo> bars, string name = "", bool showWindowsTaskbar = false,
-			bool repositionOnSwitchedTo = false, bool restoreZOrder = true)
+			bool repositionOnSwitchedTo = false)
 		{
 			windows = new LinkedList<Window>();
 			managedWindows = new LinkedList<Window>();
@@ -201,7 +200,6 @@ namespace Windawesome
 			this.name = name;
 			this.ShowWindowsTaskbar = showWindowsTaskbar;
 			this.repositionOnSwitchedTo = repositionOnSwitchedTo;
-			this.restoreZOrder = restoreZOrder;
 		}
 
 		public override int GetHashCode()
@@ -278,7 +276,7 @@ namespace Windawesome
 				ForEach(bs => bs.bar.ResizeWidgets(this.workingArea.Left, this.workingArea.Right));
 		}
 
-		internal void SwitchTo(bool setForeground = true)
+		internal void SwitchTo()
 		{
 			// hides or shows the Windows taskbar
 			if (this.ShowWindowsTaskbar != isWindowsTaskbarShown)
@@ -306,14 +304,6 @@ namespace Windawesome
 				hasChanges = false;
 			}
 
-			ShowWindows();
-
-			// activates the topmost non-minimized window
-			if (setForeground)
-			{
-				SetTopWindowAsForeground();
-			}
-
 			IsCurrentWorkspace = true;
 
 			DoWorkspaceChangedTo(this);
@@ -322,8 +312,6 @@ namespace Windawesome
 		internal void Unswitch()
 		{
 			sharedWindows.ForEach(window => window.SavePosition());
-
-			HideWindows();
 
 			IsCurrentWorkspace = false;
 
@@ -339,43 +327,23 @@ namespace Windawesome
 			}
 		}
 
-		private void ShowWindows()
+		internal void ShowWindows()
 		{
-			var shouldRestoreZOrder = windows.Count > 1 && restoreZOrder &&
-				(Layout.NeedsToSaveAndRestoreZOrder() || sharedWindows.Count > 0 || floatingWindowsCount > 0);
+			var winPosInfo = NativeMethods.BeginDeferWindowPos(windows.Count);
 
-			var zOrderPosInfo = IntPtr.Zero;
-			if (shouldRestoreZOrder)
-			{
-				zOrderPosInfo = NativeMethods.BeginDeferWindowPos(windows.Count);
-			}
-			var visibilityPosInfo = NativeMethods.BeginDeferWindowPos(windows.Count);
-
-			var prevWindowHandle = NativeMethods.HWND_TOP;
 			foreach (var window in windows.Where(WindowIsNotHung))
 			{
-				if (shouldRestoreZOrder)
-				{
-					zOrderPosInfo = NativeMethods.DeferWindowPos(zOrderPosInfo, window.hWnd, prevWindowHandle, 0, 0, 0, 0,
-						NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
-
-					prevWindowHandle = window.hWnd;
-				}
-				visibilityPosInfo = NativeMethods.DeferWindowPos(visibilityPosInfo, window.hWnd, IntPtr.Zero, 0, 0, 0, 0,
+				winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, window.hWnd, IntPtr.Zero, 0, 0, 0, 0,
 					NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE |
 					NativeMethods.SWP.SWP_NOZORDER | NativeMethods.SWP.SWP_NOOWNERZORDER | NativeMethods.SWP.SWP_SHOWWINDOW);
 			}
 
-			if (shouldRestoreZOrder)
-			{
-				NativeMethods.EndDeferWindowPos(zOrderPosInfo);
-			}
-			NativeMethods.EndDeferWindowPos(visibilityPosInfo);
+			NativeMethods.EndDeferWindowPos(winPosInfo);
 
-			windows.ForEach(w => w.ShowOwnedPopups());
+			windows.ForEach(w => w.Show(false));
 		}
 
-		private void HideWindows()
+		internal void HideWindows()
 		{
 			var winPosInfo = NativeMethods.BeginDeferWindowPos(windows.Count);
 
@@ -384,7 +352,7 @@ namespace Windawesome
 				winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, window.hWnd, IntPtr.Zero, 0, 0, 0, 0,
 					NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE |
 					NativeMethods.SWP.SWP_NOZORDER | NativeMethods.SWP.SWP_NOOWNERZORDER | NativeMethods.SWP.SWP_HIDEWINDOW);
-				window.HideOwnedPopups();
+				window.Hide(false);
 			}
 
 			NativeMethods.EndDeferWindowPos(winPosInfo);
@@ -392,8 +360,10 @@ namespace Windawesome
 
 		public static bool WindowIsNotHung(Window window)
 		{
-			return NativeMethods.SendMessageTimeout(window.hWnd, NativeMethods.WM_GETTEXT, UIntPtr.Zero, IntPtr.Zero,
-				NativeMethods.SMTO.SMTO_ABORTIFHUNG | NativeMethods.SMTO.SMTO_BLOCK, 100, IntPtr.Zero) != IntPtr.Zero;
+			// TODO: this is not good
+			return NativeMethods.SendMessageTimeout(window.hWnd, NativeMethods.WM_NULL, UIntPtr.Zero, IntPtr.Zero,
+					NativeMethods.SMTO.SMTO_ABORTIFHUNG | NativeMethods.SMTO.SMTO_BLOCK, 1000, IntPtr.Zero) != IntPtr.Zero ||
+				System.Runtime.InteropServices.Marshal.GetLastWin32Error() != NativeMethods.ERROR_TIMEOUT;
 		}
 
 		public void Reposition()
@@ -857,9 +827,7 @@ namespace Windawesome
 
 		public Window GetTopmostWindow()
 		{
-			return windows.
-				Concat(windows.Where(w => w.ownedWindows != null).SelectMany(w => w.ownedWindows)).
-				FirstOrDefault(w => !w.IsMinimized);
+			return windows.FirstOrDefault(w => !w.IsMinimized);
 		}
 
 		internal void AddToSharedWindows(Window window)
@@ -908,30 +876,26 @@ namespace Windawesome
 		private readonly NativeMethods.WINDOWPLACEMENT originalWindowPlacement;
 
 		internal Window(IntPtr hWnd, string className, string displayName, string processName, int workspacesCount, bool is64BitProcess,
-			NativeMethods.WS originalStyle, NativeMethods.WS_EX originalExStyle, bool isMinimized, LinkedList<Window> ownedWindows, ProgramRule.Rule rule, ProgramRule programRule)
+			NativeMethods.WS originalStyle, NativeMethods.WS_EX originalExStyle, LinkedList<Window> ownedWindows, ProgramRule.Rule rule, ProgramRule programRule)
 		{
 			this.hWnd = hWnd;
-			this.className = className;
-			this.DisplayName = displayName;
-			this.processName = processName;
-			this.WorkspacesCount = workspacesCount;
-			this.is64BitProcess = is64BitProcess;
-			this.IsMinimized = isMinimized;
-
-			this.ownedWindows = ownedWindows;
-
 			IsFloating = rule.isFloating;
 			ShowInTabs = rule.showInTabs;
 			Titlebar = rule.titlebar;
 			InTaskbar = rule.inTaskbar;
 			WindowBorders = rule.windowBorders;
+			this.WorkspacesCount = workspacesCount;
+			this.IsMinimized = NativeMethods.IsIconic(hWnd);
+			this.DisplayName = displayName;
+			this.className = className;
+			this.processName = processName;
+			this.is64BitProcess = is64BitProcess;
 			redrawOnShow = rule.redrawOnShow;
 			activateLastActivePopup = rule.activateLastActivePopup;
 			hideOwnedPopups = programRule.hideOwnedPopups;
 			onHiddenWindowShownAction = programRule.onHiddenWindowShownAction;
 
-			windowPlacement = NativeMethods.WINDOWPLACEMENT.Default;
-			SavePosition();
+			this.ownedWindows = ownedWindows;
 
 			titlebarStyle = 0;
 			titlebarStyle |= originalStyle & NativeMethods.WS.WS_CAPTION;
@@ -948,17 +912,29 @@ namespace Windawesome
 			borderExStyle |= originalExStyle & NativeMethods.WS_EX.WS_EX_STATICEDGE;
 			borderExStyle |= originalExStyle & NativeMethods.WS_EX.WS_EX_WINDOWEDGE;
 
+			windowPlacement = NativeMethods.WINDOWPLACEMENT.Default;
+			SavePosition();
 			originalWindowPlacement = windowPlacement;
 		}
 
 		internal Window(Window window)
 		{
 			hWnd = window.hWnd;
-			className = window.className;
-			this.DisplayName = window.DisplayName;
-			processName = window.processName;
+			this.IsFloating = window.IsFloating;
+			this.ShowInTabs = window.ShowInTabs;
+			this.Titlebar = window.Titlebar;
+			this.InTaskbar = window.InTaskbar;
+			this.WindowBorders = window.WindowBorders;
 			this.WorkspacesCount = window.WorkspacesCount;
+			IsMinimized = window.IsMinimized;
+			this.DisplayName = window.DisplayName;
+			className = window.className;
+			processName = window.processName;
 			is64BitProcess = window.is64BitProcess;
+			redrawOnShow = window.redrawOnShow;
+			activateLastActivePopup = window.activateLastActivePopup;
+			hideOwnedPopups = window.hideOwnedPopups;
+			onHiddenWindowShownAction = window.onHiddenWindowShownAction;
 
 			if (window.ownedWindows != null)
 			{
@@ -972,17 +948,6 @@ namespace Windawesome
 
 			windowPlacement = window.windowPlacement;
 			originalWindowPlacement = window.originalWindowPlacement;
-
-			redrawOnShow = window.redrawOnShow;
-			activateLastActivePopup = window.activateLastActivePopup;
-			hideOwnedPopups = window.hideOwnedPopups;
-			onHiddenWindowShownAction = window.onHiddenWindowShownAction;
-			IsMinimized = window.IsMinimized;
-			this.IsFloating = window.IsFloating;
-			this.ShowInTabs = window.ShowInTabs;
-			this.Titlebar = window.Titlebar;
-			this.InTaskbar = window.InTaskbar;
-			this.WindowBorders = window.WindowBorders;
 		}
 
 		internal void Initialize()
@@ -1102,10 +1067,16 @@ namespace Windawesome
 			NativeMethods.SetWindowPlacement(hWnd, ref windowPlacement);
 		}
 
-		internal void Show()
+		internal void Show(bool show = true)
 		{
-			NativeMethods.ShowWindowAsync(hWnd, NativeMethods.SW.SW_SHOWNA);
-			ShowOwnedPopups();
+			if (show)
+			{
+				NativeMethods.ShowWindowAsync(hWnd, NativeMethods.SW.SW_SHOWNA);
+			}
+			if (hideOwnedPopups)
+			{
+				NativeMethods.ShowOwnedPopups(hWnd, true);
+			}
 
 			if (redrawOnShow)
 			{
@@ -1113,25 +1084,15 @@ namespace Windawesome
 			}
 		}
 
-		internal void Hide()
-		{
-			HideOwnedPopups();
-			NativeMethods.ShowWindowAsync(hWnd, NativeMethods.SW.SW_HIDE);
-		}
-
-		internal void ShowOwnedPopups()
-		{
-			if (hideOwnedPopups)
-			{
-				NativeMethods.ShowOwnedPopups(hWnd, true);
-			}
-		}
-
-		internal void HideOwnedPopups()
+		internal void Hide(bool hide = true)
 		{
 			if (hideOwnedPopups)
 			{
 				NativeMethods.ShowOwnedPopups(hWnd, false);
+			}
+			if (hide)
+			{
+				NativeMethods.ShowWindowAsync(hWnd, NativeMethods.SW.SW_HIDE);
 			}
 		}
 

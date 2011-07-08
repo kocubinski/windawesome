@@ -197,6 +197,7 @@ namespace Windawesome
 
 			// switches to the default starting workspace
 			config.Workspaces[0].SwitchTo();
+			config.Workspaces[0].SetTopWindowAsForeground();
 
 			finishedInitializing = true;
 		}
@@ -377,8 +378,6 @@ namespace Windawesome
 					workspacesCount--;
 				}
 
-				var isMinimized = false;
-
 				if (finishedInitializing)
 				{
 					if (hasWorkspaceZeroRule || hasCurrentWorkspaceRule)
@@ -398,12 +397,18 @@ namespace Windawesome
 								break;
 							case OnWindowShownAction.TemporarilyShowWindowOnCurrentWorkspace:
 								temporarilyShownWindows.Add(hWnd);
-								ForceForegroundWindow(hWnd); // TODO: ICQ 7.5's windows do not show on top
+								if (NativeMethods.IsIconic(hWnd))
+								{
+									// TODO: maybe should add an option for this
+									NativeMethods.ShowWindow(hWnd, NativeMethods.SW.SW_RESTORE);
+								}
+								ForceForegroundWindow(hWnd);
 								break;
 							case OnWindowShownAction.HideWindow:
+								System.Threading.Thread.Sleep(500);
 								config.Workspaces[0].SetTopWindowAsForeground();
 								hiddenApplications.Add(hWnd);
-								NativeMethods.ShowWindow(hWnd, NativeMethods.SW.SW_HIDE);
+								NativeMethods.ShowWindowAsync(hWnd, NativeMethods.SW.SW_HIDE);
 								break;
 						}
 					}
@@ -412,10 +417,6 @@ namespace Windawesome
 					{
 						System.Threading.Thread.Sleep(programRule.windowCreatedDelay);
 					}
-				}
-				else
-				{
-					isMinimized = NativeMethods.IsIconic(hWnd);
 				}
 
 				LinkedList<Tuple<IntPtr, string, string, NativeMethods.WS, NativeMethods.WS_EX>> ownedList = null;
@@ -473,10 +474,10 @@ namespace Windawesome
 
 				foreach (var rule in matchingRules)
 				{
-					var window = new Window(hWnd, className, displayName, processName, workspacesCount,	is64BitProcess, style, exStyle, isMinimized,
+					var window = new Window(hWnd, className, displayName, processName, workspacesCount,	is64BitProcess, style, exStyle,
 						ownedList == null ? null : new LinkedList<Window>(
 							ownedList.Select(w => new Window(w.Item1, w.Item2, w.Item3, processName,
-								workspacesCount, is64BitProcess, w.Item4, w.Item5, isMinimized, null, rule, programRule))),
+								workspacesCount, is64BitProcess, w.Item4, w.Item5, null, rule, programRule))),
 						rule, programRule);
 					list.AddLast(new Tuple<Workspace, Window>(config.Workspaces[rule.workspace], window));
 					config.Workspaces[rule.workspace].WindowCreated(window);
@@ -534,12 +535,10 @@ namespace Windawesome
 		}
 
 		private static readonly NativeMethods.INPUT[] input = new NativeMethods.INPUT[18];
-		// sends the uniqueHotkey combination without disrupting the currently pressed modifiers
+		// sends the hotkey combination without disrupting the currently pressed modifiers
 		private static void SendHotkey(IntPtr hWnd, Tuple<NativeMethods.MOD, Keys> hotkey)
 		{
 			uint i = 0;
-
-			NativeMethods.BlockInput(true);
 
 			// press needed modifiers
 			var shiftShouldBePressed = hotkey.Item1.HasFlag(NativeMethods.MOD.MOD_SHIFT);
@@ -589,8 +588,6 @@ namespace Windawesome
 
 			NativeMethods.SendInput(i, input, NativeMethods.INPUTSize);
 
-			NativeMethods.BlockInput(false);
-
 			forceForegroundWindow = hWnd;
 		}
 
@@ -634,15 +631,15 @@ namespace Windawesome
 			return window;
 		}
 
-		private void OnHiddenWindowShown(IntPtr hWnd, LinkedList<Tuple<Workspace, Window>> list)
+		private void OnHiddenWindowShown(IntPtr hWnd, Tuple<Workspace, Window> tuple)
 		{
-			switch (list.First.Value.Item2.onHiddenWindowShownAction)
+			switch (tuple.Item2.onHiddenWindowShownAction)
 			{
 				case OnWindowShownAction.SwitchToWindowsWorkspace:
 					SwitchToApplication(hWnd);
 					break;
 				case OnWindowShownAction.MoveWindowToCurrentWorkspace:
-					ChangeApplicationToWorkspace(hWnd, config.Workspaces[0].id, list.First.Value.Item1.id);
+					ChangeApplicationToWorkspace(hWnd, config.Workspaces[0].id, tuple.Item1.id);
 					break;
 				case OnWindowShownAction.TemporarilyShowWindowOnCurrentWorkspace:
 					temporarilyShownWindows.Add(hWnd);
@@ -650,7 +647,7 @@ namespace Windawesome
 				case OnWindowShownAction.HideWindow:
 					System.Threading.Thread.Sleep(1000);
 					hiddenApplications.Add(hWnd);
-					list.First.Value.Item2.Hide();
+					tuple.Item2.Hide();
 					config.Workspaces[0].SetTopWindowAsForeground();
 					break;
 			}
@@ -772,21 +769,34 @@ namespace Windawesome
 		{
 			if (workspace != this.CurrentWorkspace.id)
 			{
-				this.CurrentWorkspace.GetWindows().ForEach(w => hiddenApplications.Add(w.hWnd));
-				this.CurrentWorkspace.Unswitch();
+				config.Workspaces[workspace].ShowWindows();
 
-				foreach (var hWnd in temporarilyShownWindows)
+				// activates the topmost non-minimized window
+				if (setForeground)
 				{
-					hiddenApplications.Add(hWnd);
-					applications[hWnd].First.Value.Item2.Hide();
+					config.Workspaces[workspace].SetTopWindowAsForeground();
 				}
 
-				PreviousWorkspace = this.CurrentWorkspace.id;
+				config.Workspaces[0].GetWindows().ForEach(w => hiddenApplications.Add(w.hWnd));
+				config.Workspaces[0].HideWindows();
+
+				if (temporarilyShownWindows.Count > 0)
+				{
+					foreach (var hWnd in temporarilyShownWindows)
+					{
+						hiddenApplications.Add(hWnd);
+						applications[hWnd].First.Value.Item2.Hide();
+					}
+
+					temporarilyShownWindows.Clear();
+				}
+
+				this.CurrentWorkspace.Unswitch();
+
+				PreviousWorkspace = config.Workspaces[0].id;
 				config.Workspaces[0] = config.Workspaces[workspace];
 
-				config.Workspaces[0].SwitchTo(setForeground);
-
-				temporarilyShownWindows.Clear();
+				config.Workspaces[0].SwitchTo();
 
 				return true;
 			}
@@ -898,8 +908,11 @@ namespace Windawesome
 					// OpenIcon does not restore the window to its previous size (e.g. maximized)
 					NativeMethods.ShowWindowAsync(hWnd, NativeMethods.SW.SW_RESTORE);
 				}
-
-				ForceForegroundWindow(window);
+				else
+				{
+					// TODO: maybe try this in an "else" clause?
+					ForceForegroundWindow(window);
+				}
 
 				return true;
 			}
@@ -1109,10 +1122,14 @@ namespace Windawesome
 							}
 							else if (!config.Workspaces[0].ContainsWindow(lParam))
 							{
-								OnHiddenWindowShown(lParam, list);
+								OnHiddenWindowShown(lParam, list.First.Value);
 							}
 						}
 
+						// TODO: when switching from a workspace to another, both containing a shared window,
+						// and the shared window is the active window, Windows sends a HSHELL_WINDOWACTIVATED
+						// for the shared window after the switch (even if it is not the top window in the
+						// workspace being switched to), which causes a wrong reordering in Z order
 						config.Workspaces[0].WindowActivated(lParam);
 					}
 					break;

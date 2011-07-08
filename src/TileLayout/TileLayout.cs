@@ -210,14 +210,13 @@ namespace Windawesome
 						break;
 				}
 
-				var prevWindowHandle = NativeMethods.HWND_TOP;
 				foreach (var window in masterOrStackWindows)
 				{
 					// TODO: this doesn't work for ICQ 7.5's windows. MoveWindow works in Debug mode, but not in Release
-					winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, window.hWnd, prevWindowHandle,
+					winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, window.hWnd, IntPtr.Zero,
 						x, y, eachWidth, eachHight,
-						NativeMethods.SWP.SWP_FRAMECHANGED | NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOCOPYBITS);
-					prevWindowHandle = window.hWnd;
+						NativeMethods.SWP.SWP_FRAMECHANGED | NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOCOPYBITS |
+						NativeMethods.SWP.SWP_NOZORDER | NativeMethods.SWP.SWP_NOOWNERZORDER);
 
 					switch (axis)
 					{
@@ -292,44 +291,39 @@ namespace Windawesome
 			return "Tile";
 		}
 
-		public void Reposition(LinkedList<Window> windows, Rectangle workingArea)
+		public void Reposition(IEnumerable<Window> windows, Rectangle workingArea)
 		{
 			this.workingArea = workingArea;
 
-			windows.ForEach(window => NativeMethods.ShowWindowAsync(window.hWnd, NativeMethods.SW.SW_SHOWNOACTIVATE));
+			//windows.ForEach(window => NativeMethods.ShowWindowAsync(window.hWnd, NativeMethods.SW.SW_SHOWNA)); // TODO: remove if unnecessary
 
 			this.windows = new LinkedList<Window>(windows);
 
-			var winPosInfo = NativeMethods.BeginDeferWindowPos(windows.Count);
+			var winPosInfo = NativeMethods.BeginDeferWindowPos(this.windows.Count);
 			winPosInfo = PositionAreaWindows(winPosInfo, workingArea, true);
 			winPosInfo = PositionAreaWindows(winPosInfo, workingArea, false);
 			NativeMethods.EndDeferWindowPos(winPosInfo);
 		}
 
-		public bool NeedsToSaveAndRestoreZOrder()
-		{
-			return false;
-		}
-
-		public void WindowTitlebarToggled(Window window, LinkedList<Window> windows, Rectangle workingArea)
+		public void WindowTitlebarToggled(Window window, IEnumerable<Window> windows, Rectangle workingArea)
 		{
 		}
 
-		public void WindowBorderToggled(Window window, LinkedList<Window> windows, Rectangle workingArea)
+		public void WindowBorderToggled(Window window, IEnumerable<Window> windows, Rectangle workingArea)
 		{
 		}
 
-		public void WindowMinimized(Window window, LinkedList<Window> windows, Rectangle workingArea)
+		public void WindowMinimized(Window window, IEnumerable<Window> windows, Rectangle workingArea)
 		{
 			this.Reposition(windows, workingArea);
 		}
 
-		public void WindowRestored(Window window, LinkedList<Window> windows, Rectangle workingArea)
+		public void WindowRestored(Window window, IEnumerable<Window> windows, Rectangle workingArea)
 		{
 			this.Reposition(windows, workingArea);
 		}
 
-		public void WindowCreated(Window window, LinkedList<Window> windows, Rectangle workingArea, bool reLayout)
+		public void WindowCreated(Window window, IEnumerable<Window> windows, Rectangle workingArea, bool reLayout)
 		{
 			if (reLayout)
 			{
@@ -337,7 +331,7 @@ namespace Windawesome
 			}
 		}
 
-		public void WindowDestroyed(Window window, LinkedList<Window> windows, Rectangle workingArea, bool reLayout)
+		public void WindowDestroyed(Window window, IEnumerable<Window> windows, Rectangle workingArea, bool reLayout)
 		{
 			if (reLayout)
 			{

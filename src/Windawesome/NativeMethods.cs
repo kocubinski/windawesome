@@ -127,7 +127,7 @@ namespace Windawesome
 		[DllImport("User32.dll")]
 		public static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint uMsg, UIntPtr wParam, IntPtr lParam, SMTO fuFlags, uint uTimeout, [Optional, Out] out IntPtr lpdwResult);
 
-		[DllImport("User32.dll")]
+		[DllImport("User32.dll", SetLastError = true)]
 		public static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint uMsg, UIntPtr wParam, IntPtr lParam, SMTO fuFlags, uint uTimeout, [Optional, Out] IntPtr lpdwResult);
 
 		public delegate void SendMessageCallbackDelegate(IntPtr hWnd, uint uMsg, UIntPtr dwData, IntPtr lResult);
@@ -142,7 +142,8 @@ namespace Windawesome
 			SMTO_NORMAL = 0x0,
 			SMTO_BLOCK = 0x1,
 			SMTO_ABORTIFHUNG = 0x2,
-			SMTO_NOTIMEOUTIFNOTHUNG = 0x8
+			SMTO_NOTIMEOUTIFNOTHUNG = 0x8,
+			SMTO_ERRORONEXIT = 0x0020
 		}
 
 		public const uint WM_SYSCOMMAND = 0x0112;
@@ -153,7 +154,8 @@ namespace Windawesome
 		public static readonly IntPtr WM_RBUTTONUP = (IntPtr) 0x205;
 		public const uint WM_GETICON = 0x007f;
 		public const uint WM_QUERYDRAGICON = 0x0037;
-		public const uint WM_GETTEXT = 0x000D;
+		public const uint WM_NULL = 0x0;
+		public const int ERROR_TIMEOUT = 1460;
 
 		public static readonly UIntPtr SC_MINIMIZE = (UIntPtr) 0xF020;
 		public static readonly UIntPtr SC_MAXIMIZE = (UIntPtr) 0xF030;
@@ -298,6 +300,10 @@ namespace Windawesome
 
 		[DllImport("user32.dll")]
 		public static extern IntPtr GetDesktopWindow();
+
+		[DllImport("user32.dll")]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		public static extern bool IsHungAppWindow(IntPtr hWnd);
 
 		#region GetWindow
 
@@ -695,14 +701,10 @@ namespace Windawesome
 
 		// keyboard stuff
 
-		#region SendInput/BlockInput
+		#region SendInput
 
 		[DllImport("user32.dll")]
 		public static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
-
-		[DllImport("user32.dll")]
-		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool BlockInput([MarshalAs(UnmanagedType.Bool)] bool fBlockIt);
 
 		[StructLayout(LayoutKind.Sequential)]
 		public struct MouseInputData

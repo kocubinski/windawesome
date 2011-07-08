@@ -27,7 +27,7 @@ startingWorkspace - the ID of the workspace to be shown when the application is 
 programRules - an array of ProgramRule objects
 borderWidth - the thickness of the sizing border, in pixels. The default is 1 pixel
 paddedBorderWidth - the thickness of the padded border, in pixels. The default value is 4 pixels
-uniqueHotkey - Windawesome uses this hotkey so it can switch to applications when you change workspaces. Make sure you use a unique hotkey that is not in use by any other application. Windawesome will output a warning in a warnings.txt file if there is a problem registering this hotkey. Note that not all keys will work - you should just use the function keys (F1 through F11 (without F12)), "+", "-" and Insert. The default one probably is fine (it is CTRL+ALT+SHIFT+WIN+"+")
+uniqueHotkey - Windawesome uses this hotkey so it can switch to applications when you change workspaces. Make sure you use a unique hotkey that is not in use by any other application. Windawesome will output a warning in a warnings.txt file if there is a problem registering this hotkey. The default one probably is fine (it is CTRL+ALT+"+")
 
 ProgramRule:
 A program rule tells Windawesome how to treat any newly created window - this can be customized in a variety of ways:
@@ -37,8 +37,8 @@ displayName - the window display name, a regular expression
 processName - the name of the process (which is the name of the executable without the extension), a regular expression
 styleContains - the window styles that must be present in the window's style
 styleNotContains - the window styles that must NOT be present in the window's style
-styleExContains - the extended window styles that must be present in the window's extended style
-styleExNotContains - the extended window styles that must NOT be present in the window's extended style
+exStyleContains - the extended window styles that must be present in the window's extended style
+exStyleNotContains - the extended window styles that must NOT be present in the window's extended style
 isManaged - whether Windawesome should care about that window
 tryAgainAfter - the time, in milliseconds, to wait before trying to match the rules again (if >= 0)
 windowCreatedDelay - the time, in milliseconds, to wait before taking any action after the window has been created (if > 0). Windawesome will match te rules and then sleep. If Windawesome has problems with newly created windows, try setting this to a higher value
