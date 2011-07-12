@@ -529,7 +529,7 @@ namespace Windawesome
 			}
 		}
 
-		internal const int minimizeRestoreDelay = 100;
+		internal const int minimizeRestoreDelay = 200;
 		internal void WindowActivated(IntPtr hWnd)
 		{
 			Window window;
@@ -647,7 +647,7 @@ namespace Windawesome
 
 		public bool ContainsWindow(IntPtr hWnd)
 		{
-			return windows.Any(w => w.hWnd == hWnd || (w.ownedWindows != null && w.ownedWindows.Any(w1 => w1.hWnd == hWnd)));
+			return windows.Any(w => w.hWnd == hWnd);
 		}
 
 		public Window GetWindow(IntPtr hWnd)
@@ -1028,12 +1028,8 @@ namespace Windawesome
 			NativeMethods.SetWindowPlacement(hWnd, ref windowPlacement);
 		}
 
-		internal void Show(bool show = true)
+		internal void ShowPopupsAndRedraw()
 		{
-			if (show)
-			{
-				NativeMethods.ShowWindowAsync(hWnd, NativeMethods.SW.SW_SHOWNA);
-			}
 			if (hideOwnedPopups)
 			{
 				NativeMethods.ShowOwnedPopups(hWnd, true);
@@ -1045,16 +1041,13 @@ namespace Windawesome
 			}
 		}
 
-		internal void Hide(bool hide = true)
+		internal void Hide()
 		{
 			if (hideOwnedPopups)
 			{
 				NativeMethods.ShowOwnedPopups(hWnd, false);
 			}
-			if (hide)
-			{
-				NativeMethods.ShowWindowAsync(hWnd, NativeMethods.SW.SW_HIDE);
-			}
+			NativeMethods.ShowWindowAsync(hWnd, NativeMethods.SW.SW_HIDE);
 		}
 
 		internal void DoForSelfOrOwned(Action<Window> action)

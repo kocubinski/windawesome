@@ -215,12 +215,18 @@ namespace Windawesome
 			NativeMethods.GlobalDeleteAtom((ushort) getForegroundPrivilageAtom);
 
 			// roll back any changes to Windows
+			var winPosInfo = NativeMethods.BeginDeferWindowPos(applications.Values.Count);
 			config.Workspaces[0].RevertToInitialValues();
 			foreach (var window in applications.Values.Select(l => l.First.Value.Item2))
 			{
 				window.DoForSelfOrOwned(w => w.RevertToInitialValues());
-				window.Show();
+				winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, window.hWnd, IntPtr.Zero, 0, 0, 0, 0,
+					NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE |
+					NativeMethods.SWP.SWP_NOZORDER | NativeMethods.SWP.SWP_NOOWNERZORDER | NativeMethods.SWP.SWP_SHOWWINDOW);
+				window.ShowPopupsAndRedraw();
 			}
+
+			NativeMethods.EndDeferWindowPos(winPosInfo);
 
 			// dispose of plugins and bars
 			config.Plugins.ForEach(p => p.Dispose());
@@ -397,12 +403,18 @@ namespace Windawesome
 								break;
 							case OnWindowShownAction.TemporarilyShowWindowOnCurrentWorkspace:
 								temporarilyShownWindows.Add(hWnd);
-								if (NativeMethods.IsIconic(hWnd))
+
+								if (NativeMethods.IsIconic(hWnd)) // TODO: maybe should add an option for this
 								{
-									// TODO: maybe should add an option for this
-									NativeMethods.ShowWindow(hWnd, NativeMethods.SW.SW_RESTORE);
+									// TODO: this code is equivallent (almost) to the one in SwitchToApplicationInCurrentWorkspace
+									NativeMethods.ShowWindowAsync(hWnd, NativeMethods.SW.SW_RESTORE);
+									System.Threading.Thread.Sleep(Workspace.minimizeRestoreDelay);
+									PostAction(() => ForceForegroundWindow(hWnd));
 								}
-								ForceForegroundWindow(hWnd);
+								else
+								{
+									ForceForegroundWindow(hWnd);
+								}
 								break;
 							case OnWindowShownAction.HideWindow:
 								System.Threading.Thread.Sleep(500);
@@ -460,6 +472,7 @@ namespace Windawesome
 					// If you have a Windows Explorer window open on one workspace (and it is the only non-minimized window open) and you start
 					// mintty (which defaults to another workspace) then the desktop is not redrawn right (you can see that if mintty
 					// is set to be transparent
+					// On Windows XP SP3
 					NativeMethods.RedrawWindow(IntPtr.Zero, IntPtr.Zero, IntPtr.Zero,
 						NativeMethods.RedrawWindowFlags.RDW_ALLCHILDREN |
 						NativeMethods.RedrawWindowFlags.RDW_ERASE |
@@ -474,12 +487,14 @@ namespace Windawesome
 
 				foreach (var rule in matchingRules)
 				{
-					var window = new Window(hWnd, className, displayName, processName, workspacesCount,	is64BitProcess, style, exStyle,
-						ownedList == null ? null : new LinkedList<Window>(
-							ownedList.Select(w => new Window(w.Item1, w.Item2, w.Item3, processName,
-								workspacesCount, is64BitProcess, w.Item4, w.Item5, null, rule, programRule))),
-						rule, programRule);
+					var newOwnedList = ownedList == null ? null :
+						new LinkedList<Window>(ownedList.Select(w => new Window(w.Item1, w.Item2, w.Item3, processName,
+							workspacesCount, is64BitProcess, w.Item4, w.Item5, null, rule, programRule)));
+					var window = new Window(hWnd, className, displayName, processName, workspacesCount,
+						is64BitProcess, style, exStyle, newOwnedList, rule, programRule);
+
 					list.AddLast(new Tuple<Workspace, Window>(config.Workspaces[rule.workspace], window));
+
 					config.Workspaces[rule.workspace].WindowCreated(window);
 				}
 
@@ -667,34 +682,41 @@ namespace Windawesome
 			}
 		}
 
-		private void HideWindow(Window window, bool hide = true)
+		private void HideWindow(Window window)
 		{
-			hiddenApplications.Add(window.hWnd);
-			window.Hide(hide);
+			hiddenApplications.AddUnique(window.hWnd);
+			window.Hide();
 		}
 
-		private void ShowHideWindows(IEnumerable<Window> showWindows, int maxShowWindowsCount, IEnumerable<Window> hideWindows, int maxHideWindowsCount)
+		private void ShowHideWindows(IEnumerable<Window> showWindows, IEnumerable<Window> hideWindows)
 		{
-			var winPosInfo = NativeMethods.BeginDeferWindowPos(maxShowWindowsCount + maxHideWindowsCount);
+			var winPosInfo = NativeMethods.BeginDeferWindowPos(showWindows.Count());
 
 			foreach (var window in showWindows.Where(WindowIsNotHung))
 			{
 				winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, window.hWnd, IntPtr.Zero, 0, 0, 0, 0,
 					NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE |
 					NativeMethods.SWP.SWP_NOZORDER | NativeMethods.SWP.SWP_NOOWNERZORDER | NativeMethods.SWP.SWP_SHOWWINDOW);
-			}
-
-			foreach (var window in hideWindows.Where(WindowIsNotHung))
-			{
-				winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, window.hWnd, IntPtr.Zero, 0, 0, 0, 0,
-					NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE |
-					NativeMethods.SWP.SWP_NOZORDER | NativeMethods.SWP.SWP_NOOWNERZORDER | NativeMethods.SWP.SWP_HIDEWINDOW);
-				HideWindow(window, false);
+				window.ShowPopupsAndRedraw();
 			}
 
 			NativeMethods.EndDeferWindowPos(winPosInfo);
 
-			showWindows.ForEach(w => w.Show(false));
+			// although the windows are already shown before this line because of the blocking EndDefer above,
+			// it must be here. The problem is this: if you have a window that has blocked on something (e.g.
+			// starting a process) but still accepts sent messages (i.e. WindowIsNotHung returns true) and try
+			// to switch to and from its workspace a couple of times, Windows will send an
+			// HSHELL_WINDOWDESTROYED only once once the window is unblocked, although it should send as many
+			// as the window has been hidden. If you do a ShowWindowAsync, though, (which only posts a
+			// WM_SHOWWINDOW message to the window), Windows will send all the window-destroyed messages.
+			// Yeah, go figure. Only ShowWindowAsyncs are not going to work either, as then the Z-order is not
+			// preserved. Read the comment in Window::Show for another problem there.
+			// how to reproduce: Firefox 5.0, BitComet 1.27. If you click a torrent file and ask Firefox to open
+			// it with BitComet it will block and wait for BC to load. If you switch the workspaces at this time
+			// a couple of times back and forth, you will have the problem described above.
+			//showWindows.ForEach(w => w.Show());
+
+			hideWindows.ForEach(HideWindow);
 		}
 
 		#endregion
@@ -717,15 +739,9 @@ namespace Windawesome
 			// immediately and returns. However, I decided that in most cases apps are not hung, so the overhead
 			// of calling IsHungAppWindow AND SendMessageTimeout is not worth.
 
-			var res = NativeMethods.SendMessageTimeout(window.hWnd, NativeMethods.WM_NULL, UIntPtr.Zero, IntPtr.Zero,
+			return NativeMethods.SendMessageTimeout(window.hWnd, NativeMethods.WM_NULL, UIntPtr.Zero, IntPtr.Zero,
 					NativeMethods.SMTO.SMTO_ABORTIFHUNG | NativeMethods.SMTO.SMTO_BLOCK, 1000, IntPtr.Zero) != IntPtr.Zero ||
 				System.Runtime.InteropServices.Marshal.GetLastWin32Error() != NativeMethods.ERROR_TIMEOUT;
-
-			if (!res)
-			{
-			}
-
-			return res;
 		}
 
 		public void RefreshWindawesome()
@@ -826,8 +842,7 @@ namespace Windawesome
 			{
 				var showWindows = config.Workspaces[workspace].GetWindows();
 				var hideWindows = config.Workspaces[0].GetWindows().Except(showWindows);
-				ShowHideWindows(showWindows, showWindows.Count(),
-					hideWindows, config.Workspaces[0].GetWindows().Count());
+				ShowHideWindows(showWindows, hideWindows);
 
 				// activates the topmost non-minimized window
 				if (setForeground)
@@ -915,9 +930,9 @@ namespace Windawesome
 			var displayNameRegex = new System.Text.RegularExpressions.Regex(displayName, System.Text.RegularExpressions.RegexOptions.Compiled);
 			var processNameRegex = new System.Text.RegularExpressions.Regex(processName, System.Text.RegularExpressions.RegexOptions.Compiled);
 
-			Window window;
-			if ((window = applications.Values.Select(list => list.First.Value.Item2).
-				FirstOrDefault(w => classNameRegex.IsMatch(w.className) && displayNameRegex.IsMatch(w.DisplayName) && processNameRegex.IsMatch(w.processName))) != null)
+			Window window = applications.Values.Select(list => list.First.Value.Item2).
+				FirstOrDefault(w => classNameRegex.IsMatch(w.className) && displayNameRegex.IsMatch(w.DisplayName) && processNameRegex.IsMatch(w.processName));
+			if (window != null)
 			{
 				SwitchToApplication(window.hWnd);
 			}
@@ -953,7 +968,7 @@ namespace Windawesome
 			var window = config.Workspaces[0].GetOwnermostWindow(hWnd);
 			if (window != null)
 			{
-				if (window.IsMinimized && WindowIsNotHung(window))
+				if (window.IsMinimized)
 				{
 					// OpenIcon does not restore the window to its previous size (e.g. maximized)
 					NativeMethods.ShowWindowAsync(hWnd, NativeMethods.SW.SW_RESTORE);
@@ -1098,6 +1113,7 @@ namespace Windawesome
 
 		public static void ExecuteOnWindowShown(IntPtr hWnd, Action<IntPtr> action)
 		{
+			// TODO: this function (and all of the ExecuteOnWindowShown stuff) should no longer be needed
 			if (NativeMethods.IsWindowVisible(hWnd))
 			{
 				action(hWnd);
@@ -1298,6 +1314,7 @@ namespace Windawesome
 
 	public sealed class HashMultiSet<T> : IEnumerable<T>
 	{
+		// TODO: all this class and its uses are no longer needed. Change to HashSet everywhere
 		private readonly Dictionary<T, BoxedInt> set;
 		private sealed class BoxedInt
 		{

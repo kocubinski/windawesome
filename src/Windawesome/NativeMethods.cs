@@ -301,10 +301,6 @@ namespace Windawesome
 		[DllImport("user32.dll")]
 		public static extern IntPtr GetDesktopWindow();
 
-		[DllImport("user32.dll")]
-		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool IsHungAppWindow(IntPtr hWnd);
-
 		#region GetWindow
 
 		[DllImport("user32.dll")]
@@ -428,11 +424,7 @@ namespace Windawesome
 
 		#endregion
 
-		#region ShowWindow/ShowWindowAsync
-
-		[DllImport("User32.dll")]
-		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool ShowWindow(IntPtr hWnd, SW nCmdShow);
+		#region ShowWindowAsync
 
 		[DllImport("User32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]

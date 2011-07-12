@@ -213,7 +213,7 @@ namespace Windawesome
 			bool hideOwnedPopups = true, bool redrawDesktopOnWindowCreated = false,
 			OnWindowShownAction onWindowCreatedAction = OnWindowShownAction.SwitchToWindowsWorkspace,
 			OnWindowShownAction onHiddenWindowShownAction = OnWindowShownAction.SwitchToWindowsWorkspace,
-			int showOnWorkspacesCount = -1, IEnumerable<Rule> rules = null)
+			int showOnWorkspacesCount = 0, IEnumerable<Rule> rules = null)
 		{
 			this.className = new Regex(className, RegexOptions.Compiled);
 			this.displayName = new Regex(displayName, RegexOptions.Compiled);
@@ -223,16 +223,17 @@ namespace Windawesome
 			this.exStyleContains = exStyleContains;
 			this.exStyleNotContains = exStyleNotContains;
 			this.isManaged = isManaged;
-			this.tryAgainAfter = tryAgainAfter;
-			this.windowCreatedDelay = windowCreatedDelay;
-			this.handleOwnedWindows = handleOwnedWindows;
-			this.hideOwnedPopups = hideOwnedPopups;
-			this.redrawDesktopOnWindowCreated = redrawDesktopOnWindowCreated;
-			this.onWindowCreatedAction = onWindowCreatedAction;
-			this.onHiddenWindowShownAction = onHiddenWindowShownAction;
 			if (isManaged)
 			{
-				if (showOnWorkspacesCount > -1)
+				this.tryAgainAfter = tryAgainAfter;
+				this.windowCreatedDelay = windowCreatedDelay;
+				this.handleOwnedWindows = handleOwnedWindows;
+				this.hideOwnedPopups = hideOwnedPopups;
+				this.redrawDesktopOnWindowCreated = redrawDesktopOnWindowCreated;
+				this.onWindowCreatedAction = onWindowCreatedAction;
+				this.onHiddenWindowShownAction = onHiddenWindowShownAction;
+
+				if (showOnWorkspacesCount > 0)
 				{
 					if (rules == null)
 					{

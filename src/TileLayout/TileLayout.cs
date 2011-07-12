@@ -295,8 +295,6 @@ namespace Windawesome
 		{
 			this.workingArea = workingArea;
 
-			//windows.ForEach(window => NativeMethods.ShowWindowAsync(window.hWnd, NativeMethods.SW.SW_SHOWNA)); // TODO: remove if unnecessary
-
 			this.windows = new LinkedList<Window>(windows);
 
 			var winPosInfo = NativeMethods.BeginDeferWindowPos(this.windows.Count);

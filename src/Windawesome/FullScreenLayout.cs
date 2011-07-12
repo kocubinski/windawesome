@@ -20,7 +20,7 @@ namespace Windawesome
 			{
 				// otherwise, Windows would make the window "truly" full-screen, i.e. on top of all shell
 				// windows, which doesn't work for us. So we just set window to take the maximum possible area
-				NativeMethods.ShowWindowAsync(window.hWnd, NativeMethods.SW.SW_SHOWNOACTIVATE);
+				NativeMethods.ShowWindowAsync(window.hWnd, NativeMethods.SW.SW_RESTORE);
 				NativeMethods.SetWindowPos(window.hWnd, IntPtr.Zero,
 					workingArea.X, workingArea.Y, workingArea.Width, workingArea.Height,
 					NativeMethods.SWP.SWP_ASYNCWINDOWPOS | NativeMethods.SWP.SWP_NOACTIVATE |
