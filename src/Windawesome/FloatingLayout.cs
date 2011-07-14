@@ -16,6 +16,11 @@ namespace Windawesome
 			return "Floating";
 		}
 
+		public bool ShouldRestoreSharedWindowsPosition()
+		{
+			return true;
+		}
+
 		public void Reposition(IEnumerable<Window> windows, System.Drawing.Rectangle workingArea)
 		{
 		}

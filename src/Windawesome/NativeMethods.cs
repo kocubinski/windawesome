@@ -424,7 +424,11 @@ namespace Windawesome
 
 		#endregion
 
-		#region ShowWindowAsync
+		#region ShowWindow/ShowWindowAsync
+
+		[DllImport("User32.dll")]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		public static extern bool ShowWindow(IntPtr hWnd, SW nCmdShow);
 
 		[DllImport("User32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]

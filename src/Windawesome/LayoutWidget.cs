@@ -5,7 +5,7 @@ using System.Windows.Forms;
 
 namespace Windawesome
 {
-	public class LayoutWidget : IWidget
+	public class LayoutWidget : IFixedWidthWidget
 	{
 		private static Windawesome windawesome;
 		private static Config config;
@@ -44,11 +44,6 @@ namespace Windawesome
 		}
 
 		#region IWidget Members
-
-		public WidgetType GetWidgetType()
-		{
-			return WidgetType.FixedWidth;
-		}
 
 		public void StaticInitializeWidget(Windawesome windawesome, Config config)
 		{

@@ -41,6 +41,11 @@ namespace Windawesome
 			return "Full Screen";
 		}
 
+		public bool ShouldRestoreSharedWindowsPosition()
+		{
+			return false;
+		}
+
 		public void Reposition(IEnumerable<Window> windows, System.Drawing.Rectangle workingArea)
 		{
 			windows.ForEach(w => MaximizeWindow(w, workingArea));

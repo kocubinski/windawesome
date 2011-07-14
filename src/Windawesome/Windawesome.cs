@@ -12,13 +12,12 @@ namespace Windawesome
 	{
 		private readonly Config config;
 		private readonly Dictionary<IntPtr, LinkedList<Tuple<Workspace, Window>>> applications; // hWnd to a list of workspaces and windows
-		private readonly HashMultiSet<IntPtr> hiddenApplications;
+		private readonly HashSet<IntPtr> hiddenApplications;
 		private readonly uint shellMessageNum;
 		private static readonly uint postActionMessageNum;
 		private static readonly Queue<Action> postedActions;
 		private static readonly Dictionary<int, HandleMessageDelegate> messageHandlers;
 		private static readonly NativeMethods.NONCLIENTMETRICS originalNonClientMetrics;
-		private static readonly Dictionary<IntPtr, Action<IntPtr>> onWindowShown;
 		private readonly HashSet<IntPtr> temporarilyShownWindows;
 		private readonly bool changedNonClientMetrics;
 		private readonly bool finishedInitializing;
@@ -105,8 +104,6 @@ namespace Windawesome
 
 			postedActions = new Queue<Action>(5);
 			postActionMessageNum = NativeMethods.RegisterWindowMessage("POST_ACTION_MESSAGE");
-
-			onWindowShown = new Dictionary<IntPtr, Action<IntPtr>>(3);
 		}
 
 		internal Windawesome()
@@ -127,7 +124,7 @@ namespace Windawesome
 			FindWorkspaceBarsEquivalentClasses();
 
 			applications = new Dictionary<IntPtr, LinkedList<Tuple<Workspace, Window>>>(20);
-			hiddenApplications = new HashMultiSet<IntPtr>();
+			hiddenApplications = new HashSet<IntPtr>();
 
 			temporarilyShownWindows = new HashSet<IntPtr>();
 
@@ -190,7 +187,7 @@ namespace Windawesome
 			// initialize all workspaces
 			foreach (var ws in config.Workspaces.Skip(1).Where(ws => ws.id != config.StartingWorkspace))
 			{
-				ws.GetWindows().ForEach(w => hiddenApplications.AddUnique(w.hWnd));
+				ws.GetWindows().ForEach(w => hiddenApplications.Add(w.hWnd));
 				ws.Initialize(false, originalWorkingArea[0]);
 			}
 			config.Workspaces[0].Initialize(true, originalWorkingArea[0]);
@@ -389,7 +386,17 @@ namespace Windawesome
 					if (hasWorkspaceZeroRule || hasCurrentWorkspaceRule)
 					{
 						// this means that the window must be on the current workspace anyway
-						ForceForegroundWindow(hWnd);
+						if (NativeMethods.IsIconic(hWnd)) // TODO: maybe should add an option for this
+						{
+							// TODO: this code is equivallent (almost) to the one in SwitchToApplicationInCurrentWorkspace
+							NativeMethods.ShowWindow(hWnd, NativeMethods.SW.SW_RESTORE);
+							//System.Threading.Thread.Sleep(Workspace.minimizeRestoreDelay);
+							PostAction(() => ForceForegroundWindow(hWnd));
+						}
+						else
+						{
+							ForceForegroundWindow(hWnd);
+						}
 					}
 					else
 					{
@@ -407,7 +414,7 @@ namespace Windawesome
 								if (NativeMethods.IsIconic(hWnd)) // TODO: maybe should add an option for this
 								{
 									// TODO: this code is equivallent (almost) to the one in SwitchToApplicationInCurrentWorkspace
-									NativeMethods.ShowWindowAsync(hWnd, NativeMethods.SW.SW_RESTORE);
+									NativeMethods.ShowWindow(hWnd, NativeMethods.SW.SW_RESTORE);
 									System.Threading.Thread.Sleep(Workspace.minimizeRestoreDelay);
 									PostAction(() => ForceForegroundWindow(hWnd));
 								}
@@ -417,10 +424,10 @@ namespace Windawesome
 								}
 								break;
 							case OnWindowShownAction.HideWindow:
-								System.Threading.Thread.Sleep(500);
+								System.Threading.Thread.Sleep(500); // TODO: is this enough? Is it too much?
 								config.Workspaces[0].SetTopWindowAsForeground();
 								hiddenApplications.Add(hWnd);
-								NativeMethods.ShowWindowAsync(hWnd, NativeMethods.SW.SW_HIDE);
+								NativeMethods.ShowWindow(hWnd, NativeMethods.SW.SW_HIDE);
 								break;
 						}
 					}
@@ -546,12 +553,13 @@ namespace Windawesome
 
 		internal static void ForceForegroundWindow(IntPtr hWnd)
 		{
-			ExecuteOnWindowShown(hWnd, h => SendHotkey(h, uniqueHotkey));
+			SendHotkey(uniqueHotkey);
+			forceForegroundWindow = hWnd;
 		}
 
 		private static readonly NativeMethods.INPUT[] input = new NativeMethods.INPUT[18];
 		// sends the hotkey combination without disrupting the currently pressed modifiers
-		private static void SendHotkey(IntPtr hWnd, Tuple<NativeMethods.MOD, Keys> hotkey)
+		private static void SendHotkey(Tuple<NativeMethods.MOD, Keys> hotkey)
 		{
 			uint i = 0;
 
@@ -602,8 +610,6 @@ namespace Windawesome
 				Keys.ShiftKey, Keys.LShiftKey, Keys.RShiftKey, NativeMethods.KEYEVENTF_KEYUP, 0, ref i);
 
 			NativeMethods.SendInput(i, input, NativeMethods.INPUTSize);
-
-			forceForegroundWindow = hWnd;
 		}
 
 		private static void PressReleaseModifierKey(
@@ -660,7 +666,7 @@ namespace Windawesome
 					temporarilyShownWindows.Add(hWnd);
 					break;
 				case OnWindowShownAction.HideWindow:
-					System.Threading.Thread.Sleep(1000);
+					System.Threading.Thread.Sleep(1000); // TODO: is this enough? Is it too much?
 					HideWindow(tuple.Item2);
 					config.Workspaces[0].SetTopWindowAsForeground();
 					break;
@@ -684,7 +690,7 @@ namespace Windawesome
 
 		private void HideWindow(Window window)
 		{
-			hiddenApplications.AddUnique(window.hWnd);
+			hiddenApplications.Add(window.hWnd);
 			window.Hide();
 		}
 
@@ -701,20 +707,6 @@ namespace Windawesome
 			}
 
 			NativeMethods.EndDeferWindowPos(winPosInfo);
-
-			// although the windows are already shown before this line because of the blocking EndDefer above,
-			// it must be here. The problem is this: if you have a window that has blocked on something (e.g.
-			// starting a process) but still accepts sent messages (i.e. WindowIsNotHung returns true) and try
-			// to switch to and from its workspace a couple of times, Windows will send an
-			// HSHELL_WINDOWDESTROYED only once once the window is unblocked, although it should send as many
-			// as the window has been hidden. If you do a ShowWindowAsync, though, (which only posts a
-			// WM_SHOWWINDOW message to the window), Windows will send all the window-destroyed messages.
-			// Yeah, go figure. Only ShowWindowAsyncs are not going to work either, as then the Z-order is not
-			// preserved. Read the comment in Window::Show for another problem there.
-			// how to reproduce: Firefox 5.0, BitComet 1.27. If you click a torrent file and ask Firefox to open
-			// it with BitComet it will block and wait for BC to load. If you switch the workspaces at this time
-			// a couple of times back and forth, you will have the problem described above.
-			//showWindows.ForEach(w => w.Show());
 
 			hideWindows.ForEach(HideWindow);
 		}
@@ -1111,19 +1103,6 @@ namespace Windawesome
 			NativeMethods.PostMessage(HandleStatic, postActionMessageNum, UIntPtr.Zero, IntPtr.Zero);
 		}
 
-		public static void ExecuteOnWindowShown(IntPtr hWnd, Action<IntPtr> action)
-		{
-			// TODO: this function (and all of the ExecuteOnWindowShown stuff) should no longer be needed
-			if (NativeMethods.IsWindowVisible(hWnd))
-			{
-				action(hWnd);
-			}
-			else
-			{
-				onWindowShown[hWnd] = action;
-			}
-		}
-
 		public void DismissTemporarilyShownWindow(IntPtr hWnd)
 		{
 			if (temporarilyShownWindows.Contains(hWnd))
@@ -1140,37 +1119,31 @@ namespace Windawesome
 
 		private void OnShellHookMessage(IntPtr wParam, IntPtr lParam)
 		{
+			LinkedList<Tuple<Workspace, Window>> list;
+
 			switch ((NativeMethods.ShellEvents) wParam)
 			{
 				case NativeMethods.ShellEvents.HSHELL_WINDOWCREATED: // window created or restored from tray
+					if (!applications.TryGetValue(lParam, out list)) // if a new window has shown
 					{
-						Action<IntPtr> onWindowShownAction;
-						LinkedList<Tuple<Workspace, Window>> list;
-						if (!applications.TryGetValue(lParam, out list)) // if a new window has shown
-						{
-							AddWindowToWorkspace(lParam);
-						}
-						else if (!config.Workspaces[0].ContainsWindow(lParam)) // if a hidden window has shown
-						{
-							// there is a problem with some windows showing up when others are created.
-							// how to reproduce: start BitComet 1.26 on some workspace, switch to another one
-							// and start explorer.exe (the file manager)
+						AddWindowToWorkspace(lParam);
+					}
+					else if (!config.Workspaces[0].ContainsWindow(lParam)) // if a hidden window has shown
+					{
+						// there is a problem with some windows showing up when others are created.
+						// how to reproduce: start BitComet 1.26 on some workspace, switch to another one
+						// and start explorer.exe (the file manager)
+						// on Windows 7 Ultimate x64 SP1
 
-							// another problem is that some windows continuously keep showing when hidden.
-							// how to reproduce: TortoiseSVN. About box. Click check for updates. This window
-							// keeps showing up when changing workspaces
-							NativeMethods.PostMessage(HandleStatic, shellMessageNum,
-								(UIntPtr) (uint) NativeMethods.ShellEvents.HSHELL_WINDOWACTIVATED, lParam);
-						}
-						else if (onWindowShown.TryGetValue(lParam, out onWindowShownAction))
-						{
-							onWindowShown.Remove(lParam);
-							onWindowShownAction(lParam);
-						}
+						// another problem is that some windows continuously keep showing when hidden.
+						// how to reproduce: TortoiseSVN. About box. Click check for updates. This window
+						// keeps showing up when changing workspaces
+						NativeMethods.PostMessage(HandleStatic, shellMessageNum,
+							(UIntPtr) (uint) NativeMethods.ShellEvents.HSHELL_WINDOWACTIVATED, lParam);
 					}
 					break;
 				case NativeMethods.ShellEvents.HSHELL_WINDOWDESTROYED: // window destroyed or minimized to tray
-					if (hiddenApplications.Remove(lParam) == HashMultiSet<IntPtr>.RemoveResult.NotFound)
+					if (!hiddenApplications.Remove(lParam))
 					{
 						RemoveApplicationFromAllWorkspaces(lParam);
 					}
@@ -1181,7 +1154,6 @@ namespace Windawesome
 					{
 						if (lParam != IntPtr.Zero && !temporarilyShownWindows.Contains(lParam))
 						{
-							LinkedList<Tuple<Workspace, Window>> list;
 							if (!applications.TryGetValue(lParam, out list)) // if a new window has shown
 							{
 								RefreshApplicationsHash();
@@ -1212,32 +1184,26 @@ namespace Windawesome
 					}
 					break;
 				case NativeMethods.ShellEvents.HSHELL_FLASH: // window flashing in taskbar
+					if (applications.TryGetValue(lParam, out list))
 					{
-						LinkedList<Tuple<Workspace, Window>> list;
-						if (applications.TryGetValue(lParam, out list))
-						{
-							DoWindowFlashing(list);
-						}
-						break;
+						DoWindowFlashing(list);
 					}
+					break;
 				case NativeMethods.ShellEvents.HSHELL_REDRAW: // window's taskbar button has changed
+					if (applications.TryGetValue(lParam, out list))
 					{
-						LinkedList<Tuple<Workspace, Window>> list;
-						if (applications.TryGetValue(lParam, out list))
+						var text = NativeMethods.GetText(lParam);
+						foreach (var t in list)
 						{
-							var text = NativeMethods.GetText(lParam);
-							foreach (var t in list)
-							{
-								t.Item2.DisplayName = text;
-								DoWindowTitleOrIconChanged(t.Item1, t.Item2, text);
-							}
+							t.Item2.DisplayName = text;
+							DoWindowTitleOrIconChanged(t.Item1, t.Item2, text);
 						}
-						else
-						{
-							AddWindowToWorkspace(lParam);
-						}
-						break;
 					}
+					else
+					{
+						AddWindowToWorkspace(lParam);
+					}
+					break;
 				case NativeMethods.ShellEvents.HSHELL_WINDOWREPLACING:
 					NativeMethods.PostMessage(HandleStatic, shellMessageNum,
 						(UIntPtr) (uint) NativeMethods.ShellEvents.HSHELL_WINDOWCREATED, lParam);
@@ -1282,7 +1248,7 @@ namespace Windawesome
 
 				if (count == 5)
 				{
-					SendHotkey(IntPtr.Zero, altTabCombination);
+					SendHotkey(altTabCombination);
 				}
 				else
 				{
@@ -1307,106 +1273,6 @@ namespace Windawesome
 			}
 
 			base.WndProc(ref m);
-		}
-
-		#endregion
-	}
-
-	public sealed class HashMultiSet<T> : IEnumerable<T>
-	{
-		// TODO: all this class and its uses are no longer needed. Change to HashSet everywhere
-		private readonly Dictionary<T, BoxedInt> set;
-		private sealed class BoxedInt
-		{
-			public int i = 1;
-		}
-
-		public HashMultiSet(IEqualityComparer<T> comparer = null)
-		{
-			set = new Dictionary<T, BoxedInt>(comparer);
-		}
-
-		public AddResult Add(T item)
-		{
-			BoxedInt count;
-			if (set.TryGetValue(item, out count))
-			{
-				count.i++;
-				return AddResult.Added;
-			}
-			else
-			{
-				set[item] = new BoxedInt();
-				return AddResult.AddedFirst;
-			}
-		}
-
-		public AddResult AddUnique(T item)
-		{
-			if (set.ContainsKey(item))
-			{
-				return AddResult.AlreadyContained;
-			}
-			else
-			{
-				set[item] = new BoxedInt();
-				return AddResult.AddedFirst;
-			}
-		}
-
-		public RemoveResult Remove(T item)
-		{
-			BoxedInt count;
-			if (set.TryGetValue(item, out count))
-			{
-				if (count.i == 1)
-				{
-					set.Remove(item);
-					return RemoveResult.RemovedLast;
-				}
-				else
-				{
-					count.i--;
-					return RemoveResult.Removed;
-				}
-			}
-
-			return RemoveResult.NotFound;
-		}
-
-		public bool Contains(T item)
-		{
-			return set.ContainsKey(item);
-		}
-
-		public enum AddResult : byte
-		{
-			AddedFirst,
-			Added,
-			AlreadyContained
-		}
-
-		public enum RemoveResult : byte
-		{
-			NotFound,
-			RemovedLast,
-			Removed
-		}
-
-		#region IEnumerable<T> Members
-
-		public IEnumerator<T> GetEnumerator()
-		{
-			return set.Keys.GetEnumerator();
-		}
-
-		#endregion
-
-		#region IEnumerable Members
-
-		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
-		{
-			return set.Keys.GetEnumerator();
 		}
 
 		#endregion

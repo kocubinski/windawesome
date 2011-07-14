@@ -291,9 +291,18 @@ namespace Windawesome
 			return "Tile";
 		}
 
+		public bool ShouldRestoreSharedWindowsPosition()
+		{
+			return false;
+		}
+
 		public void Reposition(IEnumerable<Window> windows, Rectangle workingArea)
 		{
 			this.workingArea = workingArea;
+
+			// restore any maximized windows
+			windows.ForEach(window => NativeMethods.ShowWindowAsync(window.hWnd, NativeMethods.SW.SW_RESTORE));
+			System.Threading.Thread.Sleep(200);
 
 			this.windows = new LinkedList<Window>(windows);
 

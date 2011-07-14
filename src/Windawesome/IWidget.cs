@@ -3,16 +3,8 @@ using System.Windows.Forms;
 
 namespace Windawesome
 {
-	public enum WidgetType
-	{
-		FixedWidth,
-		Span
-	}
-
 	public interface IWidget
 	{
-		WidgetType GetWidgetType();
-
 		/*
 		 * This is guaranteed to be called exactly once for every widget type. Useful for
 		 * initializing any static data
@@ -68,5 +60,13 @@ namespace Windawesome
 		void Dispose();
 
 		// TODO: must add a way to "refresh" the widget - to be used when RefreshWindawesome is called for example
+	}
+
+	public interface ISpanWidget : IWidget
+	{
+	}
+
+	public interface IFixedWidthWidget : IWidget
+	{
 	}
 }

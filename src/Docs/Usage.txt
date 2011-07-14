@@ -82,7 +82,7 @@ barHeight - the height of the bar, in pixels
 font - the default font to be used for any Widget, if it does not specify anything else
 backgroundColor - the default background color of the Bar
 
-Left and right aligned widgets SHOULD be of type FixedWidth (which means they are not spanning all the available space, not that they cannot change their width), while middle aligned widgets SHOULD be of type Span.
+Left and right aligned widgets SHOULD be of type IFixedWidthWidget (which means they are not spanning all the available space, not that they cannot change their width), while middle aligned widgets SHOULD be of type ISpanWidget.
 
 Workspace:
 A workspace contains windows and bars and is displaying the windows in a particular layout.

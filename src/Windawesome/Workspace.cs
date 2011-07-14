@@ -65,7 +65,7 @@ namespace Windawesome
 		private int windowsShownInTabsCount;
 		internal Rectangle workingArea;
 
-		private LinkedList<Window> windows; // all windows, owner window, sorted in Z-order, topmost window first
+		private readonly LinkedList<Window> windows; // all windows, owner window, sorted in Z-order, topmost window first
 		private readonly LinkedList<Window> managedWindows; // windows.Where(w => !w.isFloating && !w.isMinimized), owned windows, not sorted
 		private readonly LinkedList<Window> sharedWindows; // windows.Where(w => w.shared), not sorted
 		private readonly LinkedList<Window> removedSharedWindows; // windows that need to be Initialized but then removed from shared
@@ -321,7 +321,7 @@ namespace Windawesome
 		private void SetSharedWindowChanges(Window window)
 		{
 			window.Initialize();
-			if ((!hasChanges && !repositionOnSwitchedTo) || window.IsFloating)
+			if ((!hasChanges && !repositionOnSwitchedTo) || window.IsFloating || Layout.ShouldRestoreSharedWindowsPosition())
 			{
 				window.RestorePosition();
 			}
@@ -720,7 +720,9 @@ namespace Windawesome
 		{
 			// I'm adding to the front of the list in WindowCreated, however EnumWindows enums
 			// from the top of the Z-order to the bottom, so I need to reverse the list
-			windows = new LinkedList<Window>(windows.Reverse());
+			var newWindows = windows.ToArray();
+			windows.Clear();
+			newWindows.ForEach(w => windows.AddFirst(w));
 
 			this.workingArea = workingArea;
 			SetWorkingAreaAndBarPositions();
@@ -788,7 +790,8 @@ namespace Windawesome
 
 		public Window GetTopmostWindow()
 		{
-			return windows.FirstOrDefault(w => !w.IsMinimized);
+			var window = windows.FirstOrDefault();
+			return (window != null && !window.IsMinimized) ? window : null;
 		}
 
 		internal void AddToSharedWindows(Window window)

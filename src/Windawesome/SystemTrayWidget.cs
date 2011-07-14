@@ -8,7 +8,7 @@ using System.Windows.Forms;
 
 namespace Windawesome
 {
-	public class SystemTrayWidget : IWidget
+	public class SystemTrayWidget : IFixedWidthWidget
 	{
 		private readonly Dictionary<Tuple<int, uint>, Tuple<SystemTray.TrayIcon, PictureBox, ToolTip>> icons; // (hWnd, uID) -> (TrayIcon, PictureBox, ToolTip)
 
@@ -298,11 +298,6 @@ namespace Windawesome
 		}
 
 		#region IWidget Members
-
-		public WidgetType GetWidgetType()
-		{
-			return WidgetType.FixedWidth;
-		}
 
 		public void StaticInitializeWidget(Windawesome windawesome, Config config)
 		{

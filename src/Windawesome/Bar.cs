@@ -13,9 +13,9 @@ namespace Windawesome
 
 		public readonly int barHeight;
 		public readonly Form form;
-		private readonly IWidget[] leftAlignedWidgets;
-		private readonly IWidget[] rightAlignedWidgets;
-		private readonly IWidget[] middleAlignedWidgets;
+		private readonly IFixedWidthWidget[] leftAlignedWidgets;
+		private readonly IFixedWidthWidget[] rightAlignedWidgets;
+		private readonly ISpanWidget[] middleAlignedWidgets;
 		private readonly Font font;
 
 		private int rightmostLeftAlign;
@@ -26,13 +26,13 @@ namespace Windawesome
 
 		#region Events
 
-		private delegate void SpanWidgetControlsAddedEventHandler(IWidget widget, IEnumerable<Control> controls);
+		private delegate void SpanWidgetControlsAddedEventHandler(ISpanWidget widget, IEnumerable<Control> controls);
 		private event SpanWidgetControlsAddedEventHandler SpanWidgetControlsAdded;
 
-		private delegate void SpanWidgetControlsRemovedEventHandler(IWidget widget, IEnumerable<Control> controls);
+		private delegate void SpanWidgetControlsRemovedEventHandler(ISpanWidget widget, IEnumerable<Control> controls);
 		private event SpanWidgetControlsRemovedEventHandler SpanWidgetControlsRemoved;
 
-		private delegate void FixedWidthWidgetWidthChangedEventHandler(IWidget widget);
+		private delegate void FixedWidthWidgetWidthChangedEventHandler(IFixedWidthWidget widget);
 		private event FixedWidthWidgetWidthChangedEventHandler FixedWidthWidgetWidthChanged;
 
 		private delegate void WidgetControlsChangedEventHandler(IWidget widget, IEnumerable<Control> oldControls, IEnumerable<Control> newControls);
@@ -43,17 +43,17 @@ namespace Windawesome
 			WidgetControlsChanged(widget, controlsRemoved, controlsAdded);
 		}
 
-		public void DoSpanWidgetControlsAdded(IWidget widget, IEnumerable<Control> controls)
+		public void DoSpanWidgetControlsAdded(ISpanWidget widget, IEnumerable<Control> controls)
 		{
 			SpanWidgetControlsAdded(widget, controls);
 		}
 
-		public void DoSpanWidgetControlsRemoved(IWidget widget, IEnumerable<Control> controls)
+		public void DoSpanWidgetControlsRemoved(ISpanWidget widget, IEnumerable<Control> controls)
 		{
 			SpanWidgetControlsRemoved(widget, controls);
 		}
 
-		public void DoFixedWidthWidgetWidthChanged(IWidget widget)
+		public void DoFixedWidthWidgetWidthChanged(IFixedWidthWidget widget)
 		{
 			FixedWidthWidgetWidthChanged(widget);
 		}
@@ -122,8 +122,8 @@ namespace Windawesome
 			}
 		}
 
-		public Bar(IEnumerable<IWidget> leftAlignedWidgets, IEnumerable<IWidget> rightAlignedWidgets,
-			IEnumerable<IWidget> middleAlignedWidgets, int barHeight = 20, Font font = null, Color? backgroundColor = null)
+		public Bar(IEnumerable<IFixedWidthWidget> leftAlignedWidgets, IEnumerable<IFixedWidthWidget> rightAlignedWidgets,
+			IEnumerable<ISpanWidget> middleAlignedWidgets, int barHeight = 20, Font font = null, Color? backgroundColor = null)
 		{
 			this.leftAlignedWidgets = leftAlignedWidgets.ToArray();
 			this.rightAlignedWidgets = rightAlignedWidgets.ToArray();
@@ -143,15 +143,8 @@ namespace Windawesome
 
 		internal void InitializeBar(Windawesome windawesome, Config config)
 		{
-			if (leftAlignedWidgets.Any(w => w.GetWidgetType() == WidgetType.Span) ||
-				rightAlignedWidgets.Any(w => w.GetWidgetType() == WidgetType.Span) ||
-				middleAlignedWidgets.Any(w => w.GetWidgetType() != WidgetType.Span))
-			{
-				throw new Exception("Left/Right aligned widgets cannot be of type \"Span\" and\nmiddle aligned widgets cannot be anything other than \"Span\"!");
-			}
-
 			// statically initialize any widgets not already initialized
-			leftAlignedWidgets.Concat(rightAlignedWidgets).Concat(middleAlignedWidgets).
+			leftAlignedWidgets.Cast<IWidget>().Concat(rightAlignedWidgets).Cast<IWidget>().Concat(middleAlignedWidgets).Cast<IWidget>().
 				Where(w => !widgetTypes.Contains(w.GetType())). // this statement uses the laziness of Where
 				ForEach(w => { w.StaticInitializeWidget(windawesome, config); widgetTypes.Add(w.GetType()); });
 
@@ -174,7 +167,7 @@ namespace Windawesome
 			middleAlignedWidgets.ForEach(w => w.Dispose());
 
 			// statically dispose of any widgets not already dispsed
-			leftAlignedWidgets.Concat(rightAlignedWidgets).Concat(middleAlignedWidgets).
+			leftAlignedWidgets.Cast<IWidget>().Concat(rightAlignedWidgets).Cast<IWidget>().Concat(middleAlignedWidgets).Cast<IWidget>().
 				Where(w => widgetTypes.Contains(w.GetType())). // this statement uses the laziness of Where
 				ForEach(w => { w.StaticDispose(); widgetTypes.Remove(w.GetType()); });
 
@@ -192,7 +185,7 @@ namespace Windawesome
 			controlsRemoved.ForEach(this.form.Controls.Remove);
 			controlsAdded.ForEach(this.form.Controls.Add);
 
-			if (widget.GetWidgetType() == WidgetType.FixedWidth)
+			if (widget is IFixedWidthWidget)
 			{
 				ResizeWidgets(widget);
 			}
@@ -200,7 +193,7 @@ namespace Windawesome
 			this.form.ResumeLayout();
 		}
 
-		private void OnSpanWidgetControlsAdded(IWidget widget, IEnumerable<Control> controls)
+		private void OnSpanWidgetControlsAdded(ISpanWidget widget, IEnumerable<Control> controls)
 		{
 			this.form.SuspendLayout();
 
@@ -209,7 +202,7 @@ namespace Windawesome
 			this.form.ResumeLayout();
 		}
 
-		private void OnSpanWidgetControlsRemoved(IWidget widget, IEnumerable<Control> controls)
+		private void OnSpanWidgetControlsRemoved(ISpanWidget widget, IEnumerable<Control> controls)
 		{
 			this.form.SuspendLayout();
 
@@ -218,7 +211,7 @@ namespace Windawesome
 			this.form.ResumeLayout();
 		}
 
-		private void OnFixedWidthWidgetWidthChanged(IWidget widget)
+		private void OnFixedWidthWidgetWidthChanged(IFixedWidthWidget widget)
 		{
 			this.form.SuspendLayout();
 

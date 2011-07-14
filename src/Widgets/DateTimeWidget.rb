@@ -1,6 +1,6 @@
 
 class DateTimeWidget
-	include Windawesome::IWidget
+	include Windawesome::IFixedWidthWidget
 	include System
 	include System::Collections::Generic
 	include System::Drawing
@@ -24,10 +24,6 @@ class DateTimeWidget
 				@bar.do_fixed_width_widget_width_changed self
 			end
 		end
-	end
-
-	def get_widget_type
-		Windawesome::WidgetType.fixed_width
 	end
 
 	def static_initialize_widget windawesome, config; end
