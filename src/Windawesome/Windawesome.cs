@@ -114,9 +114,11 @@ namespace Windawesome
 
 			config = new Config();
 			config.LoadPlugins(this);
+
 			config.Workspaces = config.Workspaces.Resize(config.Workspaces.Length + 1);
 			config.Workspaces[0] = config.Workspaces[config.StartingWorkspace];
 			PreviousWorkspace = config.Workspaces[0].id;
+
 			config.Bars.ForEach(b => b.InitializeBar(this, config));
 			config.Plugins.ForEach(p => p.InitializePlugin(this, config));
 
@@ -276,6 +278,9 @@ namespace Windawesome
 				var newWorkingArea = SystemInformation.WorkingArea;
 				if (newWorkingArea != config.Workspaces[0].workingArea)
 				{
+					// TODO: docking a temporarily shown application to the end of the screen
+					// (and causing a working area change) is a problem when the app is hidden
+
 					if (newWorkingArea == originalWorkingArea[config.Workspaces[0].id - 1])
 					{
 						// because Windows resets the working area when the UAC prompt is shown,
@@ -284,6 +289,7 @@ namespace Windawesome
 						// how to reproduce: start any program that triggers a UAC prompt or start
 						// IrfanView 4.28 with some picture, enter full-screen with "Return" and then exit
 						// with "Return" again
+						// on Windows 7 Ultimate x64
 						PostAction(() => config.Workspaces[0].ShowHideWindowsTaskbar());
 						PostAction(() => config.Workspaces[0].ShowHideWindowsTaskbar());
 					}
@@ -303,9 +309,10 @@ namespace Windawesome
 
 		private void OnDisplaySettingsChanged(object sender, EventArgs e)
 		{
-			// Windows (at least 7) resets the working area to its default one if there are other docked programs
+			// Windows resets the working area to its default one if there are other docked programs
 			// other than the Windows taskbar when changing resolution, otherwise the working area is left intact
 			// (only scaled, of course, because of the resolution change)
+			// on Windows 7 Ultimate x64
 
 			var newScreenResolution = SystemInformation.PrimaryMonitorSize;
 
@@ -366,6 +373,8 @@ namespace Windawesome
 				}
 				if (!programRule.isManaged)
 				{
+					// add to hiddenApplications in order to not try again to add the window
+					hiddenApplications.Add(hWnd);
 					return false;
 				}
 
@@ -386,17 +395,7 @@ namespace Windawesome
 					if (hasWorkspaceZeroRule || hasCurrentWorkspaceRule)
 					{
 						// this means that the window must be on the current workspace anyway
-						if (NativeMethods.IsIconic(hWnd)) // TODO: maybe should add an option for this
-						{
-							// TODO: this code is equivallent (almost) to the one in SwitchToApplicationInCurrentWorkspace
-							NativeMethods.ShowWindow(hWnd, NativeMethods.SW.SW_RESTORE);
-							//System.Threading.Thread.Sleep(Workspace.minimizeRestoreDelay);
-							PostAction(() => ForceForegroundWindow(hWnd));
-						}
-						else
-						{
-							ForceForegroundWindow(hWnd);
-						}
+						ActivateWindow(hWnd, hWnd, NativeMethods.IsIconic(hWnd)); // TODO: there should be an option for this
 					}
 					else
 					{
@@ -410,18 +409,7 @@ namespace Windawesome
 								break;
 							case OnWindowShownAction.TemporarilyShowWindowOnCurrentWorkspace:
 								temporarilyShownWindows.Add(hWnd);
-
-								if (NativeMethods.IsIconic(hWnd)) // TODO: maybe should add an option for this
-								{
-									// TODO: this code is equivallent (almost) to the one in SwitchToApplicationInCurrentWorkspace
-									NativeMethods.ShowWindow(hWnd, NativeMethods.SW.SW_RESTORE);
-									System.Threading.Thread.Sleep(Workspace.minimizeRestoreDelay);
-									PostAction(() => ForceForegroundWindow(hWnd));
-								}
-								else
-								{
-									ForceForegroundWindow(hWnd);
-								}
+								ActivateWindow(hWnd, hWnd, NativeMethods.IsIconic(hWnd)); // TODO: there should be an option for this
 								break;
 							case OnWindowShownAction.HideWindow:
 								System.Threading.Thread.Sleep(500); // TODO: is this enough? Is it too much?
@@ -470,7 +458,16 @@ namespace Windawesome
 
 					if (ownedList.Count == 0)
 					{
-						ownedList = null; // TODO: maybe should return false?
+						if (firstTry && finishedInitializing)
+						{
+							System.Threading.Thread.Sleep(500);
+							return AddWindowToWorkspace(hWnd, false);
+						}
+						else
+						{
+							hiddenApplications.Add(hWnd);
+							return false;
+						}
 					}
 				}
 
@@ -711,6 +708,36 @@ namespace Windawesome
 			hideWindows.ForEach(HideWindow);
 		}
 
+		// only switches to applications in the current workspace
+		private bool SwitchToApplicationInCurrentWorkspace(IntPtr hWnd)
+		{
+			var window = config.Workspaces[0].GetOwnermostWindow(hWnd);
+			if (window != null)
+			{
+				ActivateWindow(hWnd, window, window.IsMinimized);
+
+				return true;
+			}
+
+			return false;
+		}
+
+		// there is a dynamic here because this could be either a Window or an IntPtr
+		private static void ActivateWindow(IntPtr hWnd, dynamic window, bool isMinimized)
+		{
+			if (isMinimized)
+			{
+				// OpenIcon does not restore the window to its previous size (e.g. maximized)
+				NativeMethods.ShowWindowAsync(hWnd, NativeMethods.SW.SW_RESTORE);
+				System.Threading.Thread.Sleep(Workspace.minimizeRestoreDelay);
+				PostAction(() => ForceForegroundWindow(window));
+			}
+			else
+			{
+				ForceForegroundWindow(window);
+			}
+		}
+
 		#endregion
 
 		#region API
@@ -722,10 +749,10 @@ namespace Windawesome
 			// though IsHungAppWindow returned false
 
 			// SendMessageTimeout with a small timeout will timeout for some programs which are heavy on
-			// computation and do not respond in time - like Visual Stuido. A big timeout works, but if an
+			// computation and do not respond in time - like Visual Studio. A big timeout works, but if an
 			// application is really hung, then Windawesome is blocked for this number of milliseconds.
 			// That can be felt and is annoying. Perhaps the best scenario is:
-			// return !IsHungAppWindow && (SendMessageTimeout || GetLastWin32Error)
+			// return !IsHungAppWindow && (SendMessageTimeout(with_big_timeout) || GetLastWin32Error)
 			// As this will not block forever at any point and it will only block the main thread for "timeout"
 			// milliseconds the first 5 seconds when a program is hung - after that IsHungAppWindow catches it
 			// immediately and returns. However, I decided that in most cases apps are not hung, so the overhead
@@ -864,6 +891,7 @@ namespace Windawesome
 		public void ToggleShowHideBar(Bar bar)
 		{
 			config.Workspaces[0].ToggleShowHideBar(bar);
+			FindWorkspaceBarsEquivalentClasses();
 		}
 
 		public void ToggleWindowFloating(IntPtr hWnd)
@@ -952,30 +980,6 @@ namespace Windawesome
 		public void RestoreApplication(IntPtr hWnd)
 		{
 			NativeMethods.SendNotifyMessage(hWnd, NativeMethods.WM_SYSCOMMAND, NativeMethods.SC_RESTORE, IntPtr.Zero);
-		}
-
-		// only switches to applications in the current workspace
-		public bool SwitchToApplicationInCurrentWorkspace(IntPtr hWnd)
-		{
-			var window = config.Workspaces[0].GetOwnermostWindow(hWnd);
-			if (window != null)
-			{
-				if (window.IsMinimized)
-				{
-					// OpenIcon does not restore the window to its previous size (e.g. maximized)
-					NativeMethods.ShowWindowAsync(hWnd, NativeMethods.SW.SW_RESTORE);
-					System.Threading.Thread.Sleep(Workspace.minimizeRestoreDelay);
-					PostAction(() => ForceForegroundWindow(window));
-				}
-				else
-				{
-					ForceForegroundWindow(window);
-				}
-
-				return true;
-			}
-
-			return false;
 		}
 
 		public static void RegisterMessage(int message, HandleMessageDelegate targetHandler)
@@ -1198,10 +1202,6 @@ namespace Windawesome
 							t.Item2.DisplayName = text;
 							DoWindowTitleOrIconChanged(t.Item1, t.Item2, text);
 						}
-					}
-					else
-					{
-						AddWindowToWorkspace(lParam);
 					}
 					break;
 				case NativeMethods.ShellEvents.HSHELL_WINDOWREPLACING:

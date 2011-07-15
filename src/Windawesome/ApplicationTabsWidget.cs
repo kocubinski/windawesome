@@ -150,7 +150,7 @@ namespace Windawesome
 
 		private void OnApplicationTabClick(object sender, EventArgs e)
 		{
-			windawesome.SwitchToApplicationInCurrentWorkspace(
+			windawesome.SwitchToApplication(
 				applicationPanels[windawesome.CurrentWorkspace.id - 1].
 					First(item => item.Value == (((Control) sender).Parent as Panel)).
 					Key);

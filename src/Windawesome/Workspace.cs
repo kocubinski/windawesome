@@ -756,7 +756,7 @@ namespace Windawesome
 
 			if (node != null)
 			{
-				if (windows.Count > 1)
+				if (node != windows.First)
 				{
 					// adds the window to the front of the list, i.e. the top of the Z order
 					windows.Remove(node);
@@ -775,7 +775,7 @@ namespace Windawesome
 
 			if (node != null)
 			{
-				if (windows.Count > 1)
+				if (node != windows.First)
 				{
 					// adds the window to the back of the list, i.e. the bottom of the Z order
 					windows.Remove(node);
