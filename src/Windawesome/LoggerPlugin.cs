@@ -81,7 +81,7 @@ namespace Windawesome
 			writer.WriteLine("Changed to workspace '{0}'", workspace.id);
 		}
 
-		private void OnWindowActivatedEvent(System.IntPtr hWnd)
+		private void OnWindowActivatedEvent(IntPtr hWnd)
 		{
 			var window = windawesome.CurrentWorkspace.GetWindow(hWnd);
 			if (window != null)

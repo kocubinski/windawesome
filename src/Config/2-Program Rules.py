@@ -10,18 +10,18 @@ config.ProgramRules = Enumerable.ToArray[ProgramRule]([
 	ProgramRule(
 		className = "^TApplication$",
 		displayName = "^Find and Run Robot$",
-        isManaged = False
+		isManaged = False
 	),
 	ProgramRule(
 		className = "^TApplication$",
 		displayName = "^ImgBurn$",
 		windowCreatedDelay = 2000,
-        handleOwnedWindows = True
+		handleOwnedWindows = True
 	),
 	ProgramRule(
 		className = "^TApplication$",
 		windowCreatedDelay = 1000,
-        handleOwnedWindows = True
+		handleOwnedWindows = True
 	),
 	ProgramRule(
 		className = "^Vim$",
@@ -43,7 +43,7 @@ config.ProgramRules = Enumerable.ToArray[ProgramRule]([
 	ProgramRule(
 		displayName = ".*BitComet.*",
 		windowCreatedDelay = 1000,
-        onWindowCreatedAction = OnWindowShownAction.HideWindow,
+		onWindowCreatedAction = OnWindowShownAction.HideWindow,
 		rules = [ProgramRule.Rule(workspace = 9, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
 	),
 	ProgramRule(
@@ -64,24 +64,23 @@ config.ProgramRules = Enumerable.ToArray[ProgramRule]([
 	),
 	ProgramRule(
 		className = "^TConversationForm.*", # Skype
-        onWindowCreatedAction = OnWindowShownAction.TemporarilyShowWindowOnCurrentWorkspace,
+		onWindowCreatedAction = OnWindowShownAction.TemporarilyShowWindowOnCurrentWorkspace,
 		rules = [ProgramRule.Rule(workspace = 4, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
 	),
 	ProgramRule(
 		className = "^__oxFrame.class__$", # ICQ
 		displayName = "^ICQ$",
-        onWindowCreatedAction = OnWindowShownAction.TemporarilyShowWindowOnCurrentWorkspace,
-        #onWindowCreatedAction = OnWindowShownAction.HideWindow,
+		onWindowCreatedAction = OnWindowShownAction.TemporarilyShowWindowOnCurrentWorkspace,
 		rules = [ProgramRule.Rule(workspace = 4, isFloating = True)]
 	),
 	ProgramRule(
 		className = "^__oxFrame.class__$", # ICQ some stupid small window
-		styleExContains = WS_EX.WS_EX_TOOLWINDOW,
+		exStyleContains = WS_EX.WS_EX_TOOLWINDOW,
 		isManaged = False
 	),
 	ProgramRule(
 		className = "^__oxFrame.class__$", # ICQ chat window
-        onWindowCreatedAction = OnWindowShownAction.TemporarilyShowWindowOnCurrentWorkspace,
+		onWindowCreatedAction = OnWindowShownAction.TemporarilyShowWindowOnCurrentWorkspace,
 		rules = [ProgramRule.Rule(workspace = 4)]
 	),
 	ProgramRule(
@@ -101,13 +100,13 @@ config.ProgramRules = Enumerable.ToArray[ProgramRule]([
 	ProgramRule(
 		displayName = ".*Microsoft Visual Studio.*",
 		windowCreatedDelay = 2000,
-        onWindowCreatedAction = OnWindowShownAction.HideWindow,
+		onWindowCreatedAction = OnWindowShownAction.HideWindow,
 		rules = [ProgramRule.Rule(workspace = 5, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
 	),
 	ProgramRule(
 		className = "^HwndWrapper\[DefaultDomain.*", # Visual Studio (Express)
 		tryAgainAfter = 2000,
-        onWindowCreatedAction = OnWindowShownAction.HideWindow,
+		onWindowCreatedAction = OnWindowShownAction.HideWindow,
 		rules = [ProgramRule.Rule(workspace = 5, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
 	),
 	ProgramRule(

@@ -779,7 +779,7 @@ namespace Windawesome
 
 			return NativeMethods.SendMessageTimeout(window.hWnd, NativeMethods.WM_NULL, UIntPtr.Zero, IntPtr.Zero,
 					NativeMethods.SMTO.SMTO_ABORTIFHUNG | NativeMethods.SMTO.SMTO_BLOCK, 1000, IntPtr.Zero) != IntPtr.Zero ||
-				System.Runtime.InteropServices.Marshal.GetLastWin32Error() != NativeMethods.ERROR_TIMEOUT;
+				Marshal.GetLastWin32Error() != NativeMethods.ERROR_TIMEOUT;
 		}
 
 		public void RefreshWindawesome()

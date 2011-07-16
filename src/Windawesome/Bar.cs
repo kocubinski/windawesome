@@ -114,8 +114,9 @@ namespace Windawesome
 		{
 			widgetTypes = new HashSet<Type>();
 
+			// TODO: this is not good
 			desktopWindowHandle = NativeMethods.FindWindow("Progman", "Program Manager");
-			if (Windawesome.isAtLeast7)
+			if (Windawesome.isAtLeastVista)
 			{
 				desktopWindowHandle = NativeMethods.FindWindowEx(desktopWindowHandle, IntPtr.Zero, "SHELLDLL_DefView", null);
 				desktopWindowHandle = NativeMethods.FindWindowEx(desktopWindowHandle, IntPtr.Zero, "SysListView32", "FolderView");
@@ -138,13 +139,13 @@ namespace Windawesome
 			}
 
 			// make the bar visible even when the user uses "Show Desktop" or ALT-TABs to the desktop
-			NativeMethods.SetParent(this.form.Handle, desktopWindowHandle); // TODO: is this needed? Does it do anything at all actually?
+			NativeMethods.SetParent(this.form.Handle, desktopWindowHandle);
 		}
 
 		internal void InitializeBar(Windawesome windawesome, Config config)
 		{
 			// statically initialize any widgets not already initialized
-			leftAlignedWidgets.Cast<IWidget>().Concat(rightAlignedWidgets).Cast<IWidget>().Concat(middleAlignedWidgets).Cast<IWidget>().
+			this.leftAlignedWidgets.Cast<IWidget>().Concat(this.rightAlignedWidgets).Concat(this.middleAlignedWidgets).
 				Where(w => !widgetTypes.Contains(w.GetType())). // this statement uses the laziness of Where
 				ForEach(w => { w.StaticInitializeWidget(windawesome, config); widgetTypes.Add(w.GetType()); });
 
@@ -167,7 +168,7 @@ namespace Windawesome
 			middleAlignedWidgets.ForEach(w => w.Dispose());
 
 			// statically dispose of any widgets not already dispsed
-			leftAlignedWidgets.Cast<IWidget>().Concat(rightAlignedWidgets).Cast<IWidget>().Concat(middleAlignedWidgets).Cast<IWidget>().
+			this.leftAlignedWidgets.Cast<IWidget>().Concat(this.rightAlignedWidgets).Concat(this.middleAlignedWidgets).
 				Where(w => widgetTypes.Contains(w.GetType())). // this statement uses the laziness of Where
 				ForEach(w => { w.StaticDispose(); widgetTypes.Remove(w.GetType()); });
 

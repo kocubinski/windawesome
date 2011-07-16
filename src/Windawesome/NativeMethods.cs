@@ -570,7 +570,7 @@ namespace Windawesome
 
 		[DllImport("user32.dll")]
 		public static extern IntPtr DeferWindowPos(IntPtr hWinPosInfo, IntPtr hWnd,
-		   [Optional] IntPtr hWndInsertAfter, int x, int y, int cx, int cy, SWP uFlags);
+			 [Optional] IntPtr hWndInsertAfter, int x, int y, int cx, int cy, SWP uFlags);
 
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
@@ -1089,7 +1089,7 @@ namespace Windawesome
 			/// <summary>
 			/// Windows XP (Shell32.dll version 6.0) and later.<br/>
 			/// - Windows 7 and later: A registered GUID that identifies the icon.
-			///   This value overrides uID and is the recommended method of identifying the icon.<br/>
+			///		This value overrides uID and is the recommended method of identifying the icon.<br/>
 			/// - Windows XP through Windows Vista: Reserved.
 			/// </summary>
 			public Guid guidItem;
