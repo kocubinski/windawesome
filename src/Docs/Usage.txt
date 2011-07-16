@@ -39,6 +39,8 @@ styleContains - the window styles that must be present in the window's style
 styleNotContains - the window styles that must NOT be present in the window's style
 exStyleContains - the extended window styles that must be present in the window's extended style
 exStyleNotContains - the extended window styles that must NOT be present in the window's extended style
+customMatchingFunction - a delegate of type "bool CustomMatchingFunction(IntPtr hWnd)" which is called after each rule that matches all of the above variables. It should return true if the rule is to be matched and false otherwise. The default one returns true if the window has no owner
+
 isManaged - whether Windawesome should care about that window
 tryAgainAfter - the time, in milliseconds, to wait before trying to match the rules again (if >= 0)
 windowCreatedDelay - the time, in milliseconds, to wait before taking any action after the window has been created (if > 0). Windawesome will match te rules and then sleep. If Windawesome has problems with newly created windows, try setting this to a higher value

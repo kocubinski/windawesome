@@ -1,9 +1,11 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 
 namespace Windawesome
 {
 	public class LoggerPlugin : IPlugin
 	{
+		private readonly bool logRuleMatching;
 		private readonly bool logCreation;
 		private readonly bool logDeletion;
 		private readonly bool logWorkspaceSwitching;
@@ -13,10 +15,11 @@ namespace Windawesome
 		private readonly StreamWriter writer;
 		private Windawesome windawesome;
 
-		public LoggerPlugin(string filename = "logplugin.txt", bool logCreation = true, bool logDeletion = true,
+		public LoggerPlugin(string filename = "logplugin.txt", bool logRuleMatching = true, bool logCreation = false, bool logDeletion = false,
 			bool logWorkspaceSwitching = false, bool logWindowMinimization = false, bool logWindowRestoration = false,
 			bool logActivation = false)
 		{
+			this.logRuleMatching = logRuleMatching;
 			this.logCreation = logCreation;
 			this.logDeletion = logDeletion;
 			this.logWorkspaceSwitching = logWorkspaceSwitching;
@@ -24,6 +27,24 @@ namespace Windawesome
 			this.logWindowRestoration = logWindowRestoration;
 			this.logActivation = logActivation;
 			writer = new StreamWriter(filename, true);
+		}
+
+		private void OnProgramRuleMatched(ProgramRule programRule, IntPtr hWnd, string className, string displayName, string processName, NativeMethods.WS style, NativeMethods.WS_EX exStyle)
+		{
+			if (programRule != null)
+			{
+				writer.WriteLine("MATCHED - class '{0}'; caption '{1}'; processName '{2}';",
+					className, displayName, processName);
+				writer.WriteLine("\tAGAINST RULE WITH class '{0}'; caption '{1}'; process name '{2}';",
+					programRule.className, programRule.displayName, programRule.processName);
+				writer.WriteLine("\tstyle contains: '{0}'; style not contains '{1}'; ex style contains '{2}'; ex style not contains '{3}'; is managed '{4}'",
+					programRule.styleContains, programRule.styleNotContains, programRule.exStyleContains, programRule.exStyleNotContains, programRule.isManaged);
+			}
+			else
+			{
+				writer.WriteLine("COULD NOT MATCH - class '{0}'; caption '{1}'; processName '{2}' AGAINST ANY RULE",
+					className, displayName, processName);
+			}
 		}
 
 		private void OnWorkspaceApplicationAdded(Workspace workspace, Window window)
@@ -81,6 +102,10 @@ namespace Windawesome
 		{
 			this.windawesome = windawesome;
 
+			if (logRuleMatching)
+			{
+				Windawesome.ProgramRuleMatched += OnProgramRuleMatched;
+			}
 			if (logCreation)
 			{
 				Workspace.WorkspaceApplicationAdded += OnWorkspaceApplicationAdded;

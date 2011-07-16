@@ -12,7 +12,7 @@ namespace Windawesome
 	{
 		private readonly Config config;
 		private readonly Dictionary<IntPtr, LinkedList<Tuple<Workspace, Window>>> applications; // hWnd to a list of workspaces and windows
-		private readonly HashSet<IntPtr> hiddenApplications;
+		private readonly HashMultiSet<IntPtr> hiddenApplications;
 		private readonly uint shellMessageNum;
 		private static readonly uint postActionMessageNum;
 		private static readonly Queue<Action> postedActions;
@@ -51,6 +51,9 @@ namespace Windawesome
 		public delegate void WindowFlashingEventHandler(LinkedList<Tuple<Workspace, Window>> list);
 		public static event WindowFlashingEventHandler WindowFlashing;
 
+		public delegate void ProgramRuleMatchedEventHandler(ProgramRule programRule, IntPtr hWnd, string cName, string dName, string pName, NativeMethods.WS style, NativeMethods.WS_EX exStyle);
+		public static event ProgramRuleMatchedEventHandler ProgramRuleMatched;
+
 		internal delegate void WindawesomeExitingEventHandler();
 		internal static event WindawesomeExitingEventHandler WindawesomeExiting;
 
@@ -75,6 +78,14 @@ namespace Windawesome
 			if (WindowFlashing != null)
 			{
 				WindowFlashing(list);
+			}
+		}
+
+		private static void DoProgramRuleMatched(ProgramRule programRule, IntPtr hWnd, string className, string displayName, string processName, NativeMethods.WS style, NativeMethods.WS_EX exStyle)
+		{
+			if (ProgramRuleMatched != null)
+			{
+				ProgramRuleMatched(programRule, hWnd, className, displayName, processName, style, exStyle);
 			}
 		}
 
@@ -126,12 +137,12 @@ namespace Windawesome
 			FindWorkspaceBarsEquivalentClasses();
 
 			applications = new Dictionary<IntPtr, LinkedList<Tuple<Workspace, Window>>>(20);
-			hiddenApplications = new HashSet<IntPtr>();
+			hiddenApplications = new HashMultiSet<IntPtr>();
 
 			temporarilyShownWindows = new HashSet<IntPtr>();
 
 			// add all windows to their respective workspace
-			NativeMethods.EnumWindows((hWnd, _) => AddWindowToWorkspace(hWnd) || true, IntPtr.Zero);
+			NativeMethods.EnumDesktopWindows(IntPtr.Zero, (hWnd, _) => AddWindowToWorkspace(hWnd) || true, IntPtr.Zero);
 
 			WindawesomeExiting += OnWindawesomeExiting;
 
@@ -189,7 +200,7 @@ namespace Windawesome
 			// initialize all workspaces
 			foreach (var ws in config.Workspaces.Skip(1).Where(ws => ws.id != config.StartingWorkspace))
 			{
-				ws.GetWindows().ForEach(w => hiddenApplications.Add(w.hWnd));
+				ws.GetWindows().ForEach(w => hiddenApplications.AddUnique(w.hWnd));
 				ws.Initialize(false, originalWorkingArea[0]);
 			}
 			config.Workspaces[0].Initialize(true, originalWorkingArea[0]);
@@ -365,17 +376,18 @@ namespace Windawesome
 				NativeMethods.GetWindowThreadProcessId(hWnd, out processId);
 				var processName = System.Diagnostics.Process.GetProcessById(processId).ProcessName;
 
-				var programRule = config.ProgramRules.First(r => r.IsMatch(className, displayName, processName, style, exStyle));
-				if (programRule.tryAgainAfter >= 0 && firstTry && finishedInitializing)
-				{
-					System.Threading.Thread.Sleep(programRule.tryAgainAfter);
-					return AddWindowToWorkspace(hWnd, false);
-				}
-				if (!programRule.isManaged)
+				var programRule = config.ProgramRules.FirstOrDefault(r => r.IsMatch(hWnd, className, displayName, processName, style, exStyle));
+				DoProgramRuleMatched(programRule, hWnd, className, displayName, processName, style, exStyle);
+				if (programRule == null || !programRule.isManaged)
 				{
 					// add to hiddenApplications in order to not try again to add the window
 					hiddenApplications.Add(hWnd);
 					return false;
+				}
+				if (programRule.tryAgainAfter >= 0 && firstTry && finishedInitializing)
+				{
+					System.Threading.Thread.Sleep(programRule.tryAgainAfter);
+					return AddWindowToWorkspace(hWnd, false);
 				}
 
 				IEnumerable<ProgramRule.Rule> matchingRules = programRule.rules;
@@ -432,7 +444,7 @@ namespace Windawesome
 				{
 					ownedList = new LinkedList<Tuple<IntPtr, string, string, NativeMethods.WS, NativeMethods.WS_EX>>();
 
-					NativeMethods.EnumWindows((h, hOwner) =>
+					NativeMethods.EnumDesktopWindows(IntPtr.Zero, (h, hOwner) =>
 						{
 							if (NativeMethods.IsWindowVisible(h))
 							{
@@ -522,7 +534,7 @@ namespace Windawesome
 		{
 			var set = new HashSet<IntPtr>();
 
-			NativeMethods.EnumWindows((hWnd, _) =>
+			NativeMethods.EnumDesktopWindows(IntPtr.Zero, (hWnd, _) =>
 				{
 					set.Add(hWnd);
 					if (NativeMethods.IsWindowVisible(hWnd) && !applications.ContainsKey(hWnd))
@@ -693,7 +705,7 @@ namespace Windawesome
 
 		private void ShowHideWindows(IEnumerable<Window> showWindows, IEnumerable<Window> hideWindows)
 		{
-			var winPosInfo = NativeMethods.BeginDeferWindowPos(showWindows.Count());
+			var winPosInfo = NativeMethods.BeginDeferWindowPos(showWindows.Count() + hideWindows.Count());
 
 			foreach (var window in showWindows.Where(WindowIsNotHung))
 			{
@@ -703,9 +715,16 @@ namespace Windawesome
 				window.ShowPopupsAndRedraw();
 			}
 
-			NativeMethods.EndDeferWindowPos(winPosInfo);
+			foreach (var window in hideWindows.Where(WindowIsNotHung))
+			{
+				hiddenApplications.Add(window.hWnd);
+				window.HidePopups();
+				winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, window.hWnd, IntPtr.Zero, 0, 0, 0, 0,
+					NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE |
+					NativeMethods.SWP.SWP_NOZORDER | NativeMethods.SWP.SWP_NOOWNERZORDER | NativeMethods.SWP.SWP_HIDEWINDOW);
+			}
 
-			hideWindows.ForEach(HideWindow);
+			NativeMethods.EndDeferWindowPos(winPosInfo);
 		}
 
 		// only switches to applications in the current workspace
@@ -1051,14 +1070,15 @@ namespace Windawesome
 								return ;
 							}
 
-							System.Threading.Tasks.Task.Factory.StartNew(hWnd3Object =>
+							var uiThread = System.Threading.Tasks.TaskScheduler.FromCurrentSynchronizationContext();
+
+							System.Threading.Tasks.Task.Factory.StartNew(() =>
 								{
-									var hWnd3 = (IntPtr) hWnd3Object;
 									Bitmap bitmap = null;
 									try
 									{
 										int processId;
-										NativeMethods.GetWindowThreadProcessId(hWnd3, out processId);
+										NativeMethods.GetWindowThreadProcessId(hWnd2, out processId);
 										var process = System.Diagnostics.Process.GetProcessById(processId);
 
 										var info = new NativeMethods.SHFILEINFO();
@@ -1083,8 +1103,10 @@ namespace Windawesome
 									catch
 									{
 									}
-									PostAction(() => action(bitmap));
-								}, hWnd2);
+
+									return bitmap;
+								}).ContinueWith(t => action(t.Result), System.Threading.CancellationToken.None,
+									System.Threading.Tasks.TaskContinuationOptions.None, uiThread);
 						};
 
 					if (NativeMethods.SendMessageCallback(hWnd1, NativeMethods.WM_QUERYDRAGICON, UIntPtr.Zero,
@@ -1132,7 +1154,7 @@ namespace Windawesome
 					{
 						AddWindowToWorkspace(lParam);
 					}
-					else if (!config.Workspaces[0].ContainsWindow(lParam)) // if a hidden window has shown
+					else if (!hiddenApplications.Contains(lParam) && !config.Workspaces[0].ContainsWindow(lParam)) // if a hidden window has shown
 					{
 						// there is a problem with some windows showing up when others are created.
 						// how to reproduce: start BitComet 1.26 on some workspace, switch to another one
@@ -1147,7 +1169,7 @@ namespace Windawesome
 					}
 					break;
 				case NativeMethods.ShellEvents.HSHELL_WINDOWDESTROYED: // window destroyed or minimized to tray
-					if (!hiddenApplications.Remove(lParam))
+					if (hiddenApplications.Remove(lParam) == HashMultiSet<IntPtr>.RemoveResult.NotFound)
 					{
 						RemoveApplicationFromAllWorkspaces(lParam);
 					}
@@ -1218,6 +1240,7 @@ namespace Windawesome
 		private bool inShellMessage;
 		protected override void WndProc(ref Message m)
 		{
+			HandleMessageDelegate messageDelegate;
 			if (m.Msg == shellMessageNum)
 			{
 				if (inShellMessage)
@@ -1230,16 +1253,12 @@ namespace Windawesome
 					OnShellHookMessage(m.WParam, m.LParam);
 					inShellMessage = false;
 				}
-
-				m.Result = IntPtr.Zero;
-				return ;
 			}
-			if (m.Msg == postActionMessageNum)
+			else if (m.Msg == postActionMessageNum)
 			{
 				postedActions.Dequeue()();
-				return ;
 			}
-			if (m.Msg == NativeMethods.WM_HOTKEY && m.WParam == this.getForegroundPrivilageAtom)
+			else if (m.Msg == NativeMethods.WM_HOTKEY && m.WParam == this.getForegroundPrivilageAtom)
 			{
 				var count = 0;
 				while (!NativeMethods.SetForegroundWindow(forceForegroundWindow) && ++count < 5)
@@ -1255,10 +1274,8 @@ namespace Windawesome
 					NativeMethods.SetWindowPos(forceForegroundWindow, NativeMethods.HWND_TOP, 0, 0, 0, 0,
 						NativeMethods.SWP.SWP_ASYNCWINDOWPOS | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
 				}
-				return ;
 			}
-			HandleMessageDelegate messageDelegate;
-			if (messageHandlers.TryGetValue(m.Msg, out messageDelegate))
+			else if (messageHandlers.TryGetValue(m.Msg, out messageDelegate))
 			{
 				var res = false;
 				foreach (HandleMessageDelegate handler in messageDelegate.GetInvocationList())
@@ -1266,13 +1283,114 @@ namespace Windawesome
 					res |= handler(ref m);
 				}
 
-				if (res)
+				if (!res)
 				{
-					return ;
+					base.WndProc(ref m);
+				}
+			}
+			else
+			{
+				base.WndProc(ref m);
+			}
+		}
+
+		#endregion
+	}
+
+	public sealed class HashMultiSet<T> : IEnumerable<T>
+	{
+		private readonly Dictionary<T, BoxedInt> set;
+		private sealed class BoxedInt
+		{
+			public int i = 1;
+		}
+
+		public HashMultiSet(IEqualityComparer<T> comparer = null)
+		{
+			set = new Dictionary<T, BoxedInt>(comparer);
+		}
+
+		public AddResult Add(T item)
+		{
+			BoxedInt count;
+			if (set.TryGetValue(item, out count))
+			{
+				count.i++;
+				return AddResult.Added;
+			}
+			else
+			{
+				set[item] = new BoxedInt();
+				return AddResult.AddedFirst;
+			}
+		}
+
+		public AddResult AddUnique(T item)
+		{
+			if (set.ContainsKey(item))
+			{
+				return AddResult.AlreadyContained;
+			}
+			else
+			{
+				set[item] = new BoxedInt();
+				return AddResult.AddedFirst;
+			}
+		}
+
+		public RemoveResult Remove(T item)
+		{
+			BoxedInt count;
+			if (set.TryGetValue(item, out count))
+			{
+				if (count.i == 1)
+				{
+					set.Remove(item);
+					return RemoveResult.RemovedLast;
+				}
+				else
+				{
+					count.i--;
+					return RemoveResult.Removed;
 				}
 			}
 
-			base.WndProc(ref m);
+			return RemoveResult.NotFound;
+		}
+
+		public bool Contains(T item)
+		{
+			return set.ContainsKey(item);
+		}
+
+		public enum AddResult : byte
+		{
+			AddedFirst,
+			Added,
+			AlreadyContained
+		}
+
+		public enum RemoveResult : byte
+		{
+			NotFound,
+			RemovedLast,
+			Removed
+		}
+
+		#region IEnumerable<T> Members
+
+		public IEnumerator<T> GetEnumerator()
+		{
+			return set.Keys.GetEnumerator();
+		}
+
+		#endregion
+
+		#region IEnumerable Members
+
+		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
+		{
+			return set.Keys.GetEnumerator();
 		}
 
 		#endregion

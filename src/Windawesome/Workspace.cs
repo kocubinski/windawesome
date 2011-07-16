@@ -1044,12 +1044,17 @@ namespace Windawesome
 			}
 		}
 
-		internal void Hide()
+		internal void HidePopups()
 		{
 			if (hideOwnedPopups)
 			{
 				NativeMethods.ShowOwnedPopups(hWnd, false);
 			}
+		}
+
+		internal void Hide()
+		{
+			HidePopups();
 			NativeMethods.ShowWindowAsync(hWnd, NativeMethods.SW.SW_HIDE);
 		}
 

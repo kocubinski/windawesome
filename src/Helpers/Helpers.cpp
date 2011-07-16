@@ -21,7 +21,7 @@ BOOL IsAppWindow(HWND hWnd)
 	if (IsWindowVisible(hWnd) && !GetParent(hWnd))
 	{
 		LONG_PTR exStyle = GetWindowLongPtr(hWnd, GWL_EXSTYLE);
-		return !(exStyle & WS_CHILD) && !GetWindow(hWnd, GW_OWNER);
+		return !(exStyle & WS_CHILD);
 	}
 
 	return FALSE;

@@ -138,7 +138,7 @@ namespace Windawesome
 			}
 
 			// make the bar visible even when the user uses "Show Desktop" or ALT-TABs to the desktop
-			NativeMethods.SetParent(this.form.Handle, desktopWindowHandle);
+			NativeMethods.SetParent(this.form.Handle, desktopWindowHandle); // TODO: is this needed? Does it do anything at all actually?
 		}
 
 		internal void InitializeBar(Windawesome windawesome, Config config)

@@ -237,13 +237,13 @@ namespace Windawesome
 
 		public static readonly IntPtr HWND_MESSAGE = (IntPtr) (-3);
 
-		#region EnumWindows
+		#region EnumDesktopWindows
 
 		public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
 
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
+		public static extern bool EnumDesktopWindows([Optional] IntPtr hDesktop, EnumWindowsProc lpfn, IntPtr lParam);
 
 		#endregion
 
