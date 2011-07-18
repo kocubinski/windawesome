@@ -45,13 +45,13 @@ namespace Windawesome
 
 		#region IWidget Members
 
-		public void StaticInitializeWidget(Windawesome windawesome, Config config)
+		void IWidget.StaticInitializeWidget(Windawesome windawesome, Config config)
 		{
 			LayoutWidget.windawesome = windawesome;
 			LayoutWidget.config = config;
 		}
 
-		public void InitializeWidget(Bar bar)
+		void IWidget.InitializeWidget(Bar bar)
 		{
 			this.bar = bar;
 
@@ -62,7 +62,7 @@ namespace Windawesome
 			layoutLabel.Click += LayoutLabelClick;
 		}
 
-		public IEnumerable<Control> GetControls(int left, int right)
+		IEnumerable<Control> IWidget.GetControls(int left, int right)
 		{
 			isLeft = right == -1;
 
@@ -88,29 +88,29 @@ namespace Windawesome
 			}
 		}
 
-		public int GetLeft()
+		int IWidget.GetLeft()
 		{
 			return left;
 		}
 
-		public int GetRight()
+		int IWidget.GetRight()
 		{
 			return right;
 		}
 
-		public void WidgetShown()
+		void IWidget.WidgetShown()
 		{
 		}
 
-		public void WidgetHidden()
+		void IWidget.WidgetHidden()
 		{
 		}
 
-		public void StaticDispose()
+		void IWidget.StaticDispose()
 		{
 		}
 
-		public void Dispose()
+		void IWidget.Dispose()
 		{
 		}
 

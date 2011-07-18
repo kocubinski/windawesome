@@ -31,46 +31,46 @@ namespace Windawesome
 
 		#region Layout Members
 
-		public string LayoutSymbol(int windowsCount)
+		string ILayout.LayoutSymbol(int windowsCount)
 		{
 			return windowsCount == 0 ? "[M]" : "[" + windowsCount + "]";
 		}
 
-		public string LayoutName()
+		string ILayout.LayoutName()
 		{
 			return "Full Screen";
 		}
 
-		public bool ShouldRestoreSharedWindowsPosition()
+		bool ILayout.ShouldRestoreSharedWindowsPosition()
 		{
 			return false;
 		}
 
-		public void Reposition(IEnumerable<Window> windows, System.Drawing.Rectangle workingArea)
+		void ILayout.Reposition(IEnumerable<Window> windows, System.Drawing.Rectangle workingArea)
 		{
 			windows.ForEach(w => MaximizeWindow(w, workingArea));
 		}
 
-		public void WindowTitlebarToggled(Window window, IEnumerable<Window> windows, System.Drawing.Rectangle workingArea)
+		void ILayout.WindowTitlebarToggled(Window window, IEnumerable<Window> windows, System.Drawing.Rectangle workingArea)
 		{
 			MaximizeWindow(window, workingArea);
 		}
 
-		public void WindowBorderToggled(Window window, IEnumerable<Window> windows, System.Drawing.Rectangle workingArea)
+		void ILayout.WindowBorderToggled(Window window, IEnumerable<Window> windows, System.Drawing.Rectangle workingArea)
 		{
 			MaximizeWindow(window, workingArea);
 		}
 
-		public void WindowMinimized(Window window, IEnumerable<Window> windows, System.Drawing.Rectangle workingArea)
+		void ILayout.WindowMinimized(Window window, IEnumerable<Window> windows, System.Drawing.Rectangle workingArea)
 		{
 		}
 
-		public void WindowRestored(Window window, IEnumerable<Window> windows, System.Drawing.Rectangle workingArea)
+		void ILayout.WindowRestored(Window window, IEnumerable<Window> windows, System.Drawing.Rectangle workingArea)
 		{
 			MaximizeWindow(window, workingArea);
 		}
 
-		public void WindowCreated(Window window, IEnumerable<Window> windows, System.Drawing.Rectangle workingArea, bool reLayout)
+		void ILayout.WindowCreated(Window window, IEnumerable<Window> windows, System.Drawing.Rectangle workingArea, bool reLayout)
 		{
 			if (reLayout)
 			{
@@ -78,7 +78,7 @@ namespace Windawesome
 			}
 		}
 
-		public void WindowDestroyed(Window window, IEnumerable<Window> windows, System.Drawing.Rectangle workingArea, bool reLayout)
+		void ILayout.WindowDestroyed(Window window, IEnumerable<Window> windows, System.Drawing.Rectangle workingArea, bool reLayout)
 		{
 		}
 

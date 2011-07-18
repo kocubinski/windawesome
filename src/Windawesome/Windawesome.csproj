@@ -163,6 +163,7 @@
     <Compile Include="Bar.cs" />
     <Compile Include="Config.cs" />
     <Compile Include="CPUMonitorWidget.cs" />
+    <Compile Include="IBar.cs" />
     <Compile Include="ILayout.cs" />
     <Compile Include="IPlugin.cs" />
     <Compile Include="IWidget.cs" />

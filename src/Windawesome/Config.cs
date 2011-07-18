@@ -13,7 +13,7 @@ namespace Windawesome
 	public class Config
 	{
 		public IPlugin[] Plugins { get; set; }
-		public Bar[] Bars { get; set; }
+		public IBar[] Bars { get; set; }
 		public ILayout[] Layouts { get; set; }
 		public int WorkspacesCount { get; set; }
 		public Workspace[] Workspaces { get; set; }

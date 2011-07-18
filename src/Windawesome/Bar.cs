@@ -6,13 +6,13 @@ using System.Windows.Forms;
 
 namespace Windawesome
 {
-	public sealed class Bar
+	public sealed class Bar : IBar
 	{
 		private static readonly HashSet<Type> widgetTypes;
 		private static readonly IntPtr desktopWindowHandle;
 
-		public readonly int barHeight;
-		public readonly Form form;
+		private readonly int barHeight;
+		private readonly Form form;
 		private readonly IFixedWidthWidget[] leftAlignedWidgets;
 		private readonly IFixedWidthWidget[] rightAlignedWidgets;
 		private readonly ISpanWidget[] middleAlignedWidgets;
@@ -20,9 +20,6 @@ namespace Windawesome
 
 		private int rightmostLeftAlign;
 		private int leftmostRightAlign;
-
-		internal int Leftmost { get; private set; }
-		internal int Rightmost { get; private set; }
 
 		#region Events
 
@@ -142,11 +139,14 @@ namespace Windawesome
 			NativeMethods.SetParent(this.form.Handle, desktopWindowHandle);
 		}
 
-		internal void InitializeBar(Windawesome windawesome, Config config)
+		#region IBar Members
+
+		void IBar.InitializeBar(Windawesome windawesome, Config config)
 		{
-			// statically initialize any widgets not already initialized
+			// statically initialize all widgets
+			// this statement uses the laziness of Where
 			this.leftAlignedWidgets.Cast<IWidget>().Concat(this.rightAlignedWidgets).Concat(this.middleAlignedWidgets).
-				Where(w => !widgetTypes.Contains(w.GetType())). // this statement uses the laziness of Where
+				Where(w => !widgetTypes.Contains(w.GetType())).
 				ForEach(w => { w.StaticInitializeWidget(windawesome, config); widgetTypes.Add(w.GetType()); });
 
 			WidgetControlsChanged = OnWidgetControlsChanged;
@@ -161,19 +161,77 @@ namespace Windawesome
 			PlaceControls();
 		}
 
-		internal void Dispose()
+		void IBar.Dispose()
 		{
 			leftAlignedWidgets.ForEach(w => w.Dispose());
 			rightAlignedWidgets.ForEach(w => w.Dispose());
 			middleAlignedWidgets.ForEach(w => w.Dispose());
 
-			// statically dispose of any widgets not already dispsed
+			// statically dispose of all widgets
+			// this statement uses the laziness of Where
 			this.leftAlignedWidgets.Cast<IWidget>().Concat(this.rightAlignedWidgets).Concat(this.middleAlignedWidgets).
-				Where(w => widgetTypes.Contains(w.GetType())). // this statement uses the laziness of Where
+				Where(w => widgetTypes.Contains(w.GetType())).
 				ForEach(w => { w.StaticDispose(); widgetTypes.Remove(w.GetType()); });
 
 			this.form.Dispose();
 		}
+
+		public int GetBarHeight()
+		{
+			return barHeight;
+		}
+
+		Point IBar.Location
+		{
+			get
+			{
+				return this.form.Location;
+			}
+			set
+			{
+				this.form.Location = value;
+			}
+		}
+
+		Size IBar.Size
+		{
+			get
+			{
+				return this.form.ClientSize;
+			}
+			set
+			{
+				if (this.form.ClientSize != value)
+				{
+					this.form.ClientSize = value;
+					ResizeWidgets();
+				}
+			}
+		}
+
+		void IBar.Show()
+		{
+			this.form.Show();
+		}
+
+		void IBar.Hide()
+		{
+			this.form.Hide();
+		}
+
+		bool IBar.Visible
+		{
+			get
+			{
+				return this.form.Visible;
+			}
+			set
+			{
+				this.form.Visible = value;
+			}
+		}
+
+		#endregion
 
 		#endregion
 
@@ -239,13 +297,10 @@ namespace Windawesome
 
 		#endregion
 
-		internal void ResizeWidgets(int leftmost, int rightmost)
+		private void ResizeWidgets()
 		{
-			this.Leftmost = leftmost;
-			this.Rightmost = rightmost;
-
-			RepositionLeftAlignedWidgets(0, leftmost);
-			RepositionRightAlignedWidgets(rightAlignedWidgets.Length - 1, rightmost);
+			RepositionLeftAlignedWidgets(0, 0);
+			RepositionRightAlignedWidgets(rightAlignedWidgets.Length - 1, this.form.ClientSize.Width);
 			RepositionMiddleAlignedWidgets();
 		}
 
@@ -306,9 +361,7 @@ namespace Windawesome
 		{
 			this.form.SuspendLayout();
 
-			this.Leftmost = SystemInformation.WorkingArea.Left;
-			this.Rightmost = SystemInformation.WorkingArea.Right;
-			var x = this.Leftmost;
+			var x = SystemInformation.WorkingArea.Left;
 			foreach (var controls in this.leftAlignedWidgets.Select(widget => widget.GetControls(x, -1)))
 			{
 				controls.ForEach(this.form.Controls.Add);
@@ -316,7 +369,7 @@ namespace Windawesome
 			}
 			rightmostLeftAlign = x;
 
-			x = this.Rightmost;
+			x = SystemInformation.WorkingArea.Right;
 			foreach (var controls in this.rightAlignedWidgets.Reverse().Select(widget => widget.GetControls(-1, x)))
 			{
 				controls.ForEach(this.form.Controls.Add);

@@ -30,6 +30,14 @@ namespace Windawesome
 			this.layoutAxis = layoutAxis;
 			this.masterAreaAxis = masterAreaAxis;
 			this.stackAreaAxis = stackAreaAxis;
+			if (masterAreaFactor > 1)
+			{
+				masterAreaFactor = 1;
+			}
+			else if (masterAreaFactor < 0)
+			{
+				masterAreaFactor = 0;
+			}
 			this.masterAreaFactor = masterAreaFactor;
 			this.masterAreaWindowsCount = masterAreaWindowsCount;
 
@@ -210,7 +218,7 @@ namespace Windawesome
 						break;
 				}
 
-				foreach (var window in masterOrStackWindows)
+				foreach (var window in masterOrStackWindows.Where(Windawesome.WindowIsNotHung))
 				{
 					// TODO: this doesn't work for ICQ 7.5's windows. MoveWindow works in Debug mode, but not in Release
 					winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, window.hWnd, IntPtr.Zero,
@@ -256,7 +264,7 @@ namespace Windawesome
 
 		#region Layout Members
 
-		public string LayoutSymbol(int windowsCount)
+		string ILayout.LayoutSymbol(int windowsCount)
 		{
 			if (layoutAxis == LayoutAxis.Monocle)
 			{
@@ -271,7 +279,7 @@ namespace Windawesome
 			{
 				master = GetAreaSymbol(masterCount, masterAreaAxis);
 			}
-			var stack = GetAreaSymbol(stackCount, this.stackAreaAxis);
+			var stack = GetAreaSymbol(stackCount, stackAreaAxis);
 
 			switch (layoutAxis)
 			{
@@ -286,12 +294,12 @@ namespace Windawesome
 			throw new Exception("Unreachable code... reached!");
 		}
 
-		public string LayoutName()
+		string ILayout.LayoutName()
 		{
 			return "Tile";
 		}
 
-		public bool ShouldRestoreSharedWindowsPosition()
+		bool ILayout.ShouldRestoreSharedWindowsPosition()
 		{
 			return false;
 		}
@@ -302,7 +310,7 @@ namespace Windawesome
 
 			// restore any maximized windows
 			windows.ForEach(window => NativeMethods.ShowWindowAsync(window.hWnd, NativeMethods.SW.SW_RESTORE));
-			System.Threading.Thread.Sleep(200);
+			System.Threading.Thread.Sleep(Workspace.minimizeRestoreDelay);
 
 			this.windows = new LinkedList<Window>(windows);
 
@@ -312,25 +320,25 @@ namespace Windawesome
 			NativeMethods.EndDeferWindowPos(winPosInfo);
 		}
 
-		public void WindowTitlebarToggled(Window window, IEnumerable<Window> windows, Rectangle workingArea)
+		void ILayout.WindowTitlebarToggled(Window window, IEnumerable<Window> windows, Rectangle workingArea)
 		{
 		}
 
-		public void WindowBorderToggled(Window window, IEnumerable<Window> windows, Rectangle workingArea)
+		void ILayout.WindowBorderToggled(Window window, IEnumerable<Window> windows, Rectangle workingArea)
 		{
 		}
 
-		public void WindowMinimized(Window window, IEnumerable<Window> windows, Rectangle workingArea)
-		{
-			this.Reposition(windows, workingArea);
-		}
-
-		public void WindowRestored(Window window, IEnumerable<Window> windows, Rectangle workingArea)
+		void ILayout.WindowMinimized(Window window, IEnumerable<Window> windows, Rectangle workingArea)
 		{
 			this.Reposition(windows, workingArea);
 		}
 
-		public void WindowCreated(Window window, IEnumerable<Window> windows, Rectangle workingArea, bool reLayout)
+		void ILayout.WindowRestored(Window window, IEnumerable<Window> windows, Rectangle workingArea)
+		{
+			this.Reposition(windows, workingArea);
+		}
+
+		void ILayout.WindowCreated(Window window, IEnumerable<Window> windows, Rectangle workingArea, bool reLayout)
 		{
 			if (reLayout)
 			{
@@ -338,7 +346,7 @@ namespace Windawesome
 			}
 		}
 
-		public void WindowDestroyed(Window window, IEnumerable<Window> windows, Rectangle workingArea, bool reLayout)
+		void ILayout.WindowDestroyed(Window window, IEnumerable<Window> windows, Rectangle workingArea, bool reLayout)
 		{
 			if (reLayout)
 			{

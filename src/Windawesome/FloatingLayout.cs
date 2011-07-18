@@ -6,46 +6,46 @@ namespace Windawesome
 	{
 		#region Layout Members
 
-		public string LayoutSymbol(int windowsCount)
+		string ILayout.LayoutSymbol(int windowsCount)
 		{
 			return "><>";
 		}
 
-		public string LayoutName()
+		string ILayout.LayoutName()
 		{
 			return "Floating";
 		}
 
-		public bool ShouldRestoreSharedWindowsPosition()
+		bool ILayout.ShouldRestoreSharedWindowsPosition()
 		{
 			return true;
 		}
 
-		public void Reposition(IEnumerable<Window> windows, System.Drawing.Rectangle workingArea)
+		void ILayout.Reposition(IEnumerable<Window> windows, System.Drawing.Rectangle workingArea)
 		{
 		}
 
-		public void WindowTitlebarToggled(Window window, IEnumerable<Window> windows, System.Drawing.Rectangle workingArea)
+		void ILayout.WindowTitlebarToggled(Window window, IEnumerable<Window> windows, System.Drawing.Rectangle workingArea)
 		{
 		}
 
-		public void WindowBorderToggled(Window window, IEnumerable<Window> windows, System.Drawing.Rectangle workingArea)
+		void ILayout.WindowBorderToggled(Window window, IEnumerable<Window> windows, System.Drawing.Rectangle workingArea)
 		{
 		}
 
-		public void WindowMinimized(Window window, IEnumerable<Window> windows, System.Drawing.Rectangle workingArea)
+		void ILayout.WindowMinimized(Window window, IEnumerable<Window> windows, System.Drawing.Rectangle workingArea)
 		{
 		}
 
-		public void WindowRestored(Window window, IEnumerable<Window> windows, System.Drawing.Rectangle workingArea)
+		void ILayout.WindowRestored(Window window, IEnumerable<Window> windows, System.Drawing.Rectangle workingArea)
 		{
 		}
 
-		public void WindowCreated(Window window, IEnumerable<Window> windows, System.Drawing.Rectangle workingArea, bool reLayout)
+		void ILayout.WindowCreated(Window window, IEnumerable<Window> windows, System.Drawing.Rectangle workingArea, bool reLayout)
 		{
 		}
 
-		public void WindowDestroyed(Window window, IEnumerable<Window> windows, System.Drawing.Rectangle workingArea, bool reLayout)
+		void ILayout.WindowDestroyed(Window window, IEnumerable<Window> windows, System.Drawing.Rectangle workingArea, bool reLayout)
 		{
 		}
 

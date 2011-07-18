@@ -18,12 +18,12 @@ namespace Windawesome
 
 		public class BarInfo
 		{
-			public readonly Bar bar;
+			public readonly IBar bar;
 			public readonly bool topBar;
 			public bool ShowBar { get; internal set; }
 			public Rectangle barPosition;
 
-			public BarInfo(Bar bar, bool topBar = true, bool showBar = true)
+			public BarInfo(IBar bar, bool topBar = true, bool showBar = true)
 			{
 				this.bar = bar;
 				this.topBar = topBar;
@@ -45,10 +45,10 @@ namespace Windawesome
 
 		private class ShownBarInfo
 		{
-			public readonly Bar bar;
+			public readonly IBar bar;
 			public readonly bool topBar;
 
-			public ShownBarInfo(Bar bar, bool topBar)
+			public ShownBarInfo(IBar bar, bool topBar)
 			{
 				this.bar = bar;
 				this.topBar = topBar;
@@ -218,8 +218,6 @@ namespace Windawesome
 			SetWindowsTaskbarArea();
 
 			SetBarPositions();
-
-			ResizeBarWidgets();
 		}
 
 		private void SetWindowsTaskbarArea()
@@ -256,24 +254,17 @@ namespace Windawesome
 				if (bs.topBar)
 				{
 					y = this.workingArea.Y;
-					this.workingArea.Y += bs.bar.barHeight;
+					this.workingArea.Y += bs.bar.GetBarHeight();
 				}
 				else
 				{
-					y = this.workingArea.Bottom - bs.bar.barHeight;
+					y = this.workingArea.Bottom - bs.bar.GetBarHeight();
 				}
-				this.workingArea.Height -= bs.bar.barHeight;
+				this.workingArea.Height -= bs.bar.GetBarHeight();
 
 				bs.barPosition.Location = new Point(this.workingArea.X, y);
-				bs.barPosition.Size = new Size(this.workingArea.Width, bs.bar.barHeight);
+				bs.barPosition.Size = new Size(this.workingArea.Width, bs.bar.GetBarHeight());
 			}
-		}
-
-		private void ResizeBarWidgets()
-		{
-			this.bars.
-				Where(bs => bs.bar.Leftmost != this.workingArea.Left || bs.bar.Rightmost != this.workingArea.Right).
-				ForEach(bs => bs.bar.ResizeWidgets(this.workingArea.Left, this.workingArea.Right));
 		}
 
 		internal void SwitchTo()
@@ -376,23 +367,21 @@ namespace Windawesome
 		{
 			foreach (var bar in bars.Where(bs => bs.ShowBar))
 			{
-				bar.bar.form.Location = bar.barPosition.Location;
-				bar.bar.form.ClientSize = bar.barPosition.Size;
-				bar.bar.form.Show();
+				bar.bar.Location = bar.barPosition.Location;
+				bar.bar.Size = bar.barPosition.Size;
+				bar.bar.Show();
 			}
 
 			var newShownBars = bars.Where(bs => bs.ShowBar);
 			var newBarsShown = newShownBars.Select(bs => bs.bar);
 
-			shownBars.Select(sb => sb.bar).Except(newBarsShown).ForEach(b => b.form.Hide());
+			shownBars.Select(sb => sb.bar).Except(newBarsShown).ForEach(b => b.Hide());
 			shownBars = newBarsShown.Zip(newShownBars.Select(sb => sb.topBar), (b, tb) => new ShownBarInfo(b, tb));
 
 			if (workingArea != SystemInformation.WorkingArea)
 			{
 				SetWorkingArea();
 			}
-
-			ResizeBarWidgets();
 		}
 
 		private void SetWorkingArea()
@@ -416,9 +405,9 @@ namespace Windawesome
 			{
 				if (shownBar.topBar)
 				{
-					this.workingArea.Y -= shownBar.bar.barHeight;
+					this.workingArea.Y -= shownBar.bar.GetBarHeight();
 				}
-				this.workingArea.Height += shownBar.bar.barHeight;
+				this.workingArea.Height += shownBar.bar.GetBarHeight();
 			}
 		}
 
@@ -437,8 +426,7 @@ namespace Windawesome
 			workingArea = newWorkingArea;
 
 			this.bars.ForEach(bs =>
-				bs.bar.form.ClientSize = bs.barPosition.Size = new Size(workingArea.Width, bs.bar.barHeight));
-			ResizeBarWidgets();
+				bs.bar.Size = bs.barPosition.Size = new Size(workingArea.Width, bs.bar.GetBarHeight()));
 
 			Reposition();
 		}
@@ -451,7 +439,7 @@ namespace Windawesome
 			Reposition();
 		}
 
-		internal void ToggleShowHideBar(Bar bar)
+		internal void ToggleShowHideBar(IBar bar)
 		{
 			var barStruct = bars.FirstOrDefault(bs => bs.bar == bar);
 			if (barStruct != null)
@@ -463,7 +451,7 @@ namespace Windawesome
 				shownBars = newShownBars.Select(sb => sb.bar).
 					Zip(newShownBars.Select(sb => sb.topBar), (b, tb) => new ShownBarInfo(b, tb));
 
-				bar.form.Visible = barStruct.ShowBar;
+				bar.Visible = barStruct.ShowBar;
 				SetWorkingArea();
 				Reposition();
 			}
@@ -529,7 +517,7 @@ namespace Windawesome
 			}
 		}
 
-		internal const int minimizeRestoreDelay = 200;
+		public const int minimizeRestoreDelay = 200;
 		internal void WindowActivated(IntPtr hWnd)
 		{
 			Window window;

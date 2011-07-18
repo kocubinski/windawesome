@@ -48,9 +48,9 @@ namespace Windawesome
 				foreach (var panel in applicationPanels[workspaceId].Values)
 				{
 					panel.Location = new Point(left, 0);
-					panel.Size = new Size(eachWidth, bar.barHeight);
-					panel.Controls[0].Size = new Size(bar.barHeight, bar.barHeight);
-					panel.Controls[1].Size = new Size(eachWidth - bar.barHeight, bar.barHeight);
+					panel.Size = new Size(eachWidth, bar.GetBarHeight());
+					panel.Controls[0].Size = new Size(bar.GetBarHeight(), bar.GetBarHeight());
+					panel.Controls[1].Size = new Size(eachWidth - bar.GetBarHeight(), bar.GetBarHeight());
 					if (!showSingleApplicationTab)
 					{
 						left += eachWidth;
@@ -70,7 +70,7 @@ namespace Windawesome
 
 			var pictureBox = new PictureBox
 				{
-					Size = new Size(this.bar.barHeight, this.bar.barHeight),
+					Size = new Size(this.bar.GetBarHeight(), this.bar.GetBarHeight()),
 					SizeMode = PictureBoxSizeMode.CenterImage
 				};
 			pictureBox.Click += this.OnApplicationTabClick;
@@ -87,7 +87,7 @@ namespace Windawesome
 					}
 				});
 
-			var label = bar.CreateLabel(window.DisplayName, bar.barHeight, 0);
+			var label = bar.CreateLabel(window.DisplayName, bar.GetBarHeight(), 0);
 			label.Click += this.OnApplicationTabClick;
 			panel.Controls.Add(label);
 
@@ -257,13 +257,13 @@ namespace Windawesome
 
 		#region IWidget Members
 
-		public void StaticInitializeWidget(Windawesome windawesome, Config config)
+		void IWidget.StaticInitializeWidget(Windawesome windawesome, Config config)
 		{
 			ApplicationTabsWidget.windawesome = windawesome;
 			ApplicationTabsWidget.config = config;
 		}
 
-		public void InitializeWidget(Bar bar)
+		void IWidget.InitializeWidget(Bar bar)
 		{
 			this.bar = bar;
 
@@ -285,7 +285,7 @@ namespace Windawesome
 			}
 		}
 
-		public IEnumerable<Control> GetControls(int left, int right)
+		IEnumerable<Control> IWidget.GetControls(int left, int right)
 		{
 			this.left = left;
 			this.right = right;
@@ -293,7 +293,7 @@ namespace Windawesome
 			return applicationPanels[windawesome.CurrentWorkspace.id - 1].Values;
 		}
 
-		public void RepositionControls(int left, int right)
+		void IWidget.RepositionControls(int left, int right)
 		{
 			this.left = left;
 			this.right = right;
@@ -306,31 +306,31 @@ namespace Windawesome
 			ResizeApplicationPanels(left, right, windawesome.CurrentWorkspace.id - 1);
 		}
 
-		public int GetLeft()
+		int IWidget.GetLeft()
 		{
 			return left;
 		}
 
-		public int GetRight()
+		int IWidget.GetRight()
 		{
 			return right;
 		}
 
-		public void WidgetShown()
+		void IWidget.WidgetShown()
 		{
 			isShown = true;
 		}
 
-		public void WidgetHidden()
+		void IWidget.WidgetHidden()
 		{
 			isShown = false;
 		}
 
-		public void StaticDispose()
+		void IWidget.StaticDispose()
 		{
 		}
 
-		public void Dispose()
+		void IWidget.Dispose()
 		{
 		}
 

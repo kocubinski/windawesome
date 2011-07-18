@@ -286,13 +286,14 @@ namespace Windawesome
 		{
 			if (e.Category == UserPreferenceCategory.Desktop)
 			{
+				var workspace = config.Workspaces[0];
 				var newWorkingArea = SystemInformation.WorkingArea;
-				if (newWorkingArea != config.Workspaces[0].workingArea)
+				if (newWorkingArea != workspace.workingArea)
 				{
 					// TODO: docking a temporarily shown application to the end of the screen
 					// (and causing a working area change) is a problem when the app is hidden
 
-					if (newWorkingArea == originalWorkingArea[config.Workspaces[0].id - 1])
+					if (newWorkingArea == originalWorkingArea[workspace.id - 1])
 					{
 						// because Windows resets the working area when the UAC prompt is shown,
 						// as well as shows the taskbar when a full-screen application is exited... twice. :)
@@ -301,16 +302,16 @@ namespace Windawesome
 						// IrfanView 4.28 with some picture, enter full-screen with "Return" and then exit
 						// with "Return" again
 						// on Windows 7 Ultimate x64
-						PostAction(() => config.Workspaces[0].ShowHideWindowsTaskbar());
-						PostAction(() => config.Workspaces[0].ShowHideWindowsTaskbar());
+						PostAction(() => workspace.ShowHideWindowsTaskbar());
+						PostAction(() => workspace.ShowHideWindowsTaskbar());
 					}
 					else
 					{
 						// something new has shown that has changed the working area
 
-						config.Workspaces[0].OnWorkingAreaReset(newWorkingArea);
+						workspace.OnWorkingAreaReset(newWorkingArea);
 
-						originalWorkingArea[config.Workspaces[0].id - 1] = newWorkingArea;
+						originalWorkingArea[workspace.id - 1] = newWorkingArea;
 
 						FindWorkspaceBarsEquivalentClasses();
 					}
@@ -417,7 +418,9 @@ namespace Windawesome
 								PostAction(() => SwitchToApplication(hWnd));
 								break;
 							case OnWindowShownAction.MoveWindowToCurrentWorkspace:
-								PostAction(() => ChangeApplicationToWorkspace(hWnd, config.Workspaces[0].id, matchingRules.First().workspace));
+								var workspaceId = config.Workspaces[0].id;
+								var matchingRuleWorkspace = matchingRules.First().workspace;
+								PostAction(() => ChangeApplicationToWorkspace(hWnd, workspaceId, matchingRuleWorkspace));
 								break;
 							case OnWindowShownAction.TemporarilyShowWindowOnCurrentWorkspace:
 								temporarilyShownWindows.Add(hWnd);
@@ -730,7 +733,7 @@ namespace Windawesome
 		// only switches to applications in the current workspace
 		private bool SwitchToApplicationInCurrentWorkspace(IntPtr hWnd)
 		{
-			var window = config.Workspaces[0].GetOwnermostWindow(hWnd);
+			var window = GetOwnermostWindow(hWnd, config.Workspaces[0]);
 			if (window != null)
 			{
 				ActivateWindow(hWnd, window, window.IsMinimized);
@@ -876,16 +879,18 @@ namespace Windawesome
 
 		public bool SwitchToWorkspace(int workspace, bool setForeground = true)
 		{
-			if (workspace != config.Workspaces[0].id)
+			var oldWorkspace = config.Workspaces[0];
+			var newWorkspace = config.Workspaces[workspace];
+			if (workspace != oldWorkspace.id)
 			{
-				var showWindows = config.Workspaces[workspace].GetWindows();
-				var hideWindows = config.Workspaces[0].GetWindows().Except(showWindows);
+				var showWindows = newWorkspace.GetWindows();
+				var hideWindows = oldWorkspace.GetWindows().Except(showWindows);
 				ShowHideWindows(showWindows, hideWindows);
 
 				// activates the topmost non-minimized window
 				if (setForeground)
 				{
-					config.Workspaces[workspace].SetTopWindowAsForeground();
+					newWorkspace.SetTopWindowAsForeground();
 				}
 
 				if (temporarilyShownWindows.Count > 0)
@@ -894,12 +899,16 @@ namespace Windawesome
 					temporarilyShownWindows.Clear();
 				}
 
-				config.Workspaces[0].Unswitch();
+				PreviousWorkspace = oldWorkspace.id;
+				config.Workspaces[0] = newWorkspace;
 
-				PreviousWorkspace = config.Workspaces[0].id;
-				config.Workspaces[0] = config.Workspaces[workspace];
-
-				config.Workspaces[0].SwitchTo();
+				// this is to allow Windawesome to SetForegroundWindow the top window of the new workspace
+				// before doing all the other stuff
+				PostAction(() =>
+					{
+						oldWorkspace.Unswitch();
+						newWorkspace.SwitchTo();
+					});
 
 				return true;
 			}
@@ -907,7 +916,7 @@ namespace Windawesome
 			return false;
 		}
 
-		public void ToggleShowHideBar(Bar bar)
+		public void ToggleShowHideBar(IBar bar)
 		{
 			config.Workspaces[0].ToggleShowHideBar(bar);
 			FindWorkspaceBarsEquivalentClasses();

@@ -299,7 +299,7 @@ namespace Windawesome
 
 		#region IWidget Members
 
-		public void StaticInitializeWidget(Windawesome windawesome, Config config)
+		void IWidget.StaticInitializeWidget(Windawesome windawesome, Config config)
 		{
 			if (Windawesome.isRunningElevated)
 			{
@@ -320,12 +320,12 @@ namespace Windawesome
 			}
 		}
 
-		public void InitializeWidget(Bar bar)
+		void IWidget.InitializeWidget(Bar bar)
 		{
 			this.bar = bar;
 		}
 
-		public IEnumerable<Control> GetControls(int left, int right)
+		IEnumerable<Control> IWidget.GetControls(int left, int right)
 		{
 			isLeft = right == -1;
 
@@ -344,9 +344,9 @@ namespace Windawesome
 			{
 				foreach (var pictureBox in trayIcons)
 				{
-					pictureBox.Size = new Size(bar.barHeight, bar.barHeight);
+					pictureBox.Size = new Size(bar.GetBarHeight(), bar.GetBarHeight());
 					pictureBox.Location = new Point(left, 0);
-					left += bar.barHeight;
+					left += bar.GetBarHeight();
 				}
 				this.right = left;
 			}
@@ -354,33 +354,33 @@ namespace Windawesome
 			{
 				foreach (var pictureBox in trayIcons.Reverse())
 				{
-					pictureBox.Size = new Size(bar.barHeight, bar.barHeight);
-					right -= bar.barHeight;
+					pictureBox.Size = new Size(bar.GetBarHeight(), bar.GetBarHeight());
+					right -= bar.GetBarHeight();
 					pictureBox.Location = new Point(right, 0);
 				}
 				this.left = right;
 			}
 		}
 
-		public int GetLeft()
+		int IWidget.GetLeft()
 		{
 			return left;
 		}
 
-		public int GetRight()
+		int IWidget.GetRight()
 		{
 			return right;
 		}
 
-		public void WidgetShown()
+		void IWidget.WidgetShown()
 		{
 		}
 
-		public void WidgetHidden()
+		void IWidget.WidgetHidden()
 		{
 		}
 
-		public void StaticDispose()
+		void IWidget.StaticDispose()
 		{
 			// unregister system tray hook
 			NativeMethods.UnregisterSystemTrayHook();
@@ -389,7 +389,7 @@ namespace Windawesome
 			SystemTray.Dispose();
 		}
 
-		public void Dispose()
+		void IWidget.Dispose()
 		{
 		}
 
