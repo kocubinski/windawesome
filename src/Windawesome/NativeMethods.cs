@@ -60,7 +60,7 @@ namespace Windawesome
 		public delegate IntPtr HookProc(int code, UIntPtr wParam, IntPtr lParam);
 
 		[DllImport("user32.dll")]
-		public static extern IntPtr SetWindowsHookEx(int hookType, HookProc lpfn, IntPtr hMod, uint dwThreadId);
+		public static extern IntPtr SetWindowsHookEx(int hookType, [MarshalAs(UnmanagedType.FunctionPtr)] HookProc lpfn, IntPtr hMod, uint dwThreadId);
 
 		[DllImport("user32.dll")]
 		public static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode, UIntPtr wParam, IntPtr lParam);
@@ -148,8 +148,9 @@ namespace Windawesome
 
 		public const uint WM_SYSCOMMAND = 0x0112;
 		public static readonly IntPtr WM_LBUTTONDBLCLK = (IntPtr) 0x0203;
+		public static readonly IntPtr WM_RBUTTONDBLCLK = (IntPtr) 0x0206;
 		public static readonly IntPtr WM_LBUTTONDOWN = (IntPtr) 0x0201;
-		public static readonly IntPtr WM_LBUTTONUP = (IntPtr) 222222;
+		public static readonly IntPtr WM_LBUTTONUP = (IntPtr) 0x0202;
 		public static readonly IntPtr WM_RBUTTONDOWN = (IntPtr) 0x204;
 		public static readonly IntPtr WM_RBUTTONUP = (IntPtr) 0x205;
 		public const uint WM_GETICON = 0x007f;
@@ -243,7 +244,7 @@ namespace Windawesome
 
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool EnumDesktopWindows([Optional] IntPtr hDesktop, EnumWindowsProc lpfn, IntPtr lParam);
+		public static extern bool EnumDesktopWindows([Optional] IntPtr hDesktop, [MarshalAs(UnmanagedType.FunctionPtr)] EnumWindowsProc lpfn, IntPtr lParam);
 
 		#endregion
 

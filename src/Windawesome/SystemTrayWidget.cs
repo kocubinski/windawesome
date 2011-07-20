@@ -159,44 +159,29 @@ namespace Windawesome
 			return false;
 		}
 
+		private static void OnMouseEvent(SystemTray.TrayIcon trayIcon, MouseEventArgs e, IntPtr leftButtonAction, IntPtr rightButtonAction)
+		{
+			switch (e.Button)
+			{
+				case MouseButtons.Left:
+					NativeMethods.SendNotifyMessage(trayIcon.hWnd, trayIcon.callbackMessage,
+						(UIntPtr) trayIcon.id, leftButtonAction);
+					break;
+				case MouseButtons.Right:
+					NativeMethods.SendNotifyMessage(trayIcon.hWnd, trayIcon.callbackMessage,
+						(UIntPtr) trayIcon.id, rightButtonAction);
+					break;
+			}
+		}
+
 		private static PictureBox CreatePictureBox(SystemTray.TrayIcon trayIcon)
 		{
 			var pictureBox = new PictureBox { SizeMode = PictureBoxSizeMode.CenterImage };
 			SetPictureBoxIcon(pictureBox, trayIcon);
 
-			pictureBox.MouseDoubleClick += (s, e) =>
-				NativeMethods.SendNotifyMessage(trayIcon.hWnd, trayIcon.callbackMessage,
-					(UIntPtr) trayIcon.id, NativeMethods.WM_LBUTTONDBLCLK);
-			pictureBox.MouseDown += (s, e) =>
-				{
-					switch (e.Button)
-					{
-						case MouseButtons.Left:
-							NativeMethods.SetForegroundWindow(trayIcon.hWnd);
-							NativeMethods.SendNotifyMessage(trayIcon.hWnd, trayIcon.callbackMessage,
-								(UIntPtr) trayIcon.id, NativeMethods.WM_LBUTTONDOWN);
-							break;
-						case MouseButtons.Right:
-							NativeMethods.SetForegroundWindow(trayIcon.hWnd);
-							NativeMethods.SendNotifyMessage(trayIcon.hWnd, trayIcon.callbackMessage,
-								(UIntPtr) trayIcon.id, NativeMethods.WM_RBUTTONDOWN);
-							break;
-					}
-				};
-			pictureBox.MouseUp += (s, e) =>
-				{
-					switch (e.Button)
-					{
-						case MouseButtons.Left:
-							NativeMethods.SendNotifyMessage(trayIcon.hWnd, trayIcon.callbackMessage,
-								(UIntPtr) trayIcon.id, NativeMethods.WM_LBUTTONUP);
-							break;
-						case MouseButtons.Right:
-							NativeMethods.SendNotifyMessage(trayIcon.hWnd, trayIcon.callbackMessage,
-								(UIntPtr) trayIcon.id, NativeMethods.WM_RBUTTONUP);
-							break;
-					}
-				};
+			pictureBox.MouseDoubleClick += (s, e) => OnMouseEvent(trayIcon, e, NativeMethods.WM_LBUTTONDBLCLK, NativeMethods.WM_RBUTTONDBLCLK);
+			pictureBox.MouseDown += (s, e) => OnMouseEvent(trayIcon, e, NativeMethods.WM_LBUTTONDOWN, NativeMethods.WM_RBUTTONDOWN);
+			pictureBox.MouseUp += (s, e) => OnMouseEvent(trayIcon, e, NativeMethods.WM_LBUTTONUP, NativeMethods.WM_RBUTTONUP);
 
 			return pictureBox;
 		}

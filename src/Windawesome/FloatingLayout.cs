@@ -4,14 +4,14 @@ namespace Windawesome
 {
 	public class FloatingLayout : ILayout
 	{
-		#region Layout Members
+		#region ILayout Members
 
 		string ILayout.LayoutSymbol(int windowsCount)
 		{
 			return "><>";
 		}
 
-		string ILayout.LayoutName()
+		public string LayoutName()
 		{
 			return "Floating";
 		}

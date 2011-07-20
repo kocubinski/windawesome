@@ -29,14 +29,14 @@ namespace Windawesome
 			}
 		}
 
-		#region Layout Members
+		#region ILayout Members
 
 		string ILayout.LayoutSymbol(int windowsCount)
 		{
 			return windowsCount == 0 ? "[M]" : "[" + windowsCount + "]";
 		}
 
-		string ILayout.LayoutName()
+		public string LayoutName()
 		{
 			return "Full Screen";
 		}

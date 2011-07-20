@@ -262,7 +262,7 @@ namespace Windawesome
 			}
 		}
 
-		#region Layout Members
+		#region ILayout Members
 
 		string ILayout.LayoutSymbol(int windowsCount)
 		{
@@ -294,7 +294,7 @@ namespace Windawesome
 			throw new Exception("Unreachable code... reached!");
 		}
 
-		string ILayout.LayoutName()
+		public string LayoutName()
 		{
 			return "Tile";
 		}
