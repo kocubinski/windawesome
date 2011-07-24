@@ -24,6 +24,7 @@ namespace Windawesome
 		private readonly IntPtr getForegroundPrivilageAtom;
 		private static Tuple<NativeMethods.MOD, Keys> uniqueHotkey;
 		private static IntPtr forceForegroundWindow;
+		private static readonly uint windawesomeThreadId;
 		private readonly Rectangle[] originalWorkingArea;
 		private Size screenResolution;
 
@@ -105,6 +106,8 @@ namespace Windawesome
 
 			isRunningElevated = isAtLeastVista && NativeMethods.IsUserAnAdmin();
 
+			windawesomeThreadId = NativeMethods.GetCurrentThreadId();
+
 			messageHandlers = new Dictionary<int, HandleMessageDelegate>(2);
 
 			originalNonClientMetrics = NativeMethods.NONCLIENTMETRICS.GetNONCLIENTMETRICS();
@@ -119,7 +122,7 @@ namespace Windawesome
 
 		internal Windawesome()
 		{
-			this.CreateHandle(new CreateParams { Caption = "Windawesome", ClassName = "Message", Parent = NativeMethods.HWND_MESSAGE });
+			this.CreateHandle(new CreateParams { ClassName = "Message", Parent = NativeMethods.HWND_MESSAGE });
 
 			HandleStatic = this.Handle;
 
@@ -207,7 +210,7 @@ namespace Windawesome
 
 			// switches to the default starting workspace
 			config.Workspaces[0].SwitchTo();
-			config.Workspaces[0].SetTopWindowAsForeground();
+			config.Workspaces[0].SetTopManagedWindowAsForeground();
 
 			finishedInitializing = true;
 		}
@@ -284,39 +287,39 @@ namespace Windawesome
 
 		private void OnUserPreferenceChanged(object sender, UserPreferenceChangedEventArgs e)
 		{
-			if (e.Category == UserPreferenceCategory.Desktop)
-			{
-				var workspace = config.Workspaces[0];
-				var newWorkingArea = SystemInformation.WorkingArea;
-				if (newWorkingArea != workspace.workingArea)
-				{
-					// TODO: docking a temporarily shown application to the end of the screen
-					// (and causing a working area change) is a problem when the app is hidden
+			//if (e.Category == UserPreferenceCategory.Desktop)
+			//{
+			//    var workspace = config.Workspaces[0];
+			//    var newWorkingArea = SystemInformation.WorkingArea;
+			//    if (newWorkingArea != workspace.workingArea)
+			//    {
+			//        // TODO: docking a temporarily shown application to the end of the screen
+			//        // (and causing a working area change) is a problem when the app is hidden
 
-					if (newWorkingArea == originalWorkingArea[workspace.id - 1])
-					{
-						// because Windows resets the working area when the UAC prompt is shown,
-						// as well as shows the taskbar when a full-screen application is exited... twice. :)
+			//        if (newWorkingArea == originalWorkingArea[workspace.id - 1])
+			//        {
+			//            // because Windows resets the working area when the UAC prompt is shown,
+			//            // as well as shows the taskbar when a full-screen application is exited... twice. :)
 
-						// how to reproduce: start any program that triggers a UAC prompt or start
-						// IrfanView 4.28 with some picture, enter full-screen with "Return" and then exit
-						// with "Return" again
-						// on Windows 7 Ultimate x64
-						PostAction(() => workspace.ShowHideWindowsTaskbar());
-						PostAction(() => workspace.ShowHideWindowsTaskbar());
-					}
-					else
-					{
-						// something new has shown that has changed the working area
+			//            // how to reproduce: start any program that triggers a UAC prompt or start
+			//            // IrfanView 4.28 with some picture, enter full-screen with "Return" and then exit
+			//            // with "Return" again
+			//            // on Windows 7 Ultimate x64
+			//            PostAction(() => workspace.ShowHideWindowsTaskbar());
+			//            PostAction(() => workspace.ShowHideWindowsTaskbar());
+			//        }
+			//        else
+			//        {
+			//            // something new has shown that has changed the working area
 
-						workspace.OnWorkingAreaReset(newWorkingArea);
+			//            workspace.OnWorkingAreaReset(newWorkingArea);
 
-						originalWorkingArea[workspace.id - 1] = newWorkingArea;
+			//            originalWorkingArea[workspace.id - 1] = newWorkingArea;
 
-						FindWorkspaceBarsEquivalentClasses();
-					}
-				}
-			}
+			//            FindWorkspaceBarsEquivalentClasses();
+			//        }
+			//    }
+			//}
 		}
 
 		private void OnDisplaySettingsChanged(object sender, EventArgs e)
@@ -326,38 +329,38 @@ namespace Windawesome
 			// (only scaled, of course, because of the resolution change)
 			// on Windows 7 Ultimate x64
 
-			var newScreenResolution = SystemInformation.PrimaryMonitorSize;
+			//var newScreenResolution = SystemInformation.PrimaryMonitorSize;
 
-			if (newScreenResolution != screenResolution)
-			{
-				var newWorkingArea = SystemInformation.WorkingArea;
+			//if (newScreenResolution != screenResolution)
+			//{
+			//    var newWorkingArea = SystemInformation.WorkingArea;
 
-				if (newWorkingArea.Y == config.Workspaces[0].workingArea.Y &&
-					screenResolution.Height - config.Workspaces[0].workingArea.Bottom ==
-						newScreenResolution.Height - newWorkingArea.Bottom)
-				{
-					for (var i = 0; i < config.WorkspacesCount; i++)
-					{
-						config.Workspaces[i + 1].OnScreenResolutionChanged(newWorkingArea);
+			//    if (newWorkingArea.Y == config.Workspaces[0].workingArea.Y &&
+			//        screenResolution.Height - config.Workspaces[0].workingArea.Bottom ==
+			//            newScreenResolution.Height - newWorkingArea.Bottom)
+			//    {
+			//        for (var i = 0; i < config.WorkspacesCount; i++)
+			//        {
+			//            config.Workspaces[i + 1].OnScreenResolutionChanged(newWorkingArea);
 
-						originalWorkingArea[i] = newWorkingArea; // TODO: this is wrong, should get the working area when reset
-					}
-				}
-				else
-				{
-					// working area has been reset. This could be either because there is a docked program, other than
-					// the Windows Taskbar, or it could be because a Remote Desktop Connection has been established
+			//            originalWorkingArea[i] = newWorkingArea; // TODO: this is wrong, should get the working area when reset
+			//        }
+			//    }
+			//    else
+			//    {
+			//        // working area has been reset. This could be either because there is a docked program, other than
+			//        // the Windows Taskbar, or it could be because a Remote Desktop Connection has been established
 
-					for (var i = 0; i < config.WorkspacesCount; i++)
-					{
-						config.Workspaces[i + 1].OnWorkingAreaReset(newWorkingArea);
+			//        for (var i = 0; i < config.WorkspacesCount; i++)
+			//        {
+			//            config.Workspaces[i + 1].OnWorkingAreaReset(newWorkingArea);
 
-						originalWorkingArea[i] = newWorkingArea;
-					}
-				}
+			//            originalWorkingArea[i] = newWorkingArea;
+			//        }
+			//    }
 
-				screenResolution = newScreenResolution;
-			}
+			//    screenResolution = newScreenResolution;
+			//}
 		}
 
 		private void OnSessionEnding(object sender, SessionEndingEventArgs e)
@@ -428,7 +431,7 @@ namespace Windawesome
 								break;
 							case OnWindowShownAction.HideWindow:
 								System.Threading.Thread.Sleep(500); // TODO: is this enough? Is it too much?
-								config.Workspaces[0].SetTopWindowAsForeground();
+								config.Workspaces[0].SetTopManagedWindowAsForeground(); // TODO: perhaps switch to the last window that was foreground?
 								hiddenApplications.Add(hWnd);
 								NativeMethods.ShowWindow(hWnd, NativeMethods.SW.SW_HIDE);
 								break;
@@ -549,7 +552,7 @@ namespace Windawesome
 				}, IntPtr.Zero);
 
 			// remove all non-existent applications
-			applications.Keys.Where(app => !set.Contains(app)).ToArray().
+			applications.Keys.Unless(set.Contains).ToArray().
 				ForEach(RemoveApplicationFromAllWorkspaces);
 		}
 
@@ -565,11 +568,75 @@ namespace Windawesome
 
 		internal static void ForceForegroundWindow(IntPtr hWnd)
 		{
-			SendHotkey(uniqueHotkey);
-			forceForegroundWindow = hWnd;
+			var foregroundWindow = NativeMethods.GetForegroundWindow();
+			if (foregroundWindow != hWnd)
+			{
+				if (foregroundWindow == IntPtr.Zero)
+				{
+					TrySetForeground(hWnd);
+				}
+				else
+				{
+					var foregroundWindowThread = NativeMethods.GetWindowThreadProcessId(foregroundWindow, IntPtr.Zero);
+					if (WindowIsNotHung(foregroundWindow) && NativeMethods.AttachThreadInput(windawesomeThreadId, foregroundWindowThread, true))
+					{
+						TrySetForeground(hWnd);
+						NativeMethods.AttachThreadInput(windawesomeThreadId, foregroundWindowThread, false);
+					}
+				}
+			}
 		}
 
+		private static void TrySetForeground(IntPtr hWnd)
+		{
+			int count = 0;
+			while (!NativeMethods.SetForegroundWindow(hWnd) && ++count < 5)
+			{
+			}
+
+			if (count == 5)
+			{
+				SendHotkey(uniqueHotkey);
+				forceForegroundWindow = hWnd;
+			}
+			else
+			{
+				NativeMethods.SetWindowPos(hWnd, NativeMethods.HWND_TOP, 0, 0, 0, 0,
+					NativeMethods.SWP.SWP_ASYNCWINDOWPOS | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
+			}
+		}
+
+		#region SendHotkey
+
 		private static readonly NativeMethods.INPUT[] input = new NativeMethods.INPUT[18];
+
+		private static readonly NativeMethods.INPUT shiftKeyDown = new NativeMethods.INPUT(Keys.ShiftKey, 0);
+		private static readonly NativeMethods.INPUT shiftKeyUp = new NativeMethods.INPUT(Keys.ShiftKey, NativeMethods.KEYEVENTF_KEYUP);
+		private static readonly NativeMethods.INPUT leftShiftKeyDown = new NativeMethods.INPUT(Keys.LShiftKey, 0);
+		private static readonly NativeMethods.INPUT leftShiftKeyUp = new NativeMethods.INPUT(Keys.LShiftKey, NativeMethods.KEYEVENTF_KEYUP);
+		private static readonly NativeMethods.INPUT rightShiftKeyDown = new NativeMethods.INPUT(Keys.RShiftKey, 0);
+		private static readonly NativeMethods.INPUT rightShiftKeyUp = new NativeMethods.INPUT(Keys.RShiftKey, NativeMethods.KEYEVENTF_KEYUP);
+
+		private static readonly NativeMethods.INPUT winKeyDown = new NativeMethods.INPUT(Keys.LWin, 0);
+		private static readonly NativeMethods.INPUT winKeyUp = new NativeMethods.INPUT(Keys.LWin, NativeMethods.KEYEVENTF_KEYUP);
+		private static readonly NativeMethods.INPUT leftWinKeyDown = new NativeMethods.INPUT(Keys.LWin, 0);
+		private static readonly NativeMethods.INPUT leftWinKeyUp = new NativeMethods.INPUT(Keys.LWin, NativeMethods.KEYEVENTF_KEYUP);
+		private static readonly NativeMethods.INPUT rightWinKeyDown = new NativeMethods.INPUT(Keys.RWin, 0);
+		private static readonly NativeMethods.INPUT rightWinKeyUp = new NativeMethods.INPUT(Keys.RWin, NativeMethods.KEYEVENTF_KEYUP);
+
+		private static readonly NativeMethods.INPUT controlKeyDown = new NativeMethods.INPUT(Keys.ControlKey, 0);
+		private static readonly NativeMethods.INPUT controlKeyUp = new NativeMethods.INPUT(Keys.ControlKey, NativeMethods.KEYEVENTF_KEYUP);
+		private static readonly NativeMethods.INPUT leftControlKeyDown = new NativeMethods.INPUT(Keys.LControlKey, 0);
+		private static readonly NativeMethods.INPUT leftControlKeyUp = new NativeMethods.INPUT(Keys.LControlKey, NativeMethods.KEYEVENTF_KEYUP);
+		private static readonly NativeMethods.INPUT rightControlKeyDown = new NativeMethods.INPUT(Keys.RControlKey, 0);
+		private static readonly NativeMethods.INPUT rightControlKeyUp = new NativeMethods.INPUT(Keys.RControlKey, NativeMethods.KEYEVENTF_KEYUP);
+
+		private static readonly NativeMethods.INPUT altKeyDown = new NativeMethods.INPUT(Keys.Menu, 0);
+		private static readonly NativeMethods.INPUT altKeyUp = new NativeMethods.INPUT(Keys.Menu, NativeMethods.KEYEVENTF_KEYUP);
+		private static readonly NativeMethods.INPUT leftAltKeyDown = new NativeMethods.INPUT(Keys.LMenu, 0);
+		private static readonly NativeMethods.INPUT leftAltKeyUp = new NativeMethods.INPUT(Keys.LMenu, NativeMethods.KEYEVENTF_KEYUP);
+		private static readonly NativeMethods.INPUT rightAltKeyDown = new NativeMethods.INPUT(Keys.RMenu, 0);
+		private static readonly NativeMethods.INPUT rightAltKeyUp = new NativeMethods.INPUT(Keys.RMenu, NativeMethods.KEYEVENTF_KEYUP);
 		// sends the hotkey combination without disrupting the currently pressed modifiers
 		private static void SendHotkey(Tuple<NativeMethods.MOD, Keys> hotkey)
 		{
@@ -581,28 +648,28 @@ namespace Windawesome
 			var rightShiftPressed = (NativeMethods.GetAsyncKeyState(Keys.RShiftKey) & 0x8000) == 0x8000;
 
 			PressReleaseModifierKey(leftShiftPressed, rightShiftPressed, shiftShouldBePressed,
-				Keys.ShiftKey, Keys.LShiftKey, Keys.RShiftKey, 0, NativeMethods.KEYEVENTF_KEYUP, ref i);
+				Keys.ShiftKey, Keys.LShiftKey, Keys.RShiftKey, shiftKeyDown, leftShiftKeyUp, rightShiftKeyUp, ref i);
 
 			var winShouldBePressed = hotkey.Item1.HasFlag(NativeMethods.MOD.MOD_WIN);
 			var leftWinPressed = (NativeMethods.GetAsyncKeyState(Keys.LWin) & 0x8000) == 0x8000;
 			var rightWinPressed = (NativeMethods.GetAsyncKeyState(Keys.RWin) & 0x8000) == 0x8000;
 
 			PressReleaseModifierKey(leftWinPressed, rightWinPressed, winShouldBePressed,
-				Keys.LWin, Keys.LWin, Keys.RWin, 0, NativeMethods.KEYEVENTF_KEYUP, ref i);
+				Keys.LWin, Keys.LWin, Keys.RWin, winKeyDown, leftWinKeyUp, rightWinKeyUp, ref i);
 
 			var controlShouldBePressed = hotkey.Item1.HasFlag(NativeMethods.MOD.MOD_CONTROL);
 			var leftControlPressed = (NativeMethods.GetAsyncKeyState(Keys.LControlKey) & 0x8000) == 0x8000;
 			var rightControlPressed = (NativeMethods.GetAsyncKeyState(Keys.RControlKey) & 0x8000) == 0x8000;
 
 			PressReleaseModifierKey(leftControlPressed, rightControlPressed, controlShouldBePressed,
-				Keys.ControlKey, Keys.LControlKey, Keys.RControlKey, 0, NativeMethods.KEYEVENTF_KEYUP, ref i);
+				Keys.ControlKey, Keys.LControlKey, Keys.RControlKey, controlKeyDown, leftControlKeyUp, rightControlKeyUp, ref i);
 
 			var altShouldBePressed = hotkey.Item1.HasFlag(NativeMethods.MOD.MOD_ALT);
 			var leftAltPressed = (NativeMethods.GetAsyncKeyState(Keys.LMenu) & 0x8000) == 0x8000;
 			var rightAltPressed = (NativeMethods.GetAsyncKeyState(Keys.RMenu) & 0x8000) == 0x8000;
 
 			PressReleaseModifierKey(leftAltPressed, rightAltPressed, altShouldBePressed,
-				Keys.Menu, Keys.LMenu, Keys.RMenu, 0, NativeMethods.KEYEVENTF_KEYUP, ref i);
+				Keys.Menu, Keys.LMenu, Keys.RMenu, altKeyDown, leftAltKeyUp, rightAltKeyUp, ref i);
 
 			// press and release key
 			input[i++] = new NativeMethods.INPUT(hotkey.Item2, 0);
@@ -610,16 +677,16 @@ namespace Windawesome
 
 			// revert changes to modifiers
 			PressReleaseModifierKey(leftAltPressed, rightAltPressed, altShouldBePressed,
-				Keys.Menu, Keys.LMenu, Keys.RMenu, NativeMethods.KEYEVENTF_KEYUP, 0, ref i);
+				Keys.Menu, Keys.LMenu, Keys.RMenu, altKeyUp, leftAltKeyDown, rightAltKeyDown, ref i);
 
 			PressReleaseModifierKey(leftControlPressed, rightControlPressed, controlShouldBePressed,
-				Keys.ControlKey, Keys.LControlKey, Keys.RControlKey, NativeMethods.KEYEVENTF_KEYUP, 0, ref i);
+				Keys.ControlKey, Keys.LControlKey, Keys.RControlKey, controlKeyUp, leftControlKeyDown, rightControlKeyDown, ref i);
 
 			PressReleaseModifierKey(leftWinPressed, rightWinPressed, winShouldBePressed,
-				Keys.LWin, Keys.LWin, Keys.RWin, NativeMethods.KEYEVENTF_KEYUP, 0, ref i);
+				Keys.LWin, Keys.LWin, Keys.RWin, winKeyUp, leftWinKeyDown, rightWinKeyDown, ref i);
 
 			PressReleaseModifierKey(leftShiftPressed, rightShiftPressed, shiftShouldBePressed,
-				Keys.ShiftKey, Keys.LShiftKey, Keys.RShiftKey, NativeMethods.KEYEVENTF_KEYUP, 0, ref i);
+				Keys.ShiftKey, Keys.LShiftKey, Keys.RShiftKey, shiftKeyUp, leftShiftKeyDown, rightShiftKeyDown, ref i);
 
 			NativeMethods.SendInput(i, input, NativeMethods.INPUTSize);
 		}
@@ -627,27 +694,29 @@ namespace Windawesome
 		private static void PressReleaseModifierKey(
 			bool leftKeyPressed, bool rightKeyPressed, bool keyShouldBePressed,
 			Keys key, Keys leftKey, Keys rightKey,
-			uint flags, uint flags2, ref uint i)
+			NativeMethods.INPUT action, NativeMethods.INPUT leftAction, NativeMethods.INPUT rightAction, ref uint i)
 		{
 			if (keyShouldBePressed)
 			{
 				if (!leftKeyPressed && !rightKeyPressed)
 				{
-					input[i++] = new NativeMethods.INPUT(key, flags);
+					input[i++] = action;
 				}
 			}
 			else
 			{
 				if (leftKeyPressed)
 				{
-					input[i++] = new NativeMethods.INPUT(leftKey, flags2);
+					input[i++] = leftAction;
 				}
 				if (rightKeyPressed)
 				{
-					input[i++] = new NativeMethods.INPUT(rightKey, flags2);
+					input[i++] = rightAction;
 				}
 			}
 		}
+
+		#endregion
 
 		private static Window GetOwnermostWindow(IntPtr hWnd, Workspace workspace)
 		{
@@ -680,7 +749,7 @@ namespace Windawesome
 				case OnWindowShownAction.HideWindow:
 					System.Threading.Thread.Sleep(1000); // TODO: is this enough? Is it too much?
 					HideWindow(tuple.Item2);
-					config.Workspaces[0].SetTopWindowAsForeground();
+					config.Workspaces[0].SetTopManagedWindowAsForeground(); // TODO: perhaps switch to the last window that was foreground?
 					break;
 			}
 		}
@@ -696,7 +765,7 @@ namespace Windawesome
 			}
 			else
 			{
-				config.Workspaces[0].SetTopWindowAsForeground();
+				config.Workspaces[0].SetTopManagedWindowAsForeground(); // TODO: perhaps switch to the last window that was foreground?
 			}
 		}
 
@@ -766,6 +835,11 @@ namespace Windawesome
 
 		public static bool WindowIsNotHung(Window window)
 		{
+			return WindowIsNotHung(window.hWnd);
+		}
+
+		public static bool WindowIsNotHung(IntPtr hWnd)
+		{
 			// IsHungAppWindow is not going to work, as it starts returning true 5 seconds after the window
 			// has hung - so if a SetWindowPos, e.g., is called on such a window, it may block forever, even
 			// though IsHungAppWindow returned false
@@ -780,7 +854,7 @@ namespace Windawesome
 			// immediately and returns. However, I decided that in most cases apps are not hung, so the overhead
 			// of calling IsHungAppWindow AND SendMessageTimeout is not worth.
 
-			return NativeMethods.SendMessageTimeout(window.hWnd, NativeMethods.WM_NULL, UIntPtr.Zero, IntPtr.Zero,
+			return NativeMethods.SendMessageTimeout(hWnd, NativeMethods.WM_NULL, UIntPtr.Zero, IntPtr.Zero,
 					NativeMethods.SMTO.SMTO_ABORTIFHUNG | NativeMethods.SMTO.SMTO_BLOCK, 1000, IntPtr.Zero) != IntPtr.Zero ||
 				Marshal.GetLastWin32Error() != NativeMethods.ERROR_TIMEOUT;
 		}
@@ -887,28 +961,24 @@ namespace Windawesome
 				var hideWindows = oldWorkspace.GetWindows().Except(showWindows);
 				ShowHideWindows(showWindows, hideWindows);
 
-				// activates the topmost non-minimized window
-				if (setForeground)
-				{
-					newWorkspace.SetTopWindowAsForeground();
-				}
-
 				if (temporarilyShownWindows.Count > 0)
 				{
 					temporarilyShownWindows.ForEach(hWnd => HideWindow(applications[hWnd].First.Value.Item2));
 					temporarilyShownWindows.Clear();
 				}
 
+				// activates the topmost non-minimized window
+				if (setForeground)
+				{
+					newWorkspace.SetTopManagedWindowAsForeground();
+				}
+
+				oldWorkspace.Unswitch();
+
 				PreviousWorkspace = oldWorkspace.id;
 				config.Workspaces[0] = newWorkspace;
 
-				// this is to allow Windawesome to SetForegroundWindow the top window of the new workspace
-				// before doing all the other stuff
-				PostAction(() =>
-					{
-						oldWorkspace.Unswitch();
-						newWorkspace.SwitchTo();
-					});
+				newWorkspace.SwitchTo();
 
 				return true;
 			}
@@ -1143,7 +1213,7 @@ namespace Windawesome
 			if (temporarilyShownWindows.Contains(hWnd))
 			{
 				HideWindow(applications[hWnd].First.Value.Item2);
-				config.Workspaces[0].SetTopWindowAsForeground();
+				config.Workspaces[0].SetTopManagedWindowAsForeground();
 				temporarilyShownWindows.Remove(hWnd);
 			}
 		}

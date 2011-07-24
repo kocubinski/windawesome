@@ -184,7 +184,7 @@ namespace Windawesome
 			public int cbSize;
 			public IntPtr hWnd;
 			public uint uCallbackMessage;
-			public uint uEdge;
+			public ABE uEdge;
 			public RECT rc;
 			public IntPtr lParam;
 
@@ -197,7 +197,7 @@ namespace Windawesome
 			}
 		}
 
-		public enum AppBarMsg : uint
+		public enum ABM : uint
 		{
 			ABM_NEW = 0,
 			ABM_REMOVE = 1,
@@ -212,8 +212,24 @@ namespace Windawesome
 			ABM_SETSTATE = 10
 		}
 
+		public enum ABN : uint
+		{
+			ABN_STATECHANGE = 0,
+			ABN_POSCHANGED,
+			ABN_FULLSCREENAPP,
+			ABN_WINDOWARRANGE
+		}
+
+		public enum ABE : uint
+		{
+			ABE_LEFT = 0,
+			ABE_TOP,
+			ABE_RIGHT,
+			ABE_BOTTOM
+		}
+
 		[DllImport("shell32.dll")]
-		public static extern UIntPtr SHAppBarMessage(AppBarMsg dwMessage, ref APPBARDATA pData);
+		public static extern UIntPtr SHAppBarMessage(ABM dwMessage, ref APPBARDATA pData);
 
 		[DllImport("User32.dll", CharSet = CharSet.Auto)]
 		public static extern uint RegisterWindowMessage([MarshalAs(UnmanagedType.LPTStr)] string msg);
@@ -890,6 +906,13 @@ namespace Windawesome
 
 		#endregion
 
+		[DllImport("user32.dll")]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		public static extern bool AttachThreadInput(uint idAttach, uint idAttachTo, [MarshalAs(UnmanagedType.Bool)] bool fAttach);
+
+		[DllImport("kernel32.dll")]
+		public static extern uint GetCurrentThreadId();
+
 		[DllImport("shell32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
 		public static extern bool IsUserAnAdmin();
@@ -898,6 +921,9 @@ namespace Windawesome
 
 		[DllImport("user32.dll")]
 		public static extern uint GetWindowThreadProcessId(IntPtr hWnd, [Optional, Out] out int lpdwProcessId);
+
+		[DllImport("user32.dll")]
+		public static extern uint GetWindowThreadProcessId(IntPtr hWnd, [Optional, Out] IntPtr lpdwProcessId);
 
 		public static readonly IntPtr IntPtrOne = (IntPtr) 1;
 
@@ -1594,6 +1620,17 @@ namespace Windawesome
 			foreach (var item in items)
 			{
 				action(item);
+			}
+		}
+
+		public static System.Collections.Generic.IEnumerable<T> Unless<T>(this System.Collections.Generic.IEnumerable<T> items, Predicate<T> predicate)
+		{
+			foreach (var item in items)
+			{
+				if (!predicate(item))
+				{
+					yield return item;
+				}
 			}
 		}
 

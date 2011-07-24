@@ -21,31 +21,31 @@ namespace Windawesome
 			return true;
 		}
 
-		void ILayout.Reposition(IEnumerable<Window> windows, System.Drawing.Rectangle workingArea)
+		void ILayout.Reposition(IEnumerable<Window> windows)
 		{
 		}
 
-		void ILayout.WindowTitlebarToggled(Window window, IEnumerable<Window> windows, System.Drawing.Rectangle workingArea)
+		void ILayout.WindowTitlebarToggled(Window window, IEnumerable<Window> windows)
 		{
 		}
 
-		void ILayout.WindowBorderToggled(Window window, IEnumerable<Window> windows, System.Drawing.Rectangle workingArea)
+		void ILayout.WindowBorderToggled(Window window, IEnumerable<Window> windows)
 		{
 		}
 
-		void ILayout.WindowMinimized(Window window, IEnumerable<Window> windows, System.Drawing.Rectangle workingArea)
+		void ILayout.WindowMinimized(Window window, IEnumerable<Window> windows)
 		{
 		}
 
-		void ILayout.WindowRestored(Window window, IEnumerable<Window> windows, System.Drawing.Rectangle workingArea)
+		void ILayout.WindowRestored(Window window, IEnumerable<Window> windows)
 		{
 		}
 
-		void ILayout.WindowCreated(Window window, IEnumerable<Window> windows, System.Drawing.Rectangle workingArea, bool reLayout)
+		void ILayout.WindowCreated(Window window, IEnumerable<Window> windows, bool reLayout)
 		{
 		}
 
-		void ILayout.WindowDestroyed(Window window, IEnumerable<Window> windows, System.Drawing.Rectangle workingArea, bool reLayout)
+		void ILayout.WindowDestroyed(Window window, IEnumerable<Window> windows, bool reLayout)
 		{
 		}
 

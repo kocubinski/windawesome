@@ -5,7 +5,7 @@ namespace Windawesome
 {
 	public class FullScreenLayout : ILayout
 	{
-		private static void MaximizeWindow(Window window, System.Drawing.Rectangle workingArea)
+		private static void MaximizeWindow(Window window)
 		{
 			var ws = NativeMethods.GetWindowStyleLongPtr(window.hWnd);
 			if (ws.HasFlag(NativeMethods.WS.WS_CAPTION) && ws.HasFlag(NativeMethods.WS.WS_MAXIMIZEBOX))
@@ -21,6 +21,7 @@ namespace Windawesome
 				// otherwise, Windows would make the window "truly" full-screen, i.e. on top of all shell
 				// windows, which doesn't work for us. So we just set window to take the maximum possible area
 				NativeMethods.ShowWindowAsync(window.hWnd, NativeMethods.SW.SW_RESTORE);
+				var workingArea = System.Windows.Forms.SystemInformation.WorkingArea;
 				NativeMethods.SetWindowPos(window.hWnd, IntPtr.Zero,
 					workingArea.X, workingArea.Y, workingArea.Width, workingArea.Height,
 					NativeMethods.SWP.SWP_ASYNCWINDOWPOS | NativeMethods.SWP.SWP_NOACTIVATE |
@@ -46,39 +47,39 @@ namespace Windawesome
 			return false;
 		}
 
-		void ILayout.Reposition(IEnumerable<Window> windows, System.Drawing.Rectangle workingArea)
+		void ILayout.Reposition(IEnumerable<Window> windows)
 		{
-			windows.ForEach(w => MaximizeWindow(w, workingArea));
+			windows.ForEach(MaximizeWindow);
 		}
 
-		void ILayout.WindowTitlebarToggled(Window window, IEnumerable<Window> windows, System.Drawing.Rectangle workingArea)
+		void ILayout.WindowTitlebarToggled(Window window, IEnumerable<Window> windows)
 		{
-			MaximizeWindow(window, workingArea);
+			MaximizeWindow(window);
 		}
 
-		void ILayout.WindowBorderToggled(Window window, IEnumerable<Window> windows, System.Drawing.Rectangle workingArea)
+		void ILayout.WindowBorderToggled(Window window, IEnumerable<Window> windows)
 		{
-			MaximizeWindow(window, workingArea);
+			MaximizeWindow(window);
 		}
 
-		void ILayout.WindowMinimized(Window window, IEnumerable<Window> windows, System.Drawing.Rectangle workingArea)
+		void ILayout.WindowMinimized(Window window, IEnumerable<Window> windows)
 		{
 		}
 
-		void ILayout.WindowRestored(Window window, IEnumerable<Window> windows, System.Drawing.Rectangle workingArea)
+		void ILayout.WindowRestored(Window window, IEnumerable<Window> windows)
 		{
-			MaximizeWindow(window, workingArea);
+			MaximizeWindow(window);
 		}
 
-		void ILayout.WindowCreated(Window window, IEnumerable<Window> windows, System.Drawing.Rectangle workingArea, bool reLayout)
+		void ILayout.WindowCreated(Window window, IEnumerable<Window> windows, bool reLayout)
 		{
 			if (reLayout)
 			{
-				MaximizeWindow(window, workingArea);
+				MaximizeWindow(window);
 			}
 		}
 
-		void ILayout.WindowDestroyed(Window window, IEnumerable<Window> windows, System.Drawing.Rectangle workingArea, bool reLayout)
+		void ILayout.WindowDestroyed(Window window, IEnumerable<Window> windows, bool reLayout)
 		{
 		}
 

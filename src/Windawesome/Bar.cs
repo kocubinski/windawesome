@@ -9,7 +9,6 @@ namespace Windawesome
 	public sealed class Bar : IBar
 	{
 		private static readonly HashSet<Type> widgetTypes;
-		private static readonly IntPtr desktopWindowHandle;
 
 		private readonly int barHeight;
 		private readonly Form form;
@@ -57,9 +56,23 @@ namespace Windawesome
 
 		#endregion
 
+		private class NonActivatableForm : Form
+		{
+			protected override CreateParams CreateParams
+			{
+				get
+				{
+					CreateParams createParams = base.CreateParams;
+					// make the bar not activatable
+					createParams.ExStyle |= (int) NativeMethods.WS_EX.WS_EX_NOACTIVATE;
+					return createParams;
+				}
+			}
+		}
+
 		private Form CreateForm()
 		{
-			var newForm = new Form
+			var newForm = new NonActivatableForm
 				{
 					StartPosition = FormStartPosition.Manual,
 					FormBorderStyle = FormBorderStyle.FixedToolWindow,
@@ -85,11 +98,6 @@ namespace Windawesome
 
 			newForm.VisibleChanged += this.OnFormVisibleChanged;
 			newForm.FormClosing += (s, ea) => ea.Cancel = true;
-			// TODO: when Windawesome is run, a bar might be the active window and one could minimize it
-
-			// make the bar not activatable
-			var exStyle = NativeMethods.GetWindowExStyleLongPtr(newForm.Handle);
-			NativeMethods.SetWindowExStyleLongPtr(newForm.Handle, exStyle | NativeMethods.WS_EX.WS_EX_NOACTIVATE);
 
 			return newForm;
 		}
@@ -110,14 +118,6 @@ namespace Windawesome
 		static Bar()
 		{
 			widgetTypes = new HashSet<Type>();
-
-			// TODO: this is not good
-			desktopWindowHandle = NativeMethods.FindWindow("Progman", "Program Manager");
-			if (Windawesome.isAtLeastVista)
-			{
-				desktopWindowHandle = NativeMethods.FindWindowEx(desktopWindowHandle, IntPtr.Zero, "SHELLDLL_DefView", null);
-				desktopWindowHandle = NativeMethods.FindWindowEx(desktopWindowHandle, IntPtr.Zero, "SysListView32", "FolderView");
-			}
 		}
 
 		public Bar(IEnumerable<IFixedWidthWidget> leftAlignedWidgets, IEnumerable<IFixedWidthWidget> rightAlignedWidgets,
@@ -134,9 +134,6 @@ namespace Windawesome
 			{
 				this.form.BackColor = backgroundColor.Value;
 			}
-
-			// make the bar visible even when the user uses "Show Desktop" or ALT-TABs to the desktop
-			NativeMethods.SetParent(this.form.Handle, desktopWindowHandle);
 		}
 
 		#region IBar Members
@@ -181,6 +178,14 @@ namespace Windawesome
 			return barHeight;
 		}
 
+		IntPtr IBar.Handle
+		{
+			get
+			{
+				return this.form.Handle;
+			}
+		}
+
 		Point IBar.Location
 		{
 			get
@@ -218,19 +223,7 @@ namespace Windawesome
 		{
 			this.form.Hide();
 		}
-
-		bool IBar.Visible
-		{
-			get
-			{
-				return this.form.Visible;
-			}
-			set
-			{
-				this.form.Visible = value;
-			}
-		}
-
+		
 		#endregion
 
 		#endregion
