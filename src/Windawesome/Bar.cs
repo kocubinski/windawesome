@@ -58,6 +58,13 @@ namespace Windawesome
 
 		private class NonActivatableForm : Form
 		{
+			private int barHeight;
+
+			public NonActivatableForm(int barHeight) : base()
+			{
+				this.barHeight = barHeight;
+			}
+
 			protected override CreateParams CreateParams
 			{
 				get
@@ -65,6 +72,8 @@ namespace Windawesome
 					CreateParams createParams = base.CreateParams;
 					// make the bar not activatable
 					createParams.ExStyle |= (int) NativeMethods.WS_EX.WS_EX_NOACTIVATE;
+					createParams.Width = SystemInformation.WorkingArea.Width;
+					createParams.Height = barHeight;
 					return createParams;
 				}
 			}
@@ -72,7 +81,7 @@ namespace Windawesome
 
 		private Form CreateForm()
 		{
-			var newForm = new NonActivatableForm
+			var newForm = new NonActivatableForm(barHeight)
 				{
 					StartPosition = FormStartPosition.Manual,
 					FormBorderStyle = FormBorderStyle.FixedToolWindow,
@@ -91,9 +100,8 @@ namespace Windawesome
 					TopLevel = true,
 					WindowState = FormWindowState.Normal,
 					TopMost = true,
-					MinimumSize = new Size(0, this.barHeight),
-					MaximumSize = new Size(Screen.PrimaryScreen.Bounds.Width + 1, this.barHeight + 1),
-					Height = this.barHeight
+					//MinimumSize = new Size(Screen.PrimaryScreen.Bounds.Width, this.barHeight),
+					//MaximumSize = new Size(Screen.PrimaryScreen.Bounds.Width + 2, this.barHeight + 2)
 				};
 
 			newForm.VisibleChanged += this.OnFormVisibleChanged;

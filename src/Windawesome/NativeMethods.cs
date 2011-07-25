@@ -228,6 +228,12 @@ namespace Windawesome
 			ABE_BOTTOM
 		}
 
+		public enum ABS : uint
+		{
+			ABS_AUTOHIDE = 1,
+			ABS_ALWAYSONTOP = 2
+		}
+
 		[DllImport("shell32.dll")]
 		public static extern UIntPtr SHAppBarMessage(ABM dwMessage, ref APPBARDATA pData);
 

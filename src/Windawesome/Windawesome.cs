@@ -228,8 +228,11 @@ namespace Windawesome
 			NativeMethods.GlobalDeleteAtom((ushort) getForegroundPrivilageAtom);
 
 			// roll back any changes to Windows
-			var winPosInfo = NativeMethods.BeginDeferWindowPos(applications.Values.Count);
+
+			config.Workspaces.Skip(1).ForEach(workspace => workspace.Dispose());
 			config.Workspaces[0].RevertToInitialValues();
+
+			var winPosInfo = NativeMethods.BeginDeferWindowPos(applications.Values.Count);
 			foreach (var window in applications.Values.Select(l => l.First.Value.Item2))
 			{
 				window.DoForSelfOrOwned(w => w.RevertToInitialValues());
@@ -256,21 +259,23 @@ namespace Windawesome
 
 		private void FindWorkspaceBarsEquivalentClasses()
 		{
-			var listOfUniqueBars = new LinkedList<Tuple<HashSet<Workspace.BarInfo>, int>>();
+			var listOfUniqueBars = new LinkedList<Tuple<HashSet<Workspace.BarInfo>, HashSet<Workspace.BarInfo>, int>>();
 
 			int i = 0, last = 0;
-			foreach (var set in
-				this.config.Workspaces.Skip(1).Select(workspace => new HashSet<Workspace.BarInfo>(workspace.bars)))
+			foreach (var setTuple in
+				this.config.Workspaces.Skip(1).Select(workspace => new Tuple<HashSet<Workspace.BarInfo>, HashSet<Workspace.BarInfo>>(
+					new HashSet<Workspace.BarInfo>(workspace.barsAtTop),
+					new HashSet<Workspace.BarInfo>(workspace.barsAtBottom))))
 			{
-				Tuple<HashSet<Workspace.BarInfo>, int> matchingBar;
-				if ((matchingBar = listOfUniqueBars.FirstOrDefault(uniqueBar => set.SetEquals(uniqueBar.Item1))) != null)
+				Tuple<HashSet<Workspace.BarInfo>, HashSet<Workspace.BarInfo>, int> matchingBar;
+				if ((matchingBar = listOfUniqueBars.FirstOrDefault(uniqueBar => setTuple.Item1.SetEquals(uniqueBar.Item1) && setTuple.Item2.SetEquals(uniqueBar.Item2))) != null)
 				{
-					workspaceBarsEquivalentClasses[i++] = matchingBar.Item2;
+					workspaceBarsEquivalentClasses[i++] = matchingBar.Item3;
 				}
 				else
 				{
 					workspaceBarsEquivalentClasses[i++] = ++last;
-					listOfUniqueBars.AddLast(new Tuple<HashSet<Workspace.BarInfo>, int>(set, last));
+					listOfUniqueBars.AddLast(new Tuple<HashSet<Workspace.BarInfo>, HashSet<Workspace.BarInfo>, int>(setTuple.Item1, setTuple.Item2, last));
 				}
 			}
 		}
