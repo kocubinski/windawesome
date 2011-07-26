@@ -324,6 +324,10 @@ namespace Windawesome
 		[DllImport("user32.dll")]
 		public static extern IntPtr GetDesktopWindow();
 
+		[DllImport("user32.dll")]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		public static extern bool EnableWindow(IntPtr hWnd, [MarshalAs(UnmanagedType.Bool)] bool bEnable);
+
 		#region GetWindow
 
 		[DllImport("user32.dll")]
