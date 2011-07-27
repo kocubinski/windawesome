@@ -225,8 +225,8 @@ namespace Windawesome
 			NativeMethods.GlobalDeleteAtom((ushort) getForegroundPrivilageAtom);
 
 			// roll back any changes to Windows
-			config.Workspaces.Skip(1).ForEach(workspace => workspace.Dispose());
 			config.Workspaces[0].RevertToInitialValues();
+			Workspace.Dispose();
 
 			var winPosInfo = NativeMethods.BeginDeferWindowPos(applications.Values.Count);
 			foreach (var window in applications.Values.Select(l => l.First.Value.Item2))
@@ -237,7 +237,6 @@ namespace Windawesome
 					NativeMethods.SWP.SWP_NOZORDER | NativeMethods.SWP.SWP_NOOWNERZORDER | NativeMethods.SWP.SWP_SHOWWINDOW);
 				window.ShowPopupsAndRedraw();
 			}
-
 			NativeMethods.EndDeferWindowPos(winPosInfo);
 
 			// dispose of plugins and bars

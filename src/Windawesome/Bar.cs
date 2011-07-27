@@ -99,7 +99,7 @@ namespace Windawesome
 					HelpButton = false,
 					TopLevel = true,
 					WindowState = FormWindowState.Normal,
-					TopMost = true,
+					//TopMost = true,
 					//MinimumSize = new Size(Screen.PrimaryScreen.Bounds.Width, this.barHeight),
 					//MaximumSize = new Size(Screen.PrimaryScreen.Bounds.Width + 2, this.barHeight + 2)
 				};
