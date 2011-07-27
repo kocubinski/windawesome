@@ -30,8 +30,6 @@ namespace Windawesome
 
 		private static readonly Tuple<NativeMethods.MOD, Keys> altTabCombination = new Tuple<NativeMethods.MOD, Keys>(NativeMethods.MOD.MOD_ALT, Keys.Tab);
 
-		internal static int[] workspaceBarsEquivalentClasses;
-
 		public delegate bool HandleMessageDelegate(ref Message m);
 
 		public static IntPtr HandleStatic { get; private set; }
@@ -136,8 +134,7 @@ namespace Windawesome
 			config.Bars.ForEach(b => b.InitializeBar(this, config));
 			config.Plugins.ForEach(p => p.InitializePlugin(this, config));
 
-			workspaceBarsEquivalentClasses = new int[config.WorkspacesCount];
-			FindWorkspaceBarsEquivalentClasses();
+			Workspace.FindWorkspaceBarsEquivalentClasses(config.WorkspacesCount, config.Workspaces.Skip(1));
 
 			applications = new Dictionary<IntPtr, LinkedList<Tuple<Workspace, Window>>>(20);
 			hiddenApplications = new HashMultiSet<IntPtr>();
@@ -228,37 +225,7 @@ namespace Windawesome
 			NativeMethods.GlobalDeleteAtom((ushort) getForegroundPrivilageAtom);
 
 			// roll back any changes to Windows
-
-			var nativeWindowsSet = new HashSet<IntPtr>();
-			foreach (var workspace in config.Workspaces)
-			{
-				workspace.Dispose();
-
-				if (Workspace.appBarTopWindows[workspace.id - 1] != null && !nativeWindowsSet.Contains(Workspace.appBarTopWindows[workspace.id - 1].Handle))
-				{
-					nativeWindowsSet.Add(Workspace.appBarTopWindows[workspace.id - 1].Handle);
-
-					var appBarData = new NativeMethods.APPBARDATA
-						{
-							hWnd = Workspace.appBarTopWindows[workspace.id - 1].Handle
-						};
-
-					NativeMethods.SHAppBarMessage(NativeMethods.ABM.ABM_REMOVE, ref appBarData);
-				}
-
-				if (Workspace.appBarBottomWindows[workspace.id - 1] != null && !nativeWindowsSet.Contains(Workspace.appBarBottomWindows[workspace.id - 1].Handle))
-				{
-					nativeWindowsSet.Add(Workspace.appBarBottomWindows[workspace.id - 1].Handle);
-
-					var appBarData = new NativeMethods.APPBARDATA
-						{
-							hWnd = Workspace.appBarBottomWindows[workspace.id - 1].Handle
-						};
-
-					NativeMethods.SHAppBarMessage(NativeMethods.ABM.ABM_REMOVE, ref appBarData);
-				}
-			}
-
+			config.Workspaces.Skip(1).ForEach(workspace => workspace.Dispose());
 			config.Workspaces[0].RevertToInitialValues();
 
 			var winPosInfo = NativeMethods.BeginDeferWindowPos(applications.Values.Count);
@@ -286,62 +253,6 @@ namespace Windawesome
 			}
 		}
 
-		private void FindWorkspaceBarsEquivalentClasses()
-		{
-			Workspace.appBarTopWindows = new Workspace.NativeWindowWithHeight[config.Workspaces.Length - 1];
-			Workspace.appBarBottomWindows = new Workspace.NativeWindowWithHeight[config.Workspaces.Length - 1];
-
-			var listOfUniqueBars = new LinkedList<Tuple<Workspace.BarInfo[], Workspace.BarInfo[], int, Workspace.NativeWindowWithHeight, Workspace.NativeWindowWithHeight>>();
-
-			int i = 0, last = 0;
-			foreach (var workspace in this.config.Workspaces.Skip(1))
-			{
-				Tuple<Workspace.BarInfo[], Workspace.BarInfo[], int, Workspace.NativeWindowWithHeight, Workspace.NativeWindowWithHeight> matchingBar;
-				if ((matchingBar = listOfUniqueBars.FirstOrDefault(uniqueBar => workspace.barsAtTop.SequenceEqual(uniqueBar.Item1) && workspace.barsAtBottom.SequenceEqual(uniqueBar.Item2))) != null)
-				{
-					workspaceBarsEquivalentClasses[i] = matchingBar.Item3;
-					Workspace.appBarTopWindows[i] = matchingBar.Item4;
-					Workspace.appBarBottomWindows[i++] = matchingBar.Item5;
-				}
-				else
-				{
-					Workspace.NativeWindowWithHeight nativeTopWindow = null;
-					if (workspace.barsAtTop.Length > 0)
-					{
-						nativeTopWindow = new Workspace.NativeWindowWithHeight(workspace.barsAtTop.Sum(bi => bi.bar.GetBarHeight()));
-
-						var appBarData = new NativeMethods.APPBARDATA
-							{
-								hWnd = nativeTopWindow.Handle,
-								uCallbackMessage = 0 // TODO: is this fine?
-							};
-
-						NativeMethods.SHAppBarMessage(NativeMethods.ABM.ABM_NEW, ref appBarData);
-					}
-
-					Workspace.NativeWindowWithHeight nativeBottomWindow = null;
-					if (workspace.barsAtBottom.Length > 0)
-					{
-						nativeBottomWindow = new Workspace.NativeWindowWithHeight(workspace.barsAtBottom.Sum(bi => bi.bar.GetBarHeight()));
-
-						var appBarData = new NativeMethods.APPBARDATA
-							{
-								hWnd = nativeBottomWindow.Handle,
-								uCallbackMessage = 0 // TODO: is this fine?
-							};
-
-						NativeMethods.SHAppBarMessage(NativeMethods.ABM.ABM_NEW, ref appBarData);
-					}
-
-					workspaceBarsEquivalentClasses[i] = ++last;
-					Workspace.appBarTopWindows[i] = nativeTopWindow;
-					Workspace.appBarBottomWindows[i++] = nativeBottomWindow;
-					listOfUniqueBars.AddLast(new Tuple<Workspace.BarInfo[], Workspace.BarInfo[], int, Workspace.NativeWindowWithHeight, Workspace.NativeWindowWithHeight>
-						(workspace.barsAtTop, workspace.barsAtBottom, last, nativeTopWindow, nativeBottomWindow));
-				}
-			}
-		}
-
 		public void Quit()
 		{
 			WindawesomeExiting();
@@ -356,6 +267,7 @@ namespace Windawesome
 		{
 			if (e.Category == UserPreferenceCategory.Desktop)
 			{
+				config.Workspaces[0].OnWorkingAreaReset();
 			//    var workspace = config.Workspaces[0];
 			//    var newWorkingArea = SystemInformation.WorkingArea;
 			//    if (newWorkingArea != workspace.workingArea)
@@ -1064,7 +976,7 @@ namespace Windawesome
 		public void ToggleShowHideBar(IBar bar)
 		{
 			config.Workspaces[0].ToggleShowHideBar(bar);
-			FindWorkspaceBarsEquivalentClasses();
+			Workspace.FindWorkspaceBarsEquivalentClasses(config.WorkspacesCount, config.Workspaces.Skip(1));
 		}
 
 		public void ToggleWindowFloating(IntPtr hWnd)

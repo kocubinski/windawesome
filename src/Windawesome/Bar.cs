@@ -11,7 +11,7 @@ namespace Windawesome
 		private static readonly HashSet<Type> widgetTypes;
 
 		private readonly int barHeight;
-		private readonly Form form;
+		private readonly NonActivatableForm form;
 		private readonly IFixedWidthWidget[] leftAlignedWidgets;
 		private readonly IFixedWidthWidget[] rightAlignedWidgets;
 		private readonly ISpanWidget[] middleAlignedWidgets;
@@ -60,7 +60,7 @@ namespace Windawesome
 		{
 			private int barHeight;
 
-			public NonActivatableForm(int barHeight) : base()
+			public NonActivatableForm(int barHeight)
 			{
 				this.barHeight = barHeight;
 			}
@@ -79,7 +79,7 @@ namespace Windawesome
 			}
 		}
 
-		private Form CreateForm()
+		private NonActivatableForm CreateForm()
 		{
 			var newForm = new NonActivatableForm(barHeight)
 				{
