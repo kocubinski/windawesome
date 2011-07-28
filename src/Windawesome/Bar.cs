@@ -99,9 +99,9 @@ namespace Windawesome
 					HelpButton = false,
 					TopLevel = true,
 					WindowState = FormWindowState.Normal,
-					//TopMost = true,
+					TopMost = true,
 					//MinimumSize = new Size(Screen.PrimaryScreen.Bounds.Width, this.barHeight),
-					//MaximumSize = new Size(Screen.PrimaryScreen.Bounds.Width + 2, this.barHeight + 2)
+					//MaximumSize = new Size(Screen.PrimaryScreen.Bounds.Width, this.barHeight + 2)
 				};
 
 			newForm.VisibleChanged += this.OnFormVisibleChanged;
@@ -194,31 +194,11 @@ namespace Windawesome
 			}
 		}
 
-		Point IBar.Location
+		void IBar.OnSizeChanging(Size newSize)
 		{
-			get
+			if (this.form.ClientSize != newSize)
 			{
-				return this.form.Location;
-			}
-			set
-			{
-				this.form.Location = value;
-			}
-		}
-
-		Size IBar.Size
-		{
-			get
-			{
-				return this.form.ClientSize;
-			}
-			set
-			{
-				if (this.form.ClientSize != value)
-				{
-					this.form.ClientSize = value;
-					ResizeWidgets();
-				}
+				ResizeWidgets();
 			}
 		}
 

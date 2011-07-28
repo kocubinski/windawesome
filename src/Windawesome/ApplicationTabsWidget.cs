@@ -6,6 +6,7 @@ using System.Windows.Forms;
 
 namespace Windawesome
 {
+	// TODO: something doesn't work with multiple bars and when clicking on apps to change them
 	public class ApplicationTabsWidget : ISpanWidget
 	{
 		private static Windawesome windawesome;

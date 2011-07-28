@@ -25,8 +25,6 @@ namespace Windawesome
 		private static Tuple<NativeMethods.MOD, Keys> uniqueHotkey;
 		private static IntPtr forceForegroundWindow;
 		private static readonly uint windawesomeThreadId;
-		private readonly Rectangle[] originalWorkingArea;
-		private Size screenResolution;
 
 		private static readonly Tuple<NativeMethods.MOD, Keys> altTabCombination = new Tuple<NativeMethods.MOD, Keys>(NativeMethods.MOD.MOD_ALT, Keys.Tab);
 
@@ -189,21 +187,13 @@ namespace Windawesome
 			NativeMethods.RegisterShellHookWindow(HandleStatic);
 			shellMessageNum = NativeMethods.RegisterWindowMessage("SHELLHOOK");
 
-			screenResolution = SystemInformation.PrimaryMonitorSize;
-			originalWorkingArea = new Rectangle[config.WorkspacesCount];
-			originalWorkingArea[0] = SystemInformation.WorkingArea;
-			for (var i = 1; i < config.WorkspacesCount; i++)
-			{
-				originalWorkingArea[i] = originalWorkingArea[0];
-			}
-
 			// initialize all workspaces
 			foreach (var ws in config.Workspaces.Skip(1).Where(ws => ws.id != config.StartingWorkspace))
 			{
 				ws.GetWindows().ForEach(w => hiddenApplications.AddUnique(w.hWnd));
-				ws.Initialize(false, originalWorkingArea[0]);
+				ws.Initialize(false);
 			}
-			config.Workspaces[0].Initialize(true, originalWorkingArea[0]);
+			config.Workspaces[0].Initialize(true);
 
 			// switches to the default starting workspace
 			config.Workspaces[0].SwitchTo();
@@ -1344,105 +1334,6 @@ namespace Windawesome
 			{
 				base.WndProc(ref m);
 			}
-		}
-
-		#endregion
-	}
-
-	public sealed class HashMultiSet<T> : IEnumerable<T>
-	{
-		private readonly Dictionary<T, BoxedInt> set;
-		private sealed class BoxedInt
-		{
-			public int i = 1;
-		}
-
-		public HashMultiSet(IEqualityComparer<T> comparer = null)
-		{
-			set = new Dictionary<T, BoxedInt>(comparer);
-		}
-
-		public AddResult Add(T item)
-		{
-			BoxedInt count;
-			if (set.TryGetValue(item, out count))
-			{
-				count.i++;
-				return AddResult.Added;
-			}
-			else
-			{
-				set[item] = new BoxedInt();
-				return AddResult.AddedFirst;
-			}
-		}
-
-		public AddResult AddUnique(T item)
-		{
-			if (set.ContainsKey(item))
-			{
-				return AddResult.AlreadyContained;
-			}
-			else
-			{
-				set[item] = new BoxedInt();
-				return AddResult.AddedFirst;
-			}
-		}
-
-		public RemoveResult Remove(T item)
-		{
-			BoxedInt count;
-			if (set.TryGetValue(item, out count))
-			{
-				if (count.i == 1)
-				{
-					set.Remove(item);
-					return RemoveResult.RemovedLast;
-				}
-				else
-				{
-					count.i--;
-					return RemoveResult.Removed;
-				}
-			}
-
-			return RemoveResult.NotFound;
-		}
-
-		public bool Contains(T item)
-		{
-			return set.ContainsKey(item);
-		}
-
-		public enum AddResult : byte
-		{
-			AddedFirst,
-			Added,
-			AlreadyContained
-		}
-
-		public enum RemoveResult : byte
-		{
-			NotFound,
-			RemovedLast,
-			Removed
-		}
-
-		#region IEnumerable<T> Members
-
-		public IEnumerator<T> GetEnumerator()
-		{
-			return set.Keys.GetEnumerator();
-		}
-
-		#endregion
-
-		#region IEnumerable Members
-
-		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
-		{
-			return set.Keys.GetEnumerator();
 		}
 
 		#endregion

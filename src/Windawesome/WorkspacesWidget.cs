@@ -22,15 +22,20 @@ namespace Windawesome
 		private bool isShown;
 		private readonly bool flashWorkspaces;
 		private static Timer flashTimer;
-		private static Dictionary<IntPtr, Workspace> flashingWindows;
+		private static Dictionary<IntPtr, Tuple<Workspace, BoxedInt>> flashingWindows;
 		private static HashSet<Workspace> flashingWorkspaces;
 		private static bool anyFlashWorkspaces;
+
+		private class BoxedInt
+		{
+			public uint i = 1;
+		}
 
 		static WorkspacesWidget()
 		{
 			flashTimer = new Timer { Interval = 500 };
 
-			flashingWindows = new Dictionary<IntPtr, Workspace>(3);
+			flashingWindows = new Dictionary<IntPtr, Tuple<Workspace, BoxedInt>>(3);
 			flashingWorkspaces = new HashSet<Workspace>();
 		}
 
@@ -107,9 +112,17 @@ namespace Windawesome
 
 		private static void OnWindowFlashing(LinkedList<Tuple<Workspace, Window>> list)
 		{
-			if (list.First.Value.Item2.hWnd != NativeMethods.GetForegroundWindow())
+			if (list.First.Value.Item2.hWnd != NativeMethods.GetForegroundWindow() && NativeMethods.IsWindow(list.First.Value.Item2.hWnd))
 			{
-				flashingWindows[list.First.Value.Item2.hWnd] = list.First.Value.Item1;
+				Tuple<Workspace, BoxedInt> tuple;
+				if (flashingWindows.TryGetValue(list.First.Value.Item2.hWnd, out tuple))
+				{
+					tuple.Item2.i++;
+				}
+				else
+				{
+					flashingWindows[list.First.Value.Item2.hWnd] = new Tuple<Workspace, BoxedInt>(list.First.Value.Item1, new BoxedInt());
+				}
 				flashingWorkspaces.Add(list.First.Value.Item1);
 				if (flashingWorkspaces.Count == 1)
 				{
@@ -139,17 +152,20 @@ namespace Windawesome
 
 		private void OnWindowActivated(IntPtr hWnd)
 		{
-			Workspace workspace;
-			if (flashingWindows.TryGetValue(hWnd, out workspace))
+			Tuple<Workspace, BoxedInt> tuple;
+			if (flashingWindows.TryGetValue(hWnd, out tuple))
 			{
-				flashingWindows.Remove(hWnd);
-				if (flashingWindows.Values.All(w => w != workspace))
+				if (--tuple.Item2.i == 0)
 				{
-					SetWorkspaceLabelColor(workspace, null);
-					flashingWorkspaces.Remove(workspace);
-					if (flashingWorkspaces.Count == 0)
+					flashingWindows.Remove(hWnd);
+					if (flashingWindows.Values.All(t => t.Item1 != tuple.Item1))
 					{
-						flashTimer.Stop();
+						SetWorkspaceLabelColor(tuple.Item1, null);
+						flashingWorkspaces.Remove(tuple.Item1);
+						if (flashingWorkspaces.Count == 0)
+						{
+							flashTimer.Stop();
+						}
 					}
 				}
 			}
@@ -257,7 +273,7 @@ namespace Windawesome
 
 			if (flashWorkspaces)
 			{
-				flashingWindows.Values.ForEach(w => SetWorkspaceLabelColor(w, null));
+				flashingWindows.Values.ForEach(t => SetWorkspaceLabelColor(t.Item1, null));
 			}
 		}
 

@@ -11,8 +11,8 @@ namespace Windawesome
 		IntPtr Handle { get; }
 
 		int GetBarHeight();
-		Point Location { get; set; }
-		Size Size { get; set; }
+
+		void OnSizeChanging(Size newSize);
 
 		void Show();
 		void Hide();
