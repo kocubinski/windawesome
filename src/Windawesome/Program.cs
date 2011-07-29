@@ -38,7 +38,7 @@ namespace Windawesome
 
 		private class WindawesomeApplicationContext : ApplicationContext
 		{
-			internal WindawesomeApplicationContext()
+			public WindawesomeApplicationContext()
 			{
 				Windawesome.WindawesomeExiting += this.ExitThread;
 			}

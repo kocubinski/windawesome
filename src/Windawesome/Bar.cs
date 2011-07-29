@@ -8,7 +8,7 @@ namespace Windawesome
 {
 	public sealed class Bar : IBar
 	{
-		private static readonly HashSet<Type> widgetTypes;
+		private static readonly HashSet<Type> widgetTypes = new HashSet<Type>();
 
 		private readonly int barHeight;
 		private readonly NonActivatableForm form;
@@ -122,11 +122,6 @@ namespace Windawesome
 		}
 
 		#region Construction and Destruction
-
-		static Bar()
-		{
-			widgetTypes = new HashSet<Type>();
-		}
 
 		public Bar(IEnumerable<IFixedWidthWidget> leftAlignedWidgets, IEnumerable<IFixedWidthWidget> rightAlignedWidgets,
 			IEnumerable<ISpanWidget> middleAlignedWidgets, int barHeight = 20, Font font = null, Color? backgroundColor = null)

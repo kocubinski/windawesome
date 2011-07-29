@@ -25,6 +25,20 @@ namespace Windawesome
 		private static AppBarNativeWindow[] appBarTopWindows;
 		private static AppBarNativeWindow[] appBarBottomWindows;
 
+		private static int count;
+		private static bool isWindowsTaskbarShown;
+		private static IEnumerable<BarInfo> shownTopBars = new BarInfo[0];
+		private static IEnumerable<BarInfo> shownBottomBars = new BarInfo[0];
+
+		private int floatingWindowsCount;
+		private int windowsShownInTabsCount;
+
+		private readonly LinkedList<Window> windows; // all windows, owner window, sorted in Z-order, topmost window first
+		private readonly LinkedList<Window> managedWindows; // windows.Where(w => !w.isFloating && !w.isMinimized), owned windows, not sorted
+		private readonly LinkedList<Window> sharedWindows; // windows.Where(w => w.shared), not sorted
+		private readonly LinkedList<Window> removedSharedWindows; // windows that need to be Initialized but then removed from shared
+		internal bool hasChanges;
+
 		private class AppBarNativeWindow : NativeWindow
 		{
 			public readonly int Height;
@@ -33,13 +47,15 @@ namespace Windawesome
 			private Workspace.BarInfo[] bars;
 			private readonly uint callbackMessageNum;
 			private readonly NativeMethods.ABE edge;
+			private bool isTopMost;
 
 			public AppBarNativeWindow(int barHeight, bool topBar)
 			{
 				this.Height = barHeight;
 				visible = false;
+				isTopMost = false;
 				edge = topBar ? NativeMethods.ABE.ABE_TOP : NativeMethods.ABE.ABE_BOTTOM;
-				this.CreateHandle(new CreateParams { ClassName = "Message", Parent = NativeMethods.HWND_MESSAGE });
+				this.CreateHandle(new CreateParams { Parent = NativeMethods.HWND_MESSAGE });
 				callbackMessageNum = NativeMethods.RegisterWindowMessage("APP_BAR_MESSAGE_" + this.Handle);
 
 				RegisterAsAppBar();
@@ -120,19 +136,25 @@ namespace Windawesome
 				var currentY = topBar ? rect.top : rect.bottom;
 				foreach (var bar in bars.Where(bi => bi.ShowBar))
 				{
-					Point location;
-					if (topBar)
-					{
-						location = new Point(rect.left, currentY);
-						currentY += bar.bar.GetBarHeight();
-					}
-					else
+					if (!topBar)
 					{
 						currentY -= bar.bar.GetBarHeight();
-						location = new Point(rect.left, currentY);
 					}
-					winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, bar.bar.Handle, IntPtr.Zero, location.X, location.Y,
-						rect.right - rect.left + 2, bar.bar.GetBarHeight() + 2, // TODO: why must there be a + 2 here?
+					var	barRect = new NativeMethods.RECT
+						{
+							left = rect.left,
+							top = currentY,
+							right = rect.right,
+							bottom = currentY + bar.bar.GetBarHeight()
+						};
+					if (topBar)
+					{
+						currentY += bar.bar.GetBarHeight();
+					}
+					NativeMethods.AdjustWindowRectEx(ref barRect, NativeMethods.GetWindowStyleLongPtr(bar.bar.Handle),
+						NativeMethods.GetMenu(bar.bar.Handle) != IntPtr.Zero, NativeMethods.GetWindowExStyleLongPtr(bar.bar.Handle));
+					winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, bar.bar.Handle, IntPtr.Zero, barRect.left, barRect.top,
+						barRect.right - barRect.left, barRect.bottom - barRect.top,
 						NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOOWNERZORDER | NativeMethods.SWP.SWP_NOZORDER);
 
 					bar.bar.OnSizeChanging(new Size(rect.right - rect.left, bar.bar.GetBarHeight()));
@@ -175,13 +197,18 @@ namespace Windawesome
 								if (m.LParam == IntPtr.Zero)
 								{
 									// full-screen app is closing
-									var winPosInfo = NativeMethods.BeginDeferWindowPos(bars.Length);
-									foreach (var bar in bars.Where(bi => bi.ShowBar))
+									if (!isTopMost)
 									{
-										winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, bar.bar.Handle, NativeMethods.HWND_TOPMOST, 0, 0, 0, 0,
-											NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
+										var winPosInfo = NativeMethods.BeginDeferWindowPos(bars.Length);
+										foreach (var bar in bars.Where(bi => bi.ShowBar))
+										{
+											winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, bar.bar.Handle, NativeMethods.HWND_TOPMOST, 0, 0, 0, 0,
+												NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
+										}
+										NativeMethods.EndDeferWindowPos(winPosInfo);
+
+										isTopMost = true;
 									}
-									NativeMethods.EndDeferWindowPos(winPosInfo);
 								}
 								else
 								{
@@ -192,7 +219,7 @@ namespace Windawesome
 										int processId;
 										NativeMethods.GetWindowThreadProcessId(foregroundWindow, out processId);
 										var processName = System.Diagnostics.Process.GetProcessById(processId).ProcessName;
-										if (processName != "explorer.exe")
+										if (processName != "explorer" && isTopMost)
 										{
 											var winPosInfo = NativeMethods.BeginDeferWindowPos(bars.Length);
 											foreach (var bar in bars.Where(bi => bi.ShowBar))
@@ -201,6 +228,8 @@ namespace Windawesome
 													NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
 											}
 											NativeMethods.EndDeferWindowPos(winPosInfo);
+
+											isTopMost = false;
 										}
 									}
 								}
@@ -245,20 +274,6 @@ namespace Windawesome
 				return other != null && other.bar == this.bar && other.ShowBar == this.ShowBar;
 			}
 		}
-
-		private static int count;
-		private static bool isWindowsTaskbarShown;
-		private static IEnumerable<BarInfo> shownTopBars;
-		private static IEnumerable<BarInfo> shownBottomBars;
-
-		private int floatingWindowsCount;
-		private int windowsShownInTabsCount;
-
-		private readonly LinkedList<Window> windows; // all windows, owner window, sorted in Z-order, topmost window first
-		private readonly LinkedList<Window> managedWindows; // windows.Where(w => !w.isFloating && !w.isMinimized), owned windows, not sorted
-		private readonly LinkedList<Window> sharedWindows; // windows.Where(w => w.shared), not sorted
-		private readonly LinkedList<Window> removedSharedWindows; // windows that need to be Initialized but then removed from shared
-		internal bool hasChanges;
 
 		#region Events
 
@@ -470,9 +485,6 @@ namespace Windawesome
 			{
 				startButtonHandle = NativeMethods.FindWindow("Button", "Start");
 			}
-
-			shownTopBars = new BarInfo[0];
-			shownBottomBars = new BarInfo[0];
 		}
 
 		public Workspace(ILayout layout, IEnumerable<BarInfo> barsAtTop = null, IEnumerable<BarInfo> barsAtBottom = null, string name = "", bool showWindowsTaskbar = false,

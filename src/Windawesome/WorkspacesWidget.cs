@@ -21,23 +21,9 @@ namespace Windawesome
 		private bool isLeft;
 		private bool isShown;
 		private readonly bool flashWorkspaces;
+		private readonly Dictionary<IntPtr, Workspace> flashingWindows;
 		private static Timer flashTimer;
-		private static Dictionary<IntPtr, Tuple<Workspace, BoxedInt>> flashingWindows;
 		private static HashSet<Workspace> flashingWorkspaces;
-		private static bool anyFlashWorkspaces;
-
-		private class BoxedInt
-		{
-			public uint i = 1;
-		}
-
-		static WorkspacesWidget()
-		{
-			flashTimer = new Timer { Interval = 500 };
-
-			flashingWindows = new Dictionary<IntPtr, Tuple<Workspace, BoxedInt>>(3);
-			flashingWorkspaces = new HashSet<Workspace>();
-		}
 
 		public WorkspacesWidget(Color[] normalForegroundColor = null, Color[] normalBackgroundColor = null,
 			Color? highlightedForegroundColor = null, Color? highlightedBackgroundColor = null,
@@ -74,7 +60,16 @@ namespace Windawesome
 			this.flashingForegroundColor = flashingForegroundColor ?? Color.White;
 			this.flashingBackgroundColor = flashingBackgroundColor ?? Color.Red;
 			this.flashWorkspaces = flashWorkspaces;
-			anyFlashWorkspaces |= flashWorkspaces;
+			if (flashWorkspaces)
+			{
+				flashingWindows = new Dictionary<IntPtr, Workspace>(3);
+
+				if (flashTimer == null)
+				{
+					flashTimer = new Timer { Interval = 500 };
+					flashingWorkspaces = new HashSet<Workspace>();
+				}
+			}
 		}
 
 		private void OnWorkspaceLabelClick(object sender, EventArgs e)
@@ -110,19 +105,11 @@ namespace Windawesome
 			}
 		}
 
-		private static void OnWindowFlashing(LinkedList<Tuple<Workspace, Window>> list)
+		private void OnWindowFlashing(LinkedList<Tuple<Workspace, Window>> list)
 		{
 			if (list.First.Value.Item2.hWnd != NativeMethods.GetForegroundWindow() && NativeMethods.IsWindow(list.First.Value.Item2.hWnd))
 			{
-				Tuple<Workspace, BoxedInt> tuple;
-				if (flashingWindows.TryGetValue(list.First.Value.Item2.hWnd, out tuple))
-				{
-					tuple.Item2.i++;
-				}
-				else
-				{
-					flashingWindows[list.First.Value.Item2.hWnd] = new Tuple<Workspace, BoxedInt>(list.First.Value.Item1, new BoxedInt());
-				}
+				flashingWindows[list.First.Value.Item2.hWnd] = list.First.Value.Item1;
 				flashingWorkspaces.Add(list.First.Value.Item1);
 				if (flashingWorkspaces.Count == 1)
 				{
@@ -152,20 +139,17 @@ namespace Windawesome
 
 		private void OnWindowActivated(IntPtr hWnd)
 		{
-			Tuple<Workspace, BoxedInt> tuple;
-			if (flashingWindows.TryGetValue(hWnd, out tuple))
+			Workspace workspace;
+			if (flashingWindows.TryGetValue(hWnd, out workspace))
 			{
-				if (--tuple.Item2.i == 0)
+				flashingWindows.Remove(hWnd);
+				if (flashingWindows.Values.All(w => w != workspace))
 				{
-					flashingWindows.Remove(hWnd);
-					if (flashingWindows.Values.All(t => t.Item1 != tuple.Item1))
+					SetWorkspaceLabelColor(workspace, null);
+					flashingWorkspaces.Remove(workspace);
+					if (flashingWorkspaces.Count == 0)
 					{
-						SetWorkspaceLabelColor(tuple.Item1, null);
-						flashingWorkspaces.Remove(tuple.Item1);
-						if (flashingWorkspaces.Count == 0)
-						{
-							flashTimer.Stop();
-						}
+						flashTimer.Stop();
 					}
 				}
 			}
@@ -177,11 +161,6 @@ namespace Windawesome
 		{
 			WorkspacesWidget.windawesome = windawesome;
 			WorkspacesWidget.config = config;
-
-			if (anyFlashWorkspaces)
-			{
-				Windawesome.WindowFlashing += OnWindowFlashing;
-			}
 		}
 
 		void IWidget.InitializeWidget(Bar bar)
@@ -191,6 +170,7 @@ namespace Windawesome
 				flashTimer.Tick += OnTimerTick;
 				Workspace.WindowActivatedEvent += OnWindowActivated;
 				Workspace.WorkspaceApplicationRestored += (ws, w) => OnWindowActivated(w.hWnd);
+				Windawesome.WindowFlashing += OnWindowFlashing;
 			}
 
 			isShown = false;
@@ -273,7 +253,7 @@ namespace Windawesome
 
 			if (flashWorkspaces)
 			{
-				flashingWindows.Values.ForEach(t => SetWorkspaceLabelColor(t.Item1, null));
+				flashingWindows.Values.ForEach(w => SetWorkspaceLabelColor(w, null));
 			}
 		}
 

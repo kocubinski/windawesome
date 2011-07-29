@@ -126,7 +126,7 @@ namespace Windawesome
 
 				if (trayData.dwHz == 0x34753423) // some Microsoft magic number to indicate a system tray message
 				{
-					if ((trayData.nid.uFlags.HasFlag(NativeMethods.IconDataMembers.NIF_ICON)) && trayData.dwMessage != NativeMethods.NIM_DELETE)
+					if ((trayData.nid.uFlags.HasFlag(NativeMethods.IconDataMembers.NIF_ICON)) && trayData.dwMessage != NativeMethods.NIM.NIM_DELETE)
 					{
 						trayData.nid.hIcon = NativeMethods.CopyIcon((IntPtr) trayData.nid.hIcon).ToInt32();
 					}
@@ -135,18 +135,18 @@ namespace Windawesome
 
 					switch (trayData.dwMessage)
 					{
-						case NativeMethods.NIM_ADD:
+						case NativeMethods.NIM.NIM_ADD:
 							TrayIconAdded(trayData.nid);
 							break;
-						case NativeMethods.NIM_MODIFY:
+						case NativeMethods.NIM.NIM_MODIFY:
 							TrayIconModified(trayData.nid);
 							break;
-						case NativeMethods.NIM_DELETE:
+						case NativeMethods.NIM.NIM_DELETE:
 							TrayIconDeleted(trayData.nid);
 							break;
 					}
 
-					if ((trayData.nid.uFlags.HasFlag(NativeMethods.IconDataMembers.NIF_ICON)) && trayData.dwMessage != NativeMethods.NIM_DELETE)
+					if ((trayData.nid.uFlags.HasFlag(NativeMethods.IconDataMembers.NIF_ICON)) && trayData.dwMessage != NativeMethods.NIM.NIM_DELETE)
 					{
 						NativeMethods.DestroyIcon((IntPtr) trayData.nid.hIcon);
 					}
@@ -505,7 +505,7 @@ namespace Windawesome
 			}
 
 			private static bool GetButtonData<TTrayIconData>(IntPtr trayHandle, TTrayIconData data, int i)
-				where TTrayIconData : TrayIconData, new()
+				where TTrayIconData : TrayIconData
 			{
 				NativeMethods.SendMessageTimeout(
 					trayHandle,

@@ -167,7 +167,7 @@ namespace Windawesome
 
 		#endregion
 
-		#region SHAppBarMessage/RegisterWindowMessage
+		#region SHAppBarMessage
 
 		[StructLayout(LayoutKind.Sequential)]
 		public struct RECT
@@ -237,10 +237,10 @@ namespace Windawesome
 		[DllImport("shell32.dll")]
 		public static extern UIntPtr SHAppBarMessage(ABM dwMessage, ref APPBARDATA pData);
 
+		#endregion
+
 		[DllImport("User32.dll", CharSet = CharSet.Auto)]
 		public static extern uint RegisterWindowMessage([MarshalAs(UnmanagedType.LPTStr)] string msg);
-
-		#endregion
 
 		#region ChangeWindowMessageFilter/ChangeWindowMessageFilterEx
 
@@ -327,6 +327,9 @@ namespace Windawesome
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
 		public static extern bool EnableWindow(IntPtr hWnd, [MarshalAs(UnmanagedType.Bool)] bool bEnable);
+
+		[DllImport("user32.dll")]
+		public static extern IntPtr GetMenu(IntPtr hWnd);
 
 		#region GetWindow
 
@@ -558,7 +561,11 @@ namespace Windawesome
 
 		#endregion
 
-		#region GetWindowRect/SetWindowPos/BeginDeferWindowPos/DeferWindowPos/EndDeferWindowPos
+		#region AdjustWindowRectEx/GetWindowRect/SetWindowPos/BeginDeferWindowPos/DeferWindowPos/EndDeferWindowPos
+
+		[DllImport("user32.dll")]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		public static extern bool AdjustWindowRectEx([In, Out] ref RECT lpRect, WS dwStyle, [MarshalAs(UnmanagedType.Bool)] bool bMenu, WS_EX dwExStyle);
 
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
@@ -672,9 +679,6 @@ namespace Windawesome
 		public static extern bool RedrawWindow(IntPtr hWnd, IntPtr lprcUpdate, IntPtr hrgnUpdate, RedrawWindowFlags flags);
 
 		#endregion
-
-		[DllImport("user32.dll")]
-		public static extern IntPtr SetParent(IntPtr hWndChild, [Optional] IntPtr hWndNewParent);
 
 		#region GetLastActivePopup/ShowOwnedPopups
 
@@ -826,27 +830,34 @@ namespace Windawesome
 
 		public static bool Is64BitProcess(IntPtr hWnd)
 		{
-			var result = false;
-
-			int processId;
-			GetWindowThreadProcessId(hWnd, out processId);
-			var processHandle = Windawesome.isAtLeastVista ?
-				OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, processId) :
-				OpenProcess(PROCESS_QUERY_INFORMATION, false, processId);
-			if (processHandle != IntPtr.Zero)
+			if (Environment.Is64BitOperatingSystem)
 			{
-				try
-				{
-					IsWow64Process(processHandle, out result);
-					result = !result;
-				}
-				finally
-				{
-					CloseHandle(processHandle);
-				}
-			}
+				var result = false;
 
-			return result;
+				int processId;
+				GetWindowThreadProcessId(hWnd, out processId);
+				var processHandle = Windawesome.isAtLeastVista ?
+					OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, processId) :
+					OpenProcess(PROCESS_QUERY_INFORMATION, false, processId);
+				if (processHandle != IntPtr.Zero)
+				{
+					try
+					{
+						IsWow64Process(processHandle, out result);
+						result = !result;
+					}
+					finally
+					{
+						CloseHandle(processHandle);
+					}
+				}
+
+				return result;
+			}
+			else
+			{
+				return false;
+			}
 		}
 
 		#endregion
@@ -926,8 +937,6 @@ namespace Windawesome
 		[DllImport("shell32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
 		public static extern bool IsUserAnAdmin();
-
-		public const byte TBSTATE_HIDDEN = 0x08;
 
 		[DllImport("user32.dll")]
 		public static extern uint GetWindowThreadProcessId(IntPtr hWnd, [Optional, Out] out int lpdwProcessId);
@@ -1154,15 +1163,21 @@ namespace Windawesome
 		public struct SHELLTRAYDATA
 		{
 			public int dwHz;
-			public int dwMessage;
+			public NIM dwMessage;
 			public NOTIFYICONDATA nid;
 		}
 
-		public const int NIM_ADD = 0;
-		public const int NIM_MODIFY = 1;
-		public const int NIM_DELETE = 2;
-		public static readonly IntPtr SH_TRAY_DATA = (IntPtr) 1;
+		public enum NIM
+		{
+			NIM_ADD = 0,
+			NIM_MODIFY = 1,
+			NIM_DELETE = 2
+		}
+
+		public static readonly IntPtr SH_TRAY_DATA = NativeMethods.IntPtrOne;
 		public const int WM_COPYDATA = 0x004A;
+
+		public const byte TBSTATE_HIDDEN = 0x08;
 
 		#region TBBUTTON/TRAYDATA
 

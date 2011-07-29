@@ -22,7 +22,7 @@ namespace Windawesome
 			private readonly KeyModifiers win;
 			private readonly KeyModifiers control;
 
-			internal Subscription(KeyModifiers modifiers, Keys key)
+			public Subscription(KeyModifiers modifiers, Keys key)
 			{
 				this.key = key;
 
@@ -37,7 +37,7 @@ namespace Windawesome
 				hasControl = control != KeyModifiers.None;
 			}
 
-			internal class SubscriptionEqualityComparer : IEqualityComparer<Subscription>
+			public class SubscriptionEqualityComparer : IEqualityComparer<Subscription>
 			{
 				#region IEqualityComparer<Subscription> Members
 

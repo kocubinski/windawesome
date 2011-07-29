@@ -14,16 +14,16 @@ namespace Windawesome
 		private readonly Dictionary<IntPtr, LinkedList<Tuple<Workspace, Window>>> applications; // hWnd to a list of workspaces and windows
 		private readonly HashMultiSet<IntPtr> hiddenApplications;
 		private readonly uint shellMessageNum;
-		private static readonly uint postActionMessageNum;
-		private static readonly Queue<Action> postedActions;
-		private static readonly Dictionary<int, HandleMessageDelegate> messageHandlers;
-		private static readonly NativeMethods.NONCLIENTMETRICS originalNonClientMetrics;
 		private readonly HashSet<IntPtr> temporarilyShownWindows;
 		private readonly bool changedNonClientMetrics;
 		private readonly bool finishedInitializing;
 		private readonly IntPtr getForegroundPrivilageAtom;
 		private static Tuple<NativeMethods.MOD, Keys> uniqueHotkey;
 		private static IntPtr forceForegroundWindow;
+		private static readonly uint postActionMessageNum;
+		private static readonly Queue<Action> postedActions;
+		private static readonly Dictionary<int, HandleMessageDelegate> messageHandlers;
+		private static readonly NativeMethods.NONCLIENTMETRICS originalNonClientMetrics;
 		private static readonly uint windawesomeThreadId;
 
 		private static readonly Tuple<NativeMethods.MOD, Keys> altTabCombination = new Tuple<NativeMethods.MOD, Keys>(NativeMethods.MOD.MOD_ALT, Keys.Tab);
@@ -118,7 +118,7 @@ namespace Windawesome
 
 		internal Windawesome()
 		{
-			this.CreateHandle(new CreateParams { ClassName = "Message", Parent = NativeMethods.HWND_MESSAGE });
+			this.CreateHandle(new CreateParams { Parent = NativeMethods.HWND_MESSAGE });
 
 			HandleStatic = this.Handle;
 
@@ -179,12 +179,12 @@ namespace Windawesome
 			if (!NativeMethods.RegisterHotKey(this.Handle, (ushort) getForegroundPrivilageAtom, config.UniqueHotkey.Item1, config.UniqueHotkey.Item2))
 			{
 				OutputWarning("There was a problem registering the unique hotkey! Probably this key-combination is in " +
-					"use by some other program! Please use a unique one, otherwise Windawesome won't be able to switch " +
-					"to windows as you change workspaces!");
+					"use by some other program! Please use a unique one, otherwise Windawesome will sometimes have a problem " +
+					" switching to windows as you change workspaces!");
 			}
 
 			// register a shell hook
-			NativeMethods.RegisterShellHookWindow(HandleStatic);
+			NativeMethods.RegisterShellHookWindow(this.Handle);
 			shellMessageNum = NativeMethods.RegisterWindowMessage("SHELLHOOK");
 
 			// initialize all workspaces
@@ -209,7 +209,7 @@ namespace Windawesome
 			SystemEvents.SessionEnding -= OnSessionEnding;
 
 			// unregister shell hook
-			NativeMethods.DeregisterShellHookWindow(HandleStatic);
+			NativeMethods.DeregisterShellHookWindow(this.Handle);
 
 			NativeMethods.UnregisterHotKey(this.Handle, (ushort) getForegroundPrivilageAtom);
 			NativeMethods.GlobalDeleteAtom((ushort) getForegroundPrivilageAtom);
@@ -353,7 +353,7 @@ namespace Windawesome
 				if (programRule == null || !programRule.isManaged)
 				{
 					// add to hiddenApplications in order to not try again to add the window
-					hiddenApplications.Add(hWnd);
+					hiddenApplications.AddUnique(hWnd);
 					return false;
 				}
 				if (programRule.tryAgainAfter >= 0 && firstTry && finishedInitializing)
@@ -451,7 +451,8 @@ namespace Windawesome
 						}
 						else
 						{
-							hiddenApplications.Add(hWnd);
+							// add to hiddenApplications in order to not try again to add the window
+							hiddenApplications.AddUnique(hWnd);
 							return false;
 						}
 					}
@@ -469,7 +470,7 @@ namespace Windawesome
 						NativeMethods.RedrawWindowFlags.RDW_INVALIDATE);
 				}
 
-				var is64BitProcess = Environment.Is64BitOperatingSystem && NativeMethods.Is64BitProcess(hWnd);
+				var is64BitProcess = NativeMethods.Is64BitProcess(hWnd);
 
 				var list = new LinkedList<Tuple<Workspace, Window>>();
 
@@ -894,7 +895,7 @@ namespace Windawesome
 			}
 		}
 
-		public void RemoveApplicationFromWorkspace(IntPtr hWnd, int workspace = 0)
+		public void RemoveApplicationFromWorkspace(IntPtr hWnd, int workspace = 0, bool setForeground = true)
 		{
 			var window = GetOwnermostWindow(hWnd, config.Workspaces[workspace]);
 			if (window != null)
@@ -911,7 +912,7 @@ namespace Windawesome
 					list.Remove(new Tuple<Workspace, Window>(config.Workspaces[workspace], window));
 					list.Where(t => --t.Item2.WorkspacesCount == 1).ForEach(t => t.Item1.AddToRemovedSharedWindows(t.Item2));
 
-					config.Workspaces[workspace].WindowDestroyed(window);
+					config.Workspaces[workspace].WindowDestroyed(window, setForeground);
 				}
 			}
 		}
@@ -1219,7 +1220,7 @@ namespace Windawesome
 						// another problem is that some windows continuously keep showing when hidden.
 						// how to reproduce: TortoiseSVN. About box. Click check for updates. This window
 						// keeps showing up when changing workspaces
-						NativeMethods.PostMessage(HandleStatic, shellMessageNum,
+						NativeMethods.PostMessage(this.Handle, shellMessageNum,
 							(UIntPtr) (uint) NativeMethods.ShellEvents.HSHELL_WINDOWACTIVATED, lParam);
 					}
 					break;
@@ -1282,11 +1283,11 @@ namespace Windawesome
 					}
 					break;
 				case NativeMethods.ShellEvents.HSHELL_WINDOWREPLACING:
-					NativeMethods.PostMessage(HandleStatic, shellMessageNum,
+					NativeMethods.PostMessage(this.Handle, shellMessageNum,
 						(UIntPtr) (uint) NativeMethods.ShellEvents.HSHELL_WINDOWCREATED, lParam);
 					break;
 				case NativeMethods.ShellEvents.HSHELL_WINDOWREPLACED:
-					NativeMethods.PostMessage(HandleStatic, shellMessageNum,
+					NativeMethods.PostMessage(this.Handle, shellMessageNum,
 						(UIntPtr) (uint) NativeMethods.ShellEvents.HSHELL_WINDOWDESTROYED, lParam);
 					break;
 			}
