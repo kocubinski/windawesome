@@ -10,8 +10,8 @@ namespace Windawesome
 	{
 		public readonly int id;
 		public ILayout Layout { get; private set; }
-		public readonly BarInfo[] barsAtTop;
-		public readonly BarInfo[] barsAtBottom;
+		public IBar[] BarsAtTop { get; private set; }
+		public IBar[] BarsAtBottom { get; private set; }
 		public readonly string name;
 		public bool ShowWindowsTaskbar { get; private set; }
 		public bool IsCurrentWorkspace { get; private set; }
@@ -27,8 +27,7 @@ namespace Windawesome
 
 		private static int count;
 		private static bool isWindowsTaskbarShown;
-		private static IEnumerable<BarInfo> shownTopBars = new BarInfo[0];
-		private static IEnumerable<BarInfo> shownBottomBars = new BarInfo[0];
+		private static IEnumerable<IBar> shownBars = new IBar[0];
 
 		private int floatingWindowsCount;
 		private int windowsShownInTabsCount;
@@ -44,7 +43,7 @@ namespace Windawesome
 			public readonly int Height;
 			private NativeMethods.RECT rect;
 			private bool visible;
-			private Workspace.BarInfo[] bars;
+			private IBar[] bars;
 			private readonly uint callbackMessageNum;
 			private readonly NativeMethods.ABE edge;
 			private bool isTopMost;
@@ -128,37 +127,39 @@ namespace Windawesome
 				NativeMethods.SHAppBarMessage(NativeMethods.ABM.ABM_SETPOS, ref appBarData);
 			}
 
-			public IntPtr PositionBars(IntPtr winPosInfo, BarInfo[] bars)
+			// show and move the bars to their respective positions
+			public IntPtr PositionBars(IntPtr winPosInfo, IBar[] bars)
 			{
 				this.bars = bars;
 
 				var topBar = edge == NativeMethods.ABE.ABE_TOP;
 				var currentY = topBar ? rect.top : rect.bottom;
-				foreach (var bar in bars.Where(bi => bi.ShowBar))
+				foreach (var bar in bars)
 				{
 					if (!topBar)
 					{
-						currentY -= bar.bar.GetBarHeight();
+						currentY -= bar.GetBarHeight();
 					}
 					var	barRect = new NativeMethods.RECT
 						{
 							left = rect.left,
 							top = currentY,
 							right = rect.right,
-							bottom = currentY + bar.bar.GetBarHeight()
+							bottom = currentY + bar.GetBarHeight()
 						};
 					if (topBar)
 					{
-						currentY += bar.bar.GetBarHeight();
+						currentY += bar.GetBarHeight();
 					}
-					NativeMethods.AdjustWindowRectEx(ref barRect, NativeMethods.GetWindowStyleLongPtr(bar.bar.Handle),
-						NativeMethods.GetMenu(bar.bar.Handle) != IntPtr.Zero, NativeMethods.GetWindowExStyleLongPtr(bar.bar.Handle));
-					winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, bar.bar.Handle, IntPtr.Zero, barRect.left, barRect.top,
+					NativeMethods.AdjustWindowRectEx(ref barRect, NativeMethods.GetWindowStyleLongPtr(bar.Handle),
+						NativeMethods.GetMenu(bar.Handle) != IntPtr.Zero, NativeMethods.GetWindowExStyleLongPtr(bar.Handle));
+					winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, bar.Handle, IntPtr.Zero, barRect.left, barRect.top,
 						barRect.right - barRect.left, barRect.bottom - barRect.top,
 						NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOOWNERZORDER | NativeMethods.SWP.SWP_NOZORDER);
 
-					bar.bar.OnSizeChanging(new Size(rect.right - rect.left, bar.bar.GetBarHeight()));
-					bar.bar.Show();
+					bar.OnSizeChanging(new Size(barRect.right - barRect.left, barRect.bottom - barRect.top));
+
+					bar.Show();
 				}
 
 				return winPosInfo;
@@ -200,9 +201,9 @@ namespace Windawesome
 									if (!isTopMost)
 									{
 										var winPosInfo = NativeMethods.BeginDeferWindowPos(bars.Length);
-										foreach (var bar in bars.Where(bi => bi.ShowBar))
+										foreach (var bar in bars)
 										{
-											winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, bar.bar.Handle, NativeMethods.HWND_TOPMOST, 0, 0, 0, 0,
+											winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, bar.Handle, NativeMethods.HWND_TOPMOST, 0, 0, 0, 0,
 												NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
 										}
 										NativeMethods.EndDeferWindowPos(winPosInfo);
@@ -222,9 +223,9 @@ namespace Windawesome
 										if (processName != "explorer" && isTopMost)
 										{
 											var winPosInfo = NativeMethods.BeginDeferWindowPos(bars.Length);
-											foreach (var bar in bars.Where(bi => bi.ShowBar))
+											foreach (var bar in bars)
 											{
-												winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, bar.bar.Handle, NativeMethods.HWND_BOTTOM, 0, 0, 0, 0,
+												winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, bar.Handle, NativeMethods.HWND_BOTTOM, 0, 0, 0, 0,
 													NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
 											}
 											NativeMethods.EndDeferWindowPos(winPosInfo);
@@ -238,8 +239,7 @@ namespace Windawesome
 								if (SetPosition())
 								{
 									var winPosInfo = NativeMethods.BeginDeferWindowPos(bars.Length);
-									winPosInfo = PositionBars(winPosInfo, bars);
-									NativeMethods.EndDeferWindowPos(winPosInfo);
+									NativeMethods.EndDeferWindowPos(PositionBars(winPosInfo, bars));
 								}
 								break;
 						}
@@ -249,29 +249,6 @@ namespace Windawesome
 				{
 					base.WndProc(ref m);
 				}
-			}
-		}
-
-		public class BarInfo
-		{
-			public readonly IBar bar;
-			public bool ShowBar { get; internal set; }
-
-			public BarInfo(IBar bar, bool showBar = true)
-			{
-				this.bar = bar;
-				this.ShowBar = showBar;
-			}
-
-			public override int GetHashCode()
-			{
-				return bar.GetHashCode() + ShowBar.GetHashCode();
-			}
-
-			public override bool Equals(object obj)
-			{
-				var other = obj as BarInfo;
-				return other != null && other.bar == this.bar && other.ShowBar == this.ShowBar;
 			}
 		}
 
@@ -371,10 +348,53 @@ namespace Windawesome
 
 		#endregion
 
+		public string LayoutSymbol
+		{
+			get
+			{
+				return Layout.LayoutSymbol(windowsShownInTabsCount);
+			}
+		}
 
+		static Workspace()
+		{
+			taskbarHandle = NativeMethods.FindWindow("Shell_TrayWnd", null);
+			if (Windawesome.isAtLeastVista)
+			{
+				startButtonHandle = NativeMethods.FindWindow("Button", "Start");
+			}
+		}
 
+		public Workspace(ILayout layout, IEnumerable<IBar> barsAtTop = null, IEnumerable<IBar> barsAtBottom = null, string name = "", bool showWindowsTaskbar = false,
+			bool repositionOnSwitchedTo = false)
+		{
+			windows = new LinkedList<Window>();
+			managedWindows = new LinkedList<Window>();
+			sharedWindows = new LinkedList<Window>();
+			removedSharedWindows = new LinkedList<Window>();
 
+			this.id = ++count;
+			this.Layout = layout;
+			this.BarsAtTop = barsAtTop != null ? barsAtTop.ToArray() : new IBar[] { };
+			this.BarsAtBottom = barsAtBottom != null ? barsAtBottom.ToArray() : new IBar[] { };
+			this.name = name;
+			this.ShowWindowsTaskbar = showWindowsTaskbar;
+			this.repositionOnSwitchedTo = repositionOnSwitchedTo;
 
+			this.BarsAtTop.Unless(registeredBars.Contains).ForEach(RegisterBar);
+			this.BarsAtBottom.Unless(registeredBars.Contains).ForEach(RegisterBar);
+		}
+
+		public override int GetHashCode()
+		{
+			return this.id;
+		}
+
+		public override bool Equals(object obj)
+		{
+			var workspace = obj as Workspace;
+			return workspace != null && workspace.id == this.id;
+		}
 
 		internal static void FindWorkspaceBarsEquivalentClasses(int workspacesCount, IEnumerable<Workspace> workspaces)
 		{
@@ -387,31 +407,29 @@ namespace Windawesome
 			appBarBottomWindows = new AppBarNativeWindow[workspacesCount];
 			workspaceBarsEquivalentClasses = new int[workspacesCount];
 
-			var listOfUniqueBars = new LinkedList<Tuple<IEnumerable<BarInfo>, IEnumerable<BarInfo>, int>>();
+			var listOfUniqueBars = new LinkedList<Tuple<IBar[], IBar[], int>>();
 			var listOfUniqueTopAppBars = new LinkedList<AppBarNativeWindow>();
 			var listOfUniqueBottomAppBars = new LinkedList<AppBarNativeWindow>();
 
 			int i = 0, last = 0;
 			foreach (var workspace in workspaces)
 			{
-				Tuple<IEnumerable<BarInfo>, IEnumerable<BarInfo>, int> matchingBar;
-				if ((matchingBar = listOfUniqueBars.FirstOrDefault(uniqueBar =>
-					workspace.barsAtTop.Where(bi => bi.ShowBar).SequenceEqual(uniqueBar.Item1) && workspace.barsAtBottom.Where(bi => bi.ShowBar).SequenceEqual(uniqueBar.Item2))) != null)
+				var matchingBar = listOfUniqueBars.FirstOrDefault(uniqueBar =>
+					workspace.BarsAtTop.SequenceEqual(uniqueBar.Item1) && workspace.BarsAtBottom.SequenceEqual(uniqueBar.Item2));
+				if (matchingBar != null)
 				{
 					workspaceBarsEquivalentClasses[i] = matchingBar.Item3;
 				}
 				else
 				{
 					workspaceBarsEquivalentClasses[i] = ++last;
-					listOfUniqueBars.AddLast(new Tuple<IEnumerable<BarInfo>, IEnumerable<BarInfo>, int>(workspace.barsAtTop.Where(bi => bi.ShowBar), workspace.barsAtBottom.Where(bi => bi.ShowBar), last));
+					listOfUniqueBars.AddLast(new Tuple<IBar[], IBar[], int>(workspace.BarsAtTop, workspace.BarsAtBottom, last));
 				}
 
-				AppBarNativeWindow matchingAppBar;
-
-				var topBarsHeight = workspace.barsAtTop.Where(bi => bi.ShowBar).Sum(bi => bi.bar.GetBarHeight());
-				matchingAppBar = listOfUniqueTopAppBars.FirstOrDefault(uniqueAppBar =>
-					(uniqueAppBar == null && workspace.barsAtTop.Where(bi => bi.ShowBar).Count() == 0) || (uniqueAppBar != null && topBarsHeight == uniqueAppBar.Height));
-				if (matchingAppBar != null || workspace.barsAtTop.Where(bi => bi.ShowBar).Count() == 0)
+				var topBarsHeight = workspace.BarsAtTop.Sum(bar => bar.GetBarHeight());
+				var matchingAppBar = listOfUniqueTopAppBars.FirstOrDefault(uniqueAppBar =>
+					(uniqueAppBar == null && workspace.BarsAtTop.Length == 0) || (uniqueAppBar != null && topBarsHeight == uniqueAppBar.Height));
+				if (matchingAppBar != null || workspace.BarsAtTop.Length == 0)
 				{
 					appBarTopWindows[i] = matchingAppBar;
 				}
@@ -421,10 +439,10 @@ namespace Windawesome
 					listOfUniqueTopAppBars.AddLast(appBarTopWindows[i]);
 				}
 
-				var bottomBarsHeight = workspace.barsAtBottom.Where(bi => bi.ShowBar).Sum(bi => bi.bar.GetBarHeight());
+				var bottomBarsHeight = workspace.BarsAtBottom.Sum(bar => bar.GetBarHeight());
 				matchingAppBar = listOfUniqueBottomAppBars.FirstOrDefault(uniqueAppBar =>
-					(uniqueAppBar == null && workspace.barsAtBottom.Where(bi => bi.ShowBar).Count() == 0) || (uniqueAppBar != null && bottomBarsHeight == uniqueAppBar.Height));
-				if (matchingAppBar != null || workspace.barsAtBottom.Where(bi => bi.ShowBar).Count() == 0)
+					(uniqueAppBar == null && workspace.BarsAtBottom.Length == 0) || (uniqueAppBar != null && bottomBarsHeight == uniqueAppBar.Height));
+				if (matchingAppBar != null || workspace.BarsAtBottom.Length == 0)
 				{
 					appBarBottomWindows[i] = matchingAppBar;
 				}
@@ -460,64 +478,6 @@ namespace Windawesome
 			NativeMethods.SHAppBarMessage(NativeMethods.ABM.ABM_REMOVE, ref appBarData);
 		}
 
-
-
-
-
-
-
-
-
-
-
-		public string LayoutSymbol
-		{
-			get
-			{
-				return Layout.LayoutSymbol(windowsShownInTabsCount);
-			}
-		}
-
-		static Workspace()
-		{
-			taskbarHandle = NativeMethods.FindWindow("Shell_TrayWnd", null);
-			if (Windawesome.isAtLeastVista)
-			{
-				startButtonHandle = NativeMethods.FindWindow("Button", "Start");
-			}
-		}
-
-		public Workspace(ILayout layout, IEnumerable<BarInfo> barsAtTop = null, IEnumerable<BarInfo> barsAtBottom = null, string name = "", bool showWindowsTaskbar = false,
-			bool repositionOnSwitchedTo = false)
-		{
-			windows = new LinkedList<Window>();
-			managedWindows = new LinkedList<Window>();
-			sharedWindows = new LinkedList<Window>();
-			removedSharedWindows = new LinkedList<Window>();
-
-			this.id = ++count;
-			this.Layout = layout;
-			this.barsAtTop = barsAtTop != null ? barsAtTop.ToArray() : new BarInfo[] { };
-			this.barsAtBottom = barsAtBottom != null ? barsAtBottom.ToArray() : new BarInfo[] { };
-			this.name = name;
-			this.ShowWindowsTaskbar = showWindowsTaskbar;
-			this.repositionOnSwitchedTo = repositionOnSwitchedTo;
-
-			this.barsAtTop.Select(bi => bi.bar).Unless(registeredBars.Contains).ForEach(RegisterBar);
-			this.barsAtBottom.Select(bi => bi.bar).Unless(registeredBars.Contains).ForEach(RegisterBar);
-		}
-
-		public override int GetHashCode()
-		{
-			return this.id;
-		}
-
-		public override bool Equals(object obj)
-		{
-			var workspace = obj as Workspace;
-			return workspace != null && workspace.id == this.id;
-		}
-
 		internal void SwitchTo()
 		{
 			// hides or shows the Windows taskbar
@@ -529,7 +489,8 @@ namespace Windawesome
 			// hides the Bars for the old workspace and shows the new ones
 			if (workspaceBarsEquivalentClasses[Windawesome.PreviousWorkspace - 1] != workspaceBarsEquivalentClasses[this.id - 1])
 			{
-				HideShowBars(appBarTopWindows[Windawesome.PreviousWorkspace - 1], appBarBottomWindows[Windawesome.PreviousWorkspace - 1]);
+				HideShowBars(appBarTopWindows[Windawesome.PreviousWorkspace - 1], appBarBottomWindows[Windawesome.PreviousWorkspace - 1],
+					appBarTopWindows[this.id - 1], appBarBottomWindows[this.id - 1]);
 			}
 
 			// sets the layout- and workspace-specific changes to the windows
@@ -606,7 +567,7 @@ namespace Windawesome
 		private void ShowHideWindowsTaskbar()
 		{
 			var appBarData = new NativeMethods.APPBARDATA();
-			var state = (NativeMethods.ABS) NativeMethods.SHAppBarMessage(NativeMethods.ABM.ABM_GETSTATE, ref appBarData);
+			var state = (NativeMethods.ABS) (uint) NativeMethods.SHAppBarMessage(NativeMethods.ABM.ABM_GETSTATE, ref appBarData);
 
 			appBarData.hWnd = taskbarHandle;
 			appBarData.lParam = (IntPtr) (ShowWindowsTaskbar ? state & ~NativeMethods.ABS.ABS_AUTOHIDE : state | NativeMethods.ABS.ABS_AUTOHIDE);
@@ -624,22 +585,31 @@ namespace Windawesome
 			isWindowsTaskbarShown = ShowWindowsTaskbar;
 		}
 
-		private void HideShowBars(AppBarNativeWindow previousAppBarTopWindow, AppBarNativeWindow previousAppBarBottomWindow)
+		private void HideShowBars(AppBarNativeWindow previousAppBarTopWindow, AppBarNativeWindow previousAppBarBottomWindow,
+			AppBarNativeWindow newAppBarTopWindow, AppBarNativeWindow newAppBarBottomWindow)
 		{
-			var winPosInfo = NativeMethods.BeginDeferWindowPos(barsAtTop.Length + barsAtBottom.Length);
-			winPosInfo = HideShowBars(winPosInfo, shownTopBars, barsAtTop, previousAppBarTopWindow, appBarTopWindows[this.id - 1], true);
-			winPosInfo = HideShowBars(winPosInfo, shownBottomBars, barsAtBottom, previousAppBarBottomWindow, appBarBottomWindows[this.id - 1], false);
-			NativeMethods.EndDeferWindowPos(winPosInfo);
+			var changedWorkingArea = HideShowAppBarForms(previousAppBarTopWindow, newAppBarTopWindow);
+			changedWorkingArea |= HideShowAppBarForms(previousAppBarBottomWindow, newAppBarBottomWindow);
 
-			shownTopBars = barsAtTop.Where(bi => bi.ShowBar);
-			shownBottomBars = barsAtBottom.Where(bi => bi.ShowBar);
+			// first show new bars and only after that hide the old ones to avoid flickering
+			PositionBars(newAppBarTopWindow, newAppBarBottomWindow);
+
+			shownBars.Except(BarsAtTop.Concat(BarsAtBottom)).ForEach(bar => bar.Hide());
+
+			// when the working area changes, the Windows Taskbar is shown (at least if AutoHide is on)
+			// on Windows XP SP3
+			if (changedWorkingArea)
+			{
+				ShowHideWindowsTaskbar();
+			}
+
+			shownBars = BarsAtTop.Concat(BarsAtBottom);
 		}
 
-		private IntPtr HideShowBars(IntPtr winPosInfo, IEnumerable<BarInfo> hideBars, BarInfo[] showBars, AppBarNativeWindow hideForm, AppBarNativeWindow showForm, bool topBars)
+		private static bool HideShowAppBarForms(AppBarNativeWindow hideForm, AppBarNativeWindow showForm)
 		{
 			// this whole thing is so complicated as to avoid changing of the working area if the bars in the new workspace
 			// take the same space as the one in the previous one
-			var changedWorkingArea = false;
 
 			// set the working area to a new one if needed
 			if (hideForm != null)
@@ -651,47 +621,37 @@ namespace Windawesome
 					{
 						showForm.SetPosition();
 					}
-					changedWorkingArea = true;
+					return true;
 				}
 			}
 			else if (showForm != null)
 			{
 				showForm.SetPosition();
-				changedWorkingArea = true;
+				return true;
 			}
 
-			if (showForm != null)
-			{
-				// show and move the bars to their respective positions
-				winPosInfo = showForm.PositionBars(winPosInfo, showBars);
-			}
-
-			hideBars.Except(barsAtTop.Concat(barsAtBottom)).ForEach(bi => bi.bar.Hide());
-
-			// when the working area changes, the Windows Taskbar is shown (at least if AutoHide is on)
-			// on Windows XP SP3
-			if (changedWorkingArea)
-			{
-				ShowHideWindowsTaskbar();
-			}
-
-			return winPosInfo;
+			return false;
 		}
 
-		internal void OnWorkingAreaReset()
+		private void PositionBars(AppBarNativeWindow newAppBarTopWindow, AppBarNativeWindow newAppBarBottomWindow)
 		{
-			//Reposition();
+			var winPosInfo = NativeMethods.BeginDeferWindowPos(BarsAtTop.Length + BarsAtBottom.Length);
+			if (newAppBarTopWindow != null)
+			{
+				winPosInfo = newAppBarTopWindow.PositionBars(winPosInfo, BarsAtTop);
+			}
+			if (newAppBarBottomWindow != null)
+			{
+				winPosInfo = newAppBarBottomWindow.PositionBars(winPosInfo, BarsAtBottom);
+			}
+			NativeMethods.EndDeferWindowPos(winPosInfo);
 		}
 
-		internal void OnScreenResolutionChanged(Rectangle newWorkingArea)
+		internal void OnScreenResolutionChanged()
 		{
-			//this.bars.ForEach(bs =>
-			//    bs.bar.Size = bs.barPosition.Size = new Size(workingArea.Width, bs.bar.GetBarHeight()));
-			//this.bars.ForEach(bs =>
-			//    bs.bar.Size = new Size(newWorkingArea.Width, bs.bar.GetBarHeight()));
-
-			//ShowHideWindowsTaskbar();
-			//Reposition();
+			PositionBars(appBarTopWindows[this.id - 1], appBarBottomWindows[this.id - 1]);
+			ShowHideWindowsTaskbar();
+			Reposition();
 		}
 
 		internal void ToggleWindowsTaskbarVisibility()
@@ -701,18 +661,57 @@ namespace Windawesome
 			Reposition();
 		}
 
-		internal void ToggleShowHideBar(IBar bar)
+		internal bool HideBar(int workspacesCount, IEnumerable<Workspace> workspaces, IBar hideBar)
 		{
-			var barStruct = barsAtTop.FirstOrDefault(bs => bs.bar == bar) ?? barsAtBottom.FirstOrDefault(bs => bs.bar == bar);
-			if (barStruct != null)
+			if (BarsAtTop.Contains(hideBar) || BarsAtBottom.Contains(hideBar))
 			{
-				barStruct.ShowBar = !barStruct.ShowBar;
-
-				// TODO: this is not correct
-				HideShowBars(appBarTopWindows[this.id - 1], appBarBottomWindows[this.id - 1]);
+				BarsAtTop = BarsAtTop.Where(bar => bar != hideBar).ToArray();
+				BarsAtBottom = BarsAtBottom.Where(bar => bar != hideBar).ToArray();
+				FindWorkspaceBarsEquivalentClasses(workspacesCount, workspaces);
+				HideShowBars(null, null, appBarTopWindows[this.id - 1], appBarBottomWindows[this.id - 1]);
 
 				Reposition();
+
+				return true;
 			}
+
+			return false;
+		}
+
+		internal bool ShowBar(int workspacesCount, IEnumerable<Workspace> workspaces, IBar showBar, bool top, int position)
+		{
+			if (!BarsAtTop.Contains(showBar) && !BarsAtBottom.Contains(showBar))
+			{
+				var bars = top ? BarsAtTop : BarsAtBottom;
+				var newBars = new IBar[bars.Length + 1];
+				var i = 0;
+				for ( ; i < position; i++)
+				{
+					newBars[i] = bars[i];
+				}
+				newBars[i++] = showBar;
+				for ( ; i < bars.Length + 1; i++)
+				{
+					newBars[i] = bars[i - 1];
+				}
+				if (top)
+				{
+					BarsAtTop = newBars;
+				}
+				else
+				{
+					BarsAtBottom = newBars;
+				}
+
+				FindWorkspaceBarsEquivalentClasses(workspacesCount, workspaces);
+				HideShowBars(null, null, appBarTopWindows[this.id - 1], appBarBottomWindows[this.id - 1]);
+
+				Reposition();
+
+				return true;
+			}
+
+			return false;
 		}
 
 		internal void SetTopManagedWindowAsForeground()
@@ -972,10 +971,9 @@ namespace Windawesome
 
 			if (startingWorkspace)
 			{
-				isWindowsTaskbarShown = ShowWindowsTaskbar;
 				ShowHideWindowsTaskbar();
 
-				HideShowBars(null, null);
+				HideShowBars(null, null, appBarTopWindows[this.id - 1], appBarBottomWindows[this.id - 1]);
 			}
 			else
 			{
@@ -1197,19 +1195,16 @@ namespace Windawesome
 					break;
 			}
 
-			var redraw = false;
 			if (style != prevStyle)
 			{
 				NativeMethods.SetWindowStyleLongPtr(hWnd, style);
-				redraw = true;
 			}
 			if (exStyle != prevExStyle)
 			{
 				NativeMethods.SetWindowExStyleLongPtr(hWnd, exStyle);
-				redraw = true;
 			}
 
-			if (redraw)
+			if (style != prevStyle || exStyle != prevExStyle)
 			{
 				Redraw();
 			}
@@ -1288,6 +1283,12 @@ namespace Windawesome
 			{
 				Redraw();
 			}
+		}
+
+		internal void Show()
+		{
+			ShowPopupsAndRedraw();
+			NativeMethods.ShowWindowAsync(hWnd, NativeMethods.SW.SW_SHOW);
 		}
 
 		internal void HidePopups()

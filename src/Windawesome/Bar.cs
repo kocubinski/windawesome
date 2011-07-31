@@ -99,9 +99,7 @@ namespace Windawesome
 					HelpButton = false,
 					TopLevel = true,
 					WindowState = FormWindowState.Normal,
-					TopMost = true,
-					//MinimumSize = new Size(Screen.PrimaryScreen.Bounds.Width, this.barHeight),
-					//MaximumSize = new Size(Screen.PrimaryScreen.Bounds.Width, this.barHeight + 2)
+					TopMost = true
 				};
 
 			newForm.VisibleChanged += this.OnFormVisibleChanged;
@@ -191,9 +189,9 @@ namespace Windawesome
 
 		void IBar.OnSizeChanging(Size newSize)
 		{
-			if (this.form.ClientSize != newSize)
+			if (this.form.Size != newSize)
 			{
-				ResizeWidgets();
+				ResizeWidgets(newSize);
 			}
 		}
 
@@ -222,7 +220,7 @@ namespace Windawesome
 
 			if (widget is IFixedWidthWidget)
 			{
-				ResizeWidgets(widget);
+				ResizeWidgets(widget as IFixedWidthWidget);
 			}
 
 			this.form.ResumeLayout();
@@ -273,14 +271,14 @@ namespace Windawesome
 
 		#endregion
 
-		private void ResizeWidgets()
+		private void ResizeWidgets(Size newSize)
 		{
 			RepositionLeftAlignedWidgets(0, 0);
-			RepositionRightAlignedWidgets(rightAlignedWidgets.Length - 1, this.form.ClientSize.Width);
+			RepositionRightAlignedWidgets(rightAlignedWidgets.Length - 1, newSize.Width);
 			RepositionMiddleAlignedWidgets();
 		}
 
-		private void ResizeWidgets(IWidget widget)
+		private void ResizeWidgets(IFixedWidthWidget widget)
 		{
 			int index;
 			if ((index = Array.IndexOf(leftAlignedWidgets, widget)) != -1)
@@ -337,7 +335,7 @@ namespace Windawesome
 		{
 			this.form.SuspendLayout();
 
-			var x = SystemInformation.WorkingArea.Left;
+			var x = 0;
 			foreach (var controls in this.leftAlignedWidgets.Select(widget => widget.GetControls(x, -1)))
 			{
 				controls.ForEach(this.form.Controls.Add);
@@ -345,7 +343,7 @@ namespace Windawesome
 			}
 			rightmostLeftAlign = x;
 
-			x = SystemInformation.WorkingArea.Right;
+			x = this.form.Size.Width;
 			foreach (var controls in this.rightAlignedWidgets.Reverse().Select(widget => widget.GetControls(-1, x)))
 			{
 				controls.ForEach(this.form.Controls.Add);

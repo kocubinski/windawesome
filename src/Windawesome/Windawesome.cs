@@ -144,9 +144,8 @@ namespace Windawesome
 
 			WindawesomeExiting += OnWindawesomeExiting;
 
-			// add a handler for when the working area or the screen resolution changes as well as
+			// add a handler for when the screen resolution changes as well as
 			// a handler for the system shutting down/restarting
-			SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
 			SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
 			SystemEvents.SessionEnding += OnSessionEnding;
 
@@ -204,7 +203,6 @@ namespace Windawesome
 
 		private void OnWindawesomeExiting()
 		{
-			SystemEvents.UserPreferenceChanged -= OnUserPreferenceChanged;
 			SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
 			SystemEvents.SessionEnding -= OnSessionEnding;
 
@@ -252,83 +250,14 @@ namespace Windawesome
 
 		#region Helpers
 
-		private void OnUserPreferenceChanged(object sender, UserPreferenceChangedEventArgs e)
-		{
-			if (e.Category == UserPreferenceCategory.Desktop)
-			{
-				config.Workspaces[0].OnWorkingAreaReset();
-			//    var workspace = config.Workspaces[0];
-			//    var newWorkingArea = SystemInformation.WorkingArea;
-			//    if (newWorkingArea != workspace.workingArea)
-			//    {
-			//        // TODO: docking a temporarily shown application to the end of the screen
-			//        // (and causing a working area change) is a problem when the app is hidden
-
-			//        if (newWorkingArea == originalWorkingArea[workspace.id - 1])
-			//        {
-			//            // because Windows resets the working area when the UAC prompt is shown,
-			//            // as well as shows the taskbar when a full-screen application is exited... twice. :)
-
-			//            // how to reproduce: start any program that triggers a UAC prompt or start
-			//            // IrfanView 4.28 with some picture, enter full-screen with "Return" and then exit
-			//            // with "Return" again
-			//            // on Windows 7 Ultimate x64
-			//            PostAction(() => workspace.ShowHideWindowsTaskbar());
-			//            PostAction(() => workspace.ShowHideWindowsTaskbar());
-			//        }
-			//        else
-			//        {
-			//            // something new has shown that has changed the working area
-
-			//            workspace.OnWorkingAreaReset(newWorkingArea);
-
-			//            originalWorkingArea[workspace.id - 1] = newWorkingArea;
-
-			//            FindWorkspaceBarsEquivalentClasses();
-			//        }
-			//    }
-			}
-		}
-
 		private void OnDisplaySettingsChanged(object sender, EventArgs e)
 		{
 			// Windows resets the working area to its default one if there are other docked programs
 			// other than the Windows taskbar when changing resolution, otherwise the working area is left intact
 			// (only scaled, of course, because of the resolution change)
 			// on Windows 7 Ultimate x64
-
-			//var newScreenResolution = SystemInformation.PrimaryMonitorSize;
-
-			//if (newScreenResolution != screenResolution)
-			//{
-			//    var newWorkingArea = SystemInformation.WorkingArea;
-
-			//    if (newWorkingArea.Y == config.Workspaces[0].workingArea.Y &&
-			//        screenResolution.Height - config.Workspaces[0].workingArea.Bottom ==
-			//            newScreenResolution.Height - newWorkingArea.Bottom)
-			//    {
-			//        for (var i = 0; i < config.WorkspacesCount; i++)
-			//        {
-			//            config.Workspaces[i + 1].OnScreenResolutionChanged(newWorkingArea);
-
-			//            originalWorkingArea[i] = newWorkingArea; // TODO: this is wrong, should get the working area when reset
-			//        }
-			//    }
-			//    else
-			//    {
-			//        // working area has been reset. This could be either because there is a docked program, other than
-			//        // the Windows Taskbar, or it could be because a Remote Desktop Connection has been established
-
-			//        for (var i = 0; i < config.WorkspacesCount; i++)
-			//        {
-			//            config.Workspaces[i + 1].OnWorkingAreaReset(newWorkingArea);
-
-			//            originalWorkingArea[i] = newWorkingArea;
-			//        }
-			//    }
-
-			//    screenResolution = newScreenResolution;
-			//}
+			config.Workspaces[0].OnScreenResolutionChanged();
+			config.Workspaces.Where(ws => !ws.IsCurrentWorkspace).ForEach(ws => ws.hasChanges = true);
 		}
 
 		private void OnSessionEnding(object sender, SessionEndingEventArgs e)
@@ -567,7 +496,7 @@ namespace Windawesome
 
 		private static void TrySetForegroundWindow(IntPtr hWnd, Action<IntPtr> actionOnUnsuccess)
 		{
-			int count = 0;
+			var count = 0;
 			while (!NativeMethods.SetForegroundWindow(hWnd) && ++count < 5)
 			{
 			}
@@ -895,6 +824,15 @@ namespace Windawesome
 			}
 		}
 
+		public void TemporarilyShowWindowOnCurrentWorkspace(Window window)
+		{
+			if (!config.Workspaces[0].ContainsWindow(window.hWnd))
+			{
+				temporarilyShownWindows.Add(window.hWnd);
+				window.Show();
+			}
+		}
+
 		public void RemoveApplicationFromWorkspace(IntPtr hWnd, int workspace = 0, bool setForeground = true)
 		{
 			var window = GetOwnermostWindow(hWnd, config.Workspaces[workspace]);
@@ -963,10 +901,14 @@ namespace Windawesome
 			return false;
 		}
 
-		public void ToggleShowHideBar(IBar bar)
+		public bool HideBar(IBar bar)
 		{
-			config.Workspaces[0].ToggleShowHideBar(bar);
-			Workspace.FindWorkspaceBarsEquivalentClasses(config.WorkspacesCount, config.Workspaces.Skip(1));
+			return config.Workspaces[0].HideBar(config.WorkspacesCount, config.Workspaces.Skip(1), bar);
+		}
+
+		public bool ShowBar(IBar bar, bool top = true, int position = 0)
+		{
+			return config.Workspaces[0].ShowBar(config.WorkspacesCount, config.Workspaces.Skip(1), bar, top, position);
 		}
 
 		public void ToggleWindowFloating(IntPtr hWnd)
@@ -1210,7 +1152,7 @@ namespace Windawesome
 					{
 						AddWindowToWorkspace(lParam);
 					}
-					else if (!hiddenApplications.Contains(lParam) && !config.Workspaces[0].ContainsWindow(lParam)) // if a hidden window has shown
+					else if (!hiddenApplications.Contains(lParam) && !config.Workspaces[0].ContainsWindow(lParam) && !temporarilyShownWindows.Contains(lParam)) // if a hidden window has shown
 					{
 						// there is a problem with some windows showing up when others are created.
 						// how to reproduce: start BitComet 1.26 on some workspace, switch to another one

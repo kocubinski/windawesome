@@ -245,16 +245,15 @@ namespace Windawesome
 		void IWidget.WidgetShown()
 		{
 			isShown = true;
+
+			SetWorkspaceLabelColor(config.Workspaces[0], null);
 		}
 
 		void IWidget.WidgetHidden()
 		{
 			isShown = false;
 
-			if (flashWorkspaces)
-			{
-				flashingWindows.Values.ForEach(w => SetWorkspaceLabelColor(w, null));
-			}
+			config.Workspaces.Skip(1).ForEach(w => SetWorkspaceLabelColor(w, null));
 		}
 
 		void IWidget.StaticDispose()
