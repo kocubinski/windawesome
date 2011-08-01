@@ -320,10 +320,12 @@ namespace Windawesome
 		void IWidget.WidgetShown()
 		{
 			isShown = true;
+			OnWorkspaceChangedTo(config.Workspaces[0]);
 		}
 
 		void IWidget.WidgetHidden()
 		{
+			OnWorkspaceChangedFrom(config.Workspaces[0]);
 			isShown = false;
 		}
 

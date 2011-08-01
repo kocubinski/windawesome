@@ -140,7 +140,7 @@ namespace Windawesome
 			temporarilyShownWindows = new HashSet<IntPtr>();
 
 			// add all windows to their respective workspace
-			NativeMethods.EnumDesktopWindows(IntPtr.Zero, (hWnd, _) => AddWindowToWorkspace(hWnd) || true, IntPtr.Zero);
+			NativeMethods.EnumDesktopWindows(IntPtr.Zero, (hWnd, _) => (NativeMethods.IsWindowVisible(hWnd) && AddWindowToWorkspace(hWnd)) || true, IntPtr.Zero);
 
 			WindawesomeExiting += OnWindawesomeExiting;
 
@@ -252,10 +252,6 @@ namespace Windawesome
 
 		private void OnDisplaySettingsChanged(object sender, EventArgs e)
 		{
-			// Windows resets the working area to its default one if there are other docked programs
-			// other than the Windows taskbar when changing resolution, otherwise the working area is left intact
-			// (only scaled, of course, because of the resolution change)
-			// on Windows 7 Ultimate x64
 			config.Workspaces[0].OnScreenResolutionChanged();
 			config.Workspaces.Where(ws => !ws.IsCurrentWorkspace).ForEach(ws => ws.hasChanges = true);
 		}

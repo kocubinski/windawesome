@@ -21,8 +21,6 @@ namespace Windawesome
 		{
 			backgroundColor = backColor ?? Color.FromArgb(0x99, 0xB4, 0xD1);
 			foregroundColor = foreColor ?? Color.FromArgb(0x00, 0x00, 0x00);
-
-			Windawesome.LayoutUpdated += OnUpdateLayoutLabel;
 		}
 
 		private void OnUpdateLayoutLabel()
@@ -54,6 +52,8 @@ namespace Windawesome
 		void IWidget.InitializeWidget(Bar bar)
 		{
 			this.bar = bar;
+
+			Windawesome.LayoutUpdated += OnUpdateLayoutLabel;
 
 			layoutLabel = bar.CreateLabel("", 0);
 			layoutLabel.TextAlign = ContentAlignment.MiddleCenter;
@@ -100,6 +100,7 @@ namespace Windawesome
 
 		void IWidget.WidgetShown()
 		{
+			OnUpdateLayoutLabel();
 		}
 
 		void IWidget.WidgetHidden()

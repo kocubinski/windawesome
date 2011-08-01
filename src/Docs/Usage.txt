@@ -8,9 +8,10 @@ You can build from sources, which would require at least Visual Studio 2010 and 
 
 Terminology:
 Window - a window
-Bar - a vertical bar that is docked at the top or the bottom of the screen
-Workspace - what you see at any point is exactly one workspace. Every workspace can have zero or more windows, and every window can be on zero or more workspaces. Every workspace can have zero or more bars and every bar can be on zero or more workspaces
-Widget - something that is shown in a bar. Every Widget instance should be on at most one bar and every bar can have zero or more widgets
+IBar - a vertical bar that is docked at the top or the bottom of the screen
+Bar - an implementation of IBar using Windows Forms
+Workspace - what you see at any point is exactly one workspace. Every workspace can have zero or more windows, and every window can be on zero or more workspaces. Every workspace can have zero or more IBars and every IBar can be on zero or more workspaces (but exactly once on each)
+IWidget - something that is shown in a Bar. Every IWidget instance should be on at most one Bar and every Bar can have zero or more widgets
 Plugin - just something that is loaded in the beginning and can do various things
 
 Configuration:
@@ -19,15 +20,15 @@ Configuration files are read in order so if you use something in one file from a
 Config:
 This is the global configuration unit of Windawesome. These instance variables are set in the configuration files and should ALL be given values.
 plugins - an array of IPlugin objects
-bars - an array of Bar objects
+bars - an array of IBar objects
 layouts - an array of ILayout objects
 workspaces - an array of Workspace objects
 workspacesCount - the number of elements in the "workspaces" array
-startingWorkspace - the ID of the workspace to be shown when the application is run
+startingWorkspace - the ID of the workspace to be shown when the application is run (1-based)
 programRules - an array of ProgramRule objects
 borderWidth - the thickness of the sizing border, in pixels. The default is 1 pixel
-paddedBorderWidth - the thickness of the padded border, in pixels. The default value is 4 pixels
-uniqueHotkey - Windawesome uses this hotkey so it can switch to applications when you change workspaces. Make sure you use a unique hotkey that is not in use by any other application. Windawesome will output a warning in a warnings.txt file if there is a problem registering this hotkey. The default one probably is fine (it is CTRL+ALT+"+")
+paddedBorderWidth - the thickness of the padded border, in pixels. The default value is 4 pixels. Only in Vista or later
+uniqueHotkey - Windawesome uses this hotkey so it can switch to applications when you change workspaces (only if another method fails). Make sure you use a unique hotkey that is not in use by any other application. Windawesome will output a warning in a warnings.txt file if there is a problem registering this hotkey. The default one probably is fine (it is ALT+0)
 
 ProgramRule:
 A program rule tells Windawesome how to treat any newly created window - this can be customized in a variety of ways:
@@ -60,7 +61,7 @@ onHiddenWindowShownAction - specifies what to do when a hidden window suddenly s
 showOnWorkspacesCount - if > 0, the window is going to be shown on that number workspaces, starting from the first one. So if showOnWorkspacesCount == number of workspaces, then the window is shown on all workspace. Note this is different than not managing the window
 rules - a list of Rule objects
 
-Whenever a new window is created, Windawesome tries to match it with any program rule in config.programRules. className, displayName and processName must all match. The FIRST matching rule is used, that is why an "all-catch" rule should be at the end. After that, if a window is not managed, Windawesome does nothing more - which means you will see the window on every workspace and as a normal, floating window.
+Whenever a new window is created, Windawesome tries to match it with any program rule in config.programRules. "className" through "customMatchingFunction", including, must all match. The FIRST matching rule is used, that is why an "all-catch" rule should be at the end. After that, if a window is not managed, Windawesome does nothing more - which means you will see the window on every workspace and as a normal, floating window.
 
 Rule:
 Each rule governs the specific settings for a window on a particular workspace
@@ -75,11 +76,11 @@ redrawOnShow - whether the window should be redrawed when shown. Some windows (e
 activateLastActivePopup - whether Windawesome should activate the last active popup of the window, instead of the window itself. This is normally what you want as most windows that a top-level window creates are popups and they should be above the main window
 
 Bar:
-A Bar is a horizontal... well bar, that is docked to the top or the bottom of the screen. It can contain Widgets which can be left, right or middle aligned.
+An IBar is a horizontal... well bar, that is docked to the top or the bottom of the screen. The Bar implementation contains IWidgets which can be left, right or middle aligned. The following customizations can be done:
 
-leftAlignedWidgets - a list of Widget objects which are going to be left-aligned on the bar. They will show from left to right, i.e. the leftmost edge of the first object in the list is going to be at the leftmost position on the screen
-rightAlignedWidgets - a list of Widget objects which are going to be right-aligned on the bar. They will show from left to right, i.e. the rightmost edge of the last object in the list is going to be at the rightmost position on the screen
-middleAlignedWidgets - a list of Widget objects which are going to span all the available space in the middle of the bar
+leftAlignedWidgets - a list of IFixedWidthWidget objects which are going to be left-aligned on the bar. They will show from left to right, i.e. the leftmost edge of the first object in the list is going to be at the leftmost position on the screen
+rightAlignedWidgets - a list of IFixedWidthWidget objects which are going to be right-aligned on the bar. They will show from left to right, i.e. the rightmost edge of the last object in the list is going to be at the rightmost position on the screen
+middleAlignedWidgets - a list of IFSpanWidget objects which are going to span all the available space in the middle of the bar
 barHeight - the height of the bar, in pixels
 font - the default font to be used for any Widget, if it does not specify anything else
 backgroundColor - the default background color of the Bar
@@ -90,13 +91,11 @@ Workspace:
 A workspace contains windows and bars and is displaying the windows in a particular layout.
 
 layout - the layout to be used to position windows
-bars - a list of BarInfo objects to be visible on this workspace
+barsAtTop - a list of IBar objects to be visible at the top of this workspace
+barsAtBottom - a list of IBar objects to be visible at the bottom of this workspace
 name - a short, descriptive name that is going to be shown next to the workspace ID in the Workspaces Widget
 showWindowsTaskbar - a boolean to indicate whether to show the Windows taskbar initially on this workspace
 repositionOnSwitchedTo - a boolean indicating whether to reposition all windows when this workspace has been switched to
-
-BarInfo:
-Just contains the bar itself, a boolean indicating whether the bar is on the top or at the bottom and a boolean indicating whether the bar is shown in the beginning
 
 
 Layouts:
@@ -123,7 +122,7 @@ ShiftWindowToMainPosition - accepts a Window and shifts it to the main position 
 AddToMasterAreaFactor - a double to add to the master area factor. Can be negative
 
 
-Widgets:
+IWidgets:
 Things you put on a Bar to display various info.
 Workspaces Widget:
 normalForegroundColor - an array of ten Colors. Whenever the workspace is not selected and it contains N windows, normalForegroundColor[N] is going to be used as a foreground color
@@ -155,8 +154,8 @@ ShortcutsManager - allows you to use keyboard shortcuts. If you use only non-lef
 
 
 Usage tips:
-- Windawesome will change the so called "working area" of Windows to take the maximum available space - this means, for example, that if the Windows Taskbar is not shown when you maximize a window, it will take the area of the Taskbar too. Whenever changing between workspaces, Windawesome will set the new workspace's working area according to its settings (how many bars are shown, where they are located, whether the Taskbar is shown). This is very useful, however changing the working area in Windows takes, for some reason, a *very* long time - like a second - which is *very* annoying. This means that having two or more workspaces with different settings for bar heights and Taskbar visibility will lead to constant changing of the working area when you switch between them. I would suggest that you have some bars (not necessarily the same) for each workspace, but with the same height, and hiding or showing the Windows Taskbar on all of them. This will make switching between workspaces instant. Take a look at my configuration to see what I mean.
-- I highly suggest you run Windawesome elevated as otherwise it's not going to be able to manage elevated windows, due to the UIPI changes since Vista. Which is very irritating, trust me. One more thing is that Windawesome (if not running elevated) will not be able to switch to the topmost window when changing workspaces if on the previous the active program was an elevated one. If you would like to run Windawesome, or any program, elevated without the UIC prompt, you can read how to do that here:
+- Windawesome will change the so called "working area" of Windows to take the maximum available space - this means, for example, that if the Windows Taskbar is not shown when you maximize a window, it will take the area of the Taskbar too. Whenever changing between workspaces, Windawesome will set the new workspace's working area according to its settings (how many bars are shown, where they are located, whether the Taskbar is shown). This is very useful, however changing the working area in Windows takes, for some reason, a *very* long time - like a second - which is *very* annoying. This means that having two or more workspaces with different settings for bar heights and Taskbar visibility will lead to constant changing of the working area when you switch between them. I would suggest that you have some bars (not necessarily the same) for each workspace, but with the same height, and hiding or showing the Windows Taskbar on all of them. This will make switching between workspaces instantaneous. Take a look at my configuration to see what I mean.
+- I highly suggest you run Windawesome elevated (in Vista and above) as otherwise it's not going to be able to manage elevated windows, due to the UIPI changes since Vista. Which is very irritating, trust me. One more thing is that Windawesome (if not running elevated) will not be able to switch to the topmost window when changing workspaces if on the previous the active program was an elevated one. If you would like to run Windawesome, or any program, elevated without the UIC prompt, you can read how to do that here:
 http://maximumpcguides.com/windows-vista/run-a-program-with-administrative-privileges-without-uac-prompts/
 - If you are using Alt + number to switch between workspaces, I HIGHLY recommend using these two lines in an AutoHotkey script:
 ~LAlt Up::return
@@ -164,7 +163,6 @@ http://maximumpcguides.com/windows-vista/run-a-program-with-administrative-privi
 This will remove the Windows standard behaviour of the Alt key which focuses keyboard input on the menu of the current application. This is VERY useful because sometimes when switching workspaces the focus is on the menu of the newly shown application and not on the app itself.
 
 Known bugs/limitations:
-- If you use Windows 7 (at least that's what I have seen the bug with) with the "old", Windows 98-like, look and feel (without Aero), setting the working area is not correct, as, for some reason, the Taskbar height and width is different than the one when Aero is on.
 - Whenever a label's text is longer than the width, ellipsis show. However, then the text alignment changes to Top or something. This is a bug in the .NET Framework since version 2.0 and hasn't been fixed even in 4.0. Should be relatively easy to fix that by drawing one's own text, but I won't bother.
 - There is a minor chance that the System Tray Widget is not going to work properly in some case. Let me know if that happens with the exact scenario.
 - Currently only one monitor is supported. Unfortunatelly I have only one and I cannot test it even if I wrote something for multimonitor support. Feel free to let me know if you know exactly how it should be done or if you want to do it. :)
