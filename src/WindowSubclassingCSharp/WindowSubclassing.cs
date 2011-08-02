@@ -16,6 +16,7 @@ namespace Windawesome
 
 		static WindowSubclassing()
 		{
+			// TODO: can use messages between WM_USER and 0x7FFF
 			startWindowProcMessage = NativeMethods.RegisterWindowMessage("START_WINDOW_PROC");
 			stopWindowProcMessage = NativeMethods.RegisterWindowMessage("STOP_WINDOW_PROC");
 		}

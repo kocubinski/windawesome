@@ -5,7 +5,9 @@ using System.Text;
 
 namespace Windawesome
 {
+#if !DEBUG
 	[System.Security.SuppressUnmanagedCodeSecurity]
+#endif
 	public static class NativeMethods
 	{
 		static NativeMethods()
@@ -101,6 +103,32 @@ namespace Windawesome
 			HSHELL_FLASH = (HSHELL_REDRAW | HSHELL_HIGHBIT),
 			HSHELL_RUDEAPPACTIVATED = (HSHELL_WINDOWACTIVATED | HSHELL_HIGHBIT)
 		}
+
+		#endregion
+
+		#region SetWinEventHook/UnhookWinEvent
+
+		public delegate void WinEventDelegate(IntPtr hWinEventHook, uint eventType,
+			IntPtr hwnd, int idObject, int idChild, uint dwEventThread, uint dwmsEventTime);
+
+		[DllImport("user32.dll")]
+		public static extern IntPtr SetWinEventHook(EVENT eventMin, EVENT eventMax, IntPtr hmodWinEventProc,
+			[MarshalAs(UnmanagedType.FunctionPtr)] WinEventDelegate lpfnWinEventProc, uint idProcess, uint idThread, WINEVENT dwFlags);
+
+		public enum EVENT : uint
+		{
+			EVENT_OBJECT_SHOW = 0x00008002
+		}
+
+		public enum WINEVENT : uint
+		{
+			WINEVENT_OUTOFCONTEXT = 0x0000,
+			WINEVENT_SKIPOWNTHREAD = 0x0001
+		}
+
+		[DllImport("user32.dll")]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		public static extern bool UnhookWinEvent(IntPtr hWinEventHook);
 
 		#endregion
 
@@ -255,6 +283,8 @@ namespace Windawesome
 		public const uint MSGFLT_ADD = 1;
 
 		#endregion
+
+		public const uint WM_USER = 0x0400;
 
 		// window stuff
 

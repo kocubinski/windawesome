@@ -38,6 +38,10 @@ namespace Windawesome
 				masterAreaFactor = 0;
 			}
 			this.masterAreaFactor = masterAreaFactor;
+			if (masterAreaWindowsCount < 0)
+			{
+				masterAreaWindowsCount = 0;
+			}
 			this.masterAreaWindowsCount = masterAreaWindowsCount;
 
 			windows = new LinkedList<Window>();
@@ -45,9 +49,13 @@ namespace Windawesome
 
 		#region API
 
-		public void AddToMasterAreaWindowsCount()
+		public void AddToMasterAreaWindowsCount(int count = 1)
 		{
-			masterAreaWindowsCount++;
+			masterAreaWindowsCount += count;
+			if (masterAreaWindowsCount < 0)
+			{
+				masterAreaWindowsCount = 0;
+			}
 			this.Reposition(windows);
 		}
 

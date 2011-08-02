@@ -20,7 +20,7 @@ namespace Windawesome
 		private readonly IntPtr getForegroundPrivilageAtom;
 		private static Tuple<NativeMethods.MOD, Keys> uniqueHotkey;
 		private static IntPtr forceForegroundWindow;
-		private static readonly uint postActionMessageNum;
+		private const uint postActionMessageNum = NativeMethods.WM_USER;
 		private static readonly Queue<Action> postedActions;
 		private static readonly Dictionary<int, HandleMessageDelegate> messageHandlers;
 		private static readonly NativeMethods.NONCLIENTMETRICS originalNonClientMetrics;
@@ -113,7 +113,6 @@ namespace Windawesome
 			smallIconSize = SystemInformation.SmallIconSize;
 
 			postedActions = new Queue<Action>(5);
-			postActionMessageNum = NativeMethods.RegisterWindowMessage("POST_ACTION_MESSAGE");
 		}
 
 		internal Windawesome()
@@ -871,20 +870,27 @@ namespace Windawesome
 			var newWorkspace = config.Workspaces[workspace];
 			if (workspace != oldWorkspace.id)
 			{
+				var hasChanges = newWorkspace.hasChanges;
+
 				var showWindows = newWorkspace.GetWindows();
 				var hideWindows = oldWorkspace.GetWindows().Except(showWindows);
-				ShowHideWindows(showWindows, hideWindows);
+
+				if (!hasChanges)
+				{
+					// first show and hide if there are no changes
+					ShowHideWindows(showWindows, hideWindows);
+
+					// activates the topmost non-minimized window
+					if (setForeground)
+					{
+						newWorkspace.SetTopManagedWindowAsForeground();
+					}
+				}
 
 				if (temporarilyShownWindows.Count > 0)
 				{
 					temporarilyShownWindows.ForEach(hWnd => HideWindow(applications[hWnd].First.Value.Item2));
 					temporarilyShownWindows.Clear();
-				}
-
-				// activates the topmost non-minimized window
-				if (setForeground)
-				{
-					newWorkspace.SetTopManagedWindowAsForeground();
 				}
 
 				oldWorkspace.Unswitch();
@@ -893,6 +899,18 @@ namespace Windawesome
 				config.Workspaces[0] = newWorkspace;
 
 				newWorkspace.SwitchTo();
+
+				if (hasChanges)
+				{
+					// show and hide only after Reposition has been called if there are changes
+					ShowHideWindows(showWindows, hideWindows);
+
+					// activates the topmost non-minimized window
+					if (setForeground)
+					{
+						newWorkspace.SetTopManagedWindowAsForeground();
+					}
+				}
 
 				return true;
 			}

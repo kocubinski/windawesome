@@ -58,13 +58,6 @@ namespace Windawesome
 
 		private class NonActivatableForm : Form
 		{
-			private int barHeight;
-
-			public NonActivatableForm(int barHeight)
-			{
-				this.barHeight = barHeight;
-			}
-
 			protected override CreateParams CreateParams
 			{
 				get
@@ -72,8 +65,6 @@ namespace Windawesome
 					CreateParams createParams = base.CreateParams;
 					// make the bar not activatable
 					createParams.ExStyle |= (int) NativeMethods.WS_EX.WS_EX_NOACTIVATE;
-					createParams.Width = SystemInformation.WorkingArea.Width;
-					createParams.Height = barHeight;
 					return createParams;
 				}
 			}
@@ -81,7 +72,7 @@ namespace Windawesome
 
 		private NonActivatableForm CreateForm()
 		{
-			var newForm = new NonActivatableForm(barHeight)
+			var newForm = new NonActivatableForm
 				{
 					StartPosition = FormStartPosition.Manual,
 					FormBorderStyle = FormBorderStyle.FixedToolWindow,
