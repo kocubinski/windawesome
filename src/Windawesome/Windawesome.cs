@@ -550,53 +550,44 @@ namespace Windawesome
 			var leftShiftPressed = (NativeMethods.GetAsyncKeyState(Keys.LShiftKey) & 0x8000) == 0x8000;
 			var rightShiftPressed = (NativeMethods.GetAsyncKeyState(Keys.RShiftKey) & 0x8000) == 0x8000;
 
-			PressReleaseModifierKey(leftShiftPressed, rightShiftPressed, shiftShouldBePressed,
-				Keys.ShiftKey, Keys.LShiftKey, Keys.RShiftKey, shiftKeyDown, leftShiftKeyUp, rightShiftKeyUp, ref i);
+			PressReleaseModifierKey(leftShiftPressed, rightShiftPressed, shiftShouldBePressed, shiftKeyDown, leftShiftKeyUp, rightShiftKeyUp, ref i);
 
 			var winShouldBePressed = hotkey.Item1.HasFlag(NativeMethods.MOD.MOD_WIN);
 			var leftWinPressed = (NativeMethods.GetAsyncKeyState(Keys.LWin) & 0x8000) == 0x8000;
 			var rightWinPressed = (NativeMethods.GetAsyncKeyState(Keys.RWin) & 0x8000) == 0x8000;
 
-			PressReleaseModifierKey(leftWinPressed, rightWinPressed, winShouldBePressed,
-				Keys.LWin, Keys.LWin, Keys.RWin, winKeyDown, leftWinKeyUp, rightWinKeyUp, ref i);
+			PressReleaseModifierKey(leftWinPressed, rightWinPressed, winShouldBePressed, winKeyDown, leftWinKeyUp, rightWinKeyUp, ref i);
 
 			var controlShouldBePressed = hotkey.Item1.HasFlag(NativeMethods.MOD.MOD_CONTROL);
 			var leftControlPressed = (NativeMethods.GetAsyncKeyState(Keys.LControlKey) & 0x8000) == 0x8000;
 			var rightControlPressed = (NativeMethods.GetAsyncKeyState(Keys.RControlKey) & 0x8000) == 0x8000;
 
-			PressReleaseModifierKey(leftControlPressed, rightControlPressed, controlShouldBePressed,
-				Keys.ControlKey, Keys.LControlKey, Keys.RControlKey, controlKeyDown, leftControlKeyUp, rightControlKeyUp, ref i);
+			PressReleaseModifierKey(leftControlPressed, rightControlPressed, controlShouldBePressed, controlKeyDown, leftControlKeyUp, rightControlKeyUp, ref i);
 
 			var altShouldBePressed = hotkey.Item1.HasFlag(NativeMethods.MOD.MOD_ALT);
 			var leftAltPressed = (NativeMethods.GetAsyncKeyState(Keys.LMenu) & 0x8000) == 0x8000;
 			var rightAltPressed = (NativeMethods.GetAsyncKeyState(Keys.RMenu) & 0x8000) == 0x8000;
 
-			PressReleaseModifierKey(leftAltPressed, rightAltPressed, altShouldBePressed,
-				Keys.Menu, Keys.LMenu, Keys.RMenu, altKeyDown, leftAltKeyUp, rightAltKeyUp, ref i);
+			PressReleaseModifierKey(leftAltPressed, rightAltPressed, altShouldBePressed, altKeyDown, leftAltKeyUp, rightAltKeyUp, ref i);
 
 			// press and release key
 			input[i++] = new NativeMethods.INPUT(hotkey.Item2, 0);
 			input[i++] = new NativeMethods.INPUT(hotkey.Item2, NativeMethods.KEYEVENTF_KEYUP);
 
 			// revert changes to modifiers
-			PressReleaseModifierKey(leftAltPressed, rightAltPressed, altShouldBePressed,
-				Keys.Menu, Keys.LMenu, Keys.RMenu, altKeyUp, leftAltKeyDown, rightAltKeyDown, ref i);
+			PressReleaseModifierKey(leftAltPressed, rightAltPressed, altShouldBePressed, altKeyUp, leftAltKeyDown, rightAltKeyDown, ref i);
 
-			PressReleaseModifierKey(leftControlPressed, rightControlPressed, controlShouldBePressed,
-				Keys.ControlKey, Keys.LControlKey, Keys.RControlKey, controlKeyUp, leftControlKeyDown, rightControlKeyDown, ref i);
+			PressReleaseModifierKey(leftControlPressed, rightControlPressed, controlShouldBePressed, controlKeyUp, leftControlKeyDown, rightControlKeyDown, ref i);
 
-			PressReleaseModifierKey(leftWinPressed, rightWinPressed, winShouldBePressed,
-				Keys.LWin, Keys.LWin, Keys.RWin, winKeyUp, leftWinKeyDown, rightWinKeyDown, ref i);
+			PressReleaseModifierKey(leftWinPressed, rightWinPressed, winShouldBePressed, winKeyUp, leftWinKeyDown, rightWinKeyDown, ref i);
 
-			PressReleaseModifierKey(leftShiftPressed, rightShiftPressed, shiftShouldBePressed,
-				Keys.ShiftKey, Keys.LShiftKey, Keys.RShiftKey, shiftKeyUp, leftShiftKeyDown, rightShiftKeyDown, ref i);
+			PressReleaseModifierKey(leftShiftPressed, rightShiftPressed, shiftShouldBePressed, shiftKeyUp, leftShiftKeyDown, rightShiftKeyDown, ref i);
 
 			NativeMethods.SendInput(i, input, NativeMethods.INPUTSize);
 		}
 
 		private static void PressReleaseModifierKey(
 			bool leftKeyPressed, bool rightKeyPressed, bool keyShouldBePressed,
-			Keys key, Keys leftKey, Keys rightKey,
 			NativeMethods.INPUT action, NativeMethods.INPUT leftAction, NativeMethods.INPUT rightAction, ref uint i)
 		{
 			if (keyShouldBePressed)
@@ -869,12 +860,12 @@ namespace Windawesome
 			var newWorkspace = config.Workspaces[workspace];
 			if (workspace != oldWorkspace.id)
 			{
-				var hasChanges = newWorkspace.hasChanges;
+				var willReposition = newWorkspace.hasChanges || newWorkspace.repositionOnSwitchedTo;
 
 				var showWindows = newWorkspace.GetWindows();
 				var hideWindows = oldWorkspace.GetWindows().Except(showWindows);
 
-				if (!hasChanges)
+				if (!willReposition)
 				{
 					// first show and hide if there are no changes
 					ShowHideWindows(showWindows, hideWindows);
@@ -899,7 +890,7 @@ namespace Windawesome
 
 				newWorkspace.SwitchTo();
 
-				if (hasChanges)
+				if (willReposition)
 				{
 					// show and hide only after Reposition has been called if there are changes
 					ShowHideWindows(showWindows, hideWindows);

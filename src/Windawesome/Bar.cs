@@ -56,13 +56,13 @@ namespace Windawesome
 
 		#endregion
 
-		private class NonActivatableForm : Form
+		private sealed class NonActivatableForm : Form
 		{
 			protected override CreateParams CreateParams
 			{
 				get
 				{
-					CreateParams createParams = base.CreateParams;
+					var createParams = base.CreateParams;
 					// make the bar not activatable
 					createParams.ExStyle |= (int) NativeMethods.WS_EX.WS_EX_NOACTIVATE;
 					return createParams;
@@ -195,7 +195,7 @@ namespace Windawesome
 		{
 			this.form.Hide();
 		}
-		
+
 		#endregion
 
 		#endregion

@@ -50,7 +50,7 @@ namespace Windawesome
 			}
 		}
 
-		private class AppBarNativeWindow : NativeWindow
+		private sealed class AppBarNativeWindow : NativeWindow
 		{
 			public readonly int Height;
 			private NativeMethods.RECT rect;
@@ -81,7 +81,7 @@ namespace Windawesome
 				NativeMethods.SHAppBarMessage(NativeMethods.ABM.ABM_NEW, ref appBarData);
 			}
 
-			public void Dispose()
+			public void Destroy()
 			{
 				// unregister as AppBar
 				var appBarData = new NativeMethods.APPBARDATA
@@ -99,11 +99,10 @@ namespace Windawesome
 				var appBarData = new NativeMethods.APPBARDATA
 					{
 						hWnd = this.Handle,
-						uEdge = edge
+						uEdge = edge,
+						rc = { left = 0, right = SystemInformation.PrimaryMonitorSize.Width }
 					};
 
-				appBarData.rc.left = 0;
-				appBarData.rc.right = SystemInformation.PrimaryMonitorSize.Width;
 				if (edge == NativeMethods.ABE.ABE_TOP)
 				{
 					appBarData.rc.top = 0;
@@ -209,11 +208,9 @@ namespace Windawesome
 									if (!isTopMost)
 									{
 										var winPosInfo = NativeMethods.BeginDeferWindowPos(bars.Count());
-										foreach (var bar in bars)
-										{
-											winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, bar.Handle, NativeMethods.HWND_TOPMOST, 0, 0, 0, 0,
-												NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
-										}
+										winPosInfo = this.bars.Aggregate(winPosInfo, (current, bar) =>
+											NativeMethods.DeferWindowPos(current, bar.Handle, NativeMethods.HWND_TOPMOST, 0, 0, 0, 0,
+												NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE));
 										NativeMethods.EndDeferWindowPos(winPosInfo);
 
 										isTopMost = true;
@@ -231,11 +228,9 @@ namespace Windawesome
 										if (processName != "explorer")
 										{
 											var winPosInfo = NativeMethods.BeginDeferWindowPos(bars.Count());
-											foreach (var bar in bars)
-											{
-												winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, bar.Handle, NativeMethods.HWND_BOTTOM, 0, 0, 0, 0,
-													NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
-											}
+											winPosInfo = this.bars.Aggregate(winPosInfo, (current, bar) =>
+												NativeMethods.DeferWindowPos(current, bar.Handle, NativeMethods.HWND_BOTTOM, 0, 0, 0, 0,
+													NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE));
 											NativeMethods.EndDeferWindowPos(winPosInfo);
 
 											isTopMost = false;
@@ -372,7 +367,7 @@ namespace Windawesome
 				startButtonHandle = NativeMethods.FindWindow("Button", "Start");
 			}
 
-			// TODO: is this needed in Windows Vista+?
+			// this is because Windows shows the taskbar at random points when it is made to autohide
 			taskbarShownWinEventHook = NativeMethods.SetWinEventHook(NativeMethods.EVENT.EVENT_OBJECT_SHOW, NativeMethods.EVENT.EVENT_OBJECT_SHOW,
 				IntPtr.Zero, taskbarShownWinEventDelegate, 0,
 				NativeMethods.GetWindowThreadProcessId(taskbarHandle, IntPtr.Zero),
@@ -402,7 +397,7 @@ namespace Windawesome
 		internal static void Dispose()
 		{
 			// this statement uses the laziness of Where
-			appBarTopWindows.Concat(appBarBottomWindows).Where(nw => nw != null && nw.Handle != IntPtr.Zero).ForEach(ab => ab.Dispose());
+			appBarTopWindows.Concat(appBarBottomWindows).Where(nw => nw != null && nw.Handle != IntPtr.Zero).ForEach(ab => ab.Destroy());
 
 			registeredBars.ForEach(UnregisterBar);
 
@@ -430,7 +425,7 @@ namespace Windawesome
 			if (appBarTopWindows != null) // if this is not the first time calling this function, i.e. a bar is hidden/shown by the user
 			{
 				// this statement uses the laziness of Where
-				appBarTopWindows.Concat(appBarBottomWindows).Where(nw => nw != null && nw.Handle != IntPtr.Zero).ForEach(ab => ab.Dispose());
+				appBarTopWindows.Concat(appBarBottomWindows).Where(nw => nw != null && nw.Handle != IntPtr.Zero).ForEach(ab => ab.Destroy());
 			}
 			appBarTopWindows = new AppBarNativeWindow[workspacesCount];
 			appBarBottomWindows = new AppBarNativeWindow[workspacesCount];
@@ -607,7 +602,7 @@ namespace Windawesome
 			PositionBars(newAppBarTopWindow, newAppBarBottomWindow);
 
 			shownBars.Except(barsAtTop.Concat(barsAtBottom)).ForEach(bar => bar.Hide());
-			
+
 			shownBars = barsAtTop.Concat(barsAtBottom);
 		}
 

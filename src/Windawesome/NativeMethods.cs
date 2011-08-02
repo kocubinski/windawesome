@@ -120,6 +120,7 @@ namespace Windawesome
 			EVENT_OBJECT_SHOW = 0x00008002
 		}
 
+		[Flags]
 		public enum WINEVENT : uint
 		{
 			WINEVENT_OUTOFCONTEXT = 0x0000,
@@ -256,6 +257,7 @@ namespace Windawesome
 			ABE_BOTTOM
 		}
 
+		[Flags]
 		public enum ABS : uint
 		{
 			ABS_AUTOHIDE = 1,
