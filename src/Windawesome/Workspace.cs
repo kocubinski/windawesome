@@ -399,6 +399,21 @@ namespace Windawesome
 			this.barsAtBottom.Unless(registeredBars.Contains).ForEach(RegisterBar);
 		}
 
+		internal static void Dispose()
+		{
+			// this statement uses the laziness of Where
+			appBarTopWindows.Concat(appBarBottomWindows).Where(nw => nw != null && nw.Handle != IntPtr.Zero).ForEach(ab => ab.Dispose());
+
+			registeredBars.ForEach(UnregisterBar);
+
+			NativeMethods.UnhookWinEvent(taskbarShownWinEventHook);
+
+			if (!isWindowsTaskbarShown)
+			{
+				ShowHideWindowsTaskbar(true);
+			}
+		}
+
 		public override int GetHashCode()
 		{
 			return this.id;
@@ -550,25 +565,6 @@ namespace Windawesome
 			Layout.Reposition(managedWindows);
 		}
 
-		internal void RevertToInitialValues()
-		{
-			if (!isWindowsTaskbarShown)
-			{
-				ShowWindowsTaskbar = !ShowWindowsTaskbar;
-				ShowHideWindowsTaskbar(ShowWindowsTaskbar);
-			}
-		}
-
-		internal static void Dispose()
-		{
-			// this statement uses the laziness of Where
-			appBarTopWindows.Concat(appBarBottomWindows).Where(nw => nw != null && nw.Handle != IntPtr.Zero).ForEach(ab => ab.Dispose());
-
-			registeredBars.ForEach(UnregisterBar);
-
-			NativeMethods.UnhookWinEvent(taskbarShownWinEventHook);
-		}
-
 		public void ChangeLayout(ILayout layout)
 		{
 			if (layout.LayoutName() != this.Layout.LayoutName())
@@ -604,25 +600,18 @@ namespace Windawesome
 		private void HideShowBars(AppBarNativeWindow previousAppBarTopWindow, AppBarNativeWindow previousAppBarBottomWindow,
 			AppBarNativeWindow newAppBarTopWindow, AppBarNativeWindow newAppBarBottomWindow)
 		{
-			var changedWorkingArea = HideShowAppBarForms(previousAppBarTopWindow, newAppBarTopWindow);
-			changedWorkingArea |= HideShowAppBarForms(previousAppBarBottomWindow, newAppBarBottomWindow);
+			HideShowAppBarForms(previousAppBarTopWindow, newAppBarTopWindow);
+			HideShowAppBarForms(previousAppBarBottomWindow, newAppBarBottomWindow);
 
 			// first show new bars and only after that hide the old ones to avoid flickering
 			PositionBars(newAppBarTopWindow, newAppBarBottomWindow);
 
 			shownBars.Except(barsAtTop.Concat(barsAtBottom)).ForEach(bar => bar.Hide());
-
-			// when the working area changes, the Windows Taskbar is shown (at least if AutoHide is on)
-			// on Windows XP SP3
-			if (changedWorkingArea)
-			{
-				ShowHideWindowsTaskbar(ShowWindowsTaskbar);
-			}
-
+			
 			shownBars = barsAtTop.Concat(barsAtBottom);
 		}
 
-		private static bool HideShowAppBarForms(AppBarNativeWindow hideForm, AppBarNativeWindow showForm)
+		private static void HideShowAppBarForms(AppBarNativeWindow hideForm, AppBarNativeWindow showForm)
 		{
 			// this whole thing is so complicated as to avoid changing of the working area if the bars in the new workspace
 			// take the same space as the one in the previous one
@@ -637,16 +626,12 @@ namespace Windawesome
 					{
 						showForm.SetPosition();
 					}
-					return true;
 				}
 			}
 			else if (showForm != null)
 			{
 				showForm.SetPosition();
-				return true;
 			}
-
-			return false;
 		}
 
 		private void PositionBars(AppBarNativeWindow newAppBarTopWindow, AppBarNativeWindow newAppBarBottomWindow)
@@ -661,13 +646,6 @@ namespace Windawesome
 				winPosInfo = newAppBarBottomWindow.PositionBars(winPosInfo, barsAtBottom);
 			}
 			NativeMethods.EndDeferWindowPos(winPosInfo);
-		}
-
-		internal void OnScreenResolutionChanged()
-		{
-			PositionBars(appBarTopWindows[this.id - 1], appBarBottomWindows[this.id - 1]);
-			ShowHideWindowsTaskbar(ShowWindowsTaskbar);
-			Reposition();
 		}
 
 		internal void ToggleWindowsTaskbarVisibility()

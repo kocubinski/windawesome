@@ -212,7 +212,6 @@ namespace Windawesome
 			NativeMethods.GlobalDeleteAtom((ushort) getForegroundPrivilageAtom);
 
 			// roll back any changes to Windows
-			config.Workspaces[0].RevertToInitialValues();
 			Workspace.Dispose();
 
 			var winPosInfo = NativeMethods.BeginDeferWindowPos(applications.Values.Count);
@@ -251,7 +250,7 @@ namespace Windawesome
 
 		private void OnDisplaySettingsChanged(object sender, EventArgs e)
 		{
-			config.Workspaces[0].OnScreenResolutionChanged();
+			config.Workspaces[0].Reposition();
 			config.Workspaces.Where(ws => !ws.IsCurrentWorkspace).ForEach(ws => ws.hasChanges = true);
 		}
 
