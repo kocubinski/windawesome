@@ -13,14 +13,15 @@ namespace Windawesome
 				if (!ws.HasFlag(NativeMethods.WS.WS_MAXIMIZE))
 				{
 					// if there is a caption, we can make the window maximized
+					// TODO: this activates the window which is not desirable. Is there a way NOT to?
 					NativeMethods.ShowWindowAsync(window.hWnd, NativeMethods.SW.SW_SHOWMAXIMIZED);
 				}
 			}
 			else
 			{
 				// otherwise, Windows would make the window "truly" full-screen, i.e. on top of all shell
-				// windows, which doesn't work for us. So we just set window to take the maximum possible area
-				NativeMethods.ShowWindowAsync(window.hWnd, NativeMethods.SW.SW_RESTORE);
+				// windows, which doesn't work for us. So we just set the window to take the maximum possible area
+				NativeMethods.ShowWindowAsync(window.hWnd, NativeMethods.SW.SW_SHOWNOACTIVATE); // should not use SW_RESTORE as it activates the window
 				var workingArea = System.Windows.Forms.SystemInformation.WorkingArea;
 				NativeMethods.SetWindowPos(window.hWnd, IntPtr.Zero,
 					workingArea.X, workingArea.Y, workingArea.Width, workingArea.Height,

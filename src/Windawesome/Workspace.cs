@@ -216,12 +216,12 @@ namespace Windawesome
 								{
 									// full-screen app is opening - check if that is the desktop window
 									var foregroundWindow = NativeMethods.GetForegroundWindow();
-									if (NativeMethods.GetWindowClassName(foregroundWindow) != "WorkerW")
+									if (isTopMost && NativeMethods.GetWindowClassName(foregroundWindow) != "WorkerW")
 									{
 										int processId;
 										NativeMethods.GetWindowThreadProcessId(foregroundWindow, out processId);
 										var processName = System.Diagnostics.Process.GetProcessById(processId).ProcessName;
-										if (processName != "explorer" && isTopMost)
+										if (processName != "explorer")
 										{
 											var winPosInfo = NativeMethods.BeginDeferWindowPos(bars.Count());
 											foreach (var bar in bars)
@@ -1275,7 +1275,7 @@ namespace Windawesome
 		internal void Show()
 		{
 			ShowPopupsAndRedraw();
-			NativeMethods.ShowWindowAsync(hWnd, NativeMethods.SW.SW_SHOW);
+			NativeMethods.ShowWindowAsync(hWnd, NativeMethods.SW.SW_SHOWNA);
 		}
 
 		internal void HidePopups()

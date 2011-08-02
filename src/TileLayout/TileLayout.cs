@@ -305,8 +305,8 @@ namespace Windawesome
 
 		public void Reposition(IEnumerable<Window> windows)
 		{
-			// restore any maximized windows
-			windows.ForEach(window => NativeMethods.ShowWindowAsync(window.hWnd, NativeMethods.SW.SW_RESTORE));
+			// restore any maximized windows - should not use SW_RESTORE as it activates the window
+			windows.ForEach(window => NativeMethods.ShowWindowAsync(window.hWnd, NativeMethods.SW.SW_SHOWNOACTIVATE));
 			System.Threading.Thread.Sleep(Workspace.minimizeRestoreDelay);
 
 			this.windows = new LinkedList<Window>(windows);

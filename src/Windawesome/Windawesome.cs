@@ -462,20 +462,23 @@ namespace Windawesome
 
 		internal static void ForceForegroundWindow(IntPtr hWnd)
 		{
-			var foregroundWindow = NativeMethods.GetForegroundWindow();
-			if (foregroundWindow != hWnd)
+			if (WindowIsNotHung(hWnd))
 			{
-				if (foregroundWindow == IntPtr.Zero)
+				var foregroundWindow = NativeMethods.GetForegroundWindow();
+				if (foregroundWindow != hWnd)
 				{
-					TrySetForegroundWindow(hWnd);
-				}
-				else
-				{
-					var foregroundWindowThread = NativeMethods.GetWindowThreadProcessId(foregroundWindow, IntPtr.Zero);
-					if (WindowIsNotHung(foregroundWindow) && NativeMethods.AttachThreadInput(windawesomeThreadId, foregroundWindowThread, true))
+					if (foregroundWindow == IntPtr.Zero)
 					{
 						TrySetForegroundWindow(hWnd);
-						NativeMethods.AttachThreadInput(windawesomeThreadId, foregroundWindowThread, false);
+					}
+					else
+					{
+						var foregroundWindowThread = NativeMethods.GetWindowThreadProcessId(foregroundWindow, IntPtr.Zero);
+						if (NativeMethods.AttachThreadInput(windawesomeThreadId, foregroundWindowThread, true))
+						{
+							TrySetForegroundWindow(hWnd);
+							NativeMethods.AttachThreadInput(windawesomeThreadId, foregroundWindowThread, false);
+						}
 					}
 				}
 			}
