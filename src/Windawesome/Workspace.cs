@@ -582,7 +582,6 @@ namespace Windawesome
 
 			var showHide = showWindowsTaskbar ? NativeMethods.SW.SW_SHOWNA : NativeMethods.SW.SW_HIDE;
 
-			NativeMethods.EnableWindow(taskbarHandle, showWindowsTaskbar);
 			NativeMethods.ShowWindowAsync(taskbarHandle, showHide);
 			if (Windawesome.isAtLeastVista)
 			{

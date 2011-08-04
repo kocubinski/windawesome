@@ -469,7 +469,7 @@ namespace Windawesome
 					{
 						TrySetForegroundWindow(hWnd);
 					}
-					else
+					else if (WindowIsNotHung(foregroundWindow))
 					{
 						var foregroundWindowThread = NativeMethods.GetWindowThreadProcessId(foregroundWindow, IntPtr.Zero);
 						if (NativeMethods.AttachThreadInput(windawesomeThreadId, foregroundWindowThread, true))
@@ -477,6 +477,11 @@ namespace Windawesome
 							TrySetForegroundWindow(hWnd);
 							NativeMethods.AttachThreadInput(windawesomeThreadId, foregroundWindowThread, false);
 						}
+					}
+					else
+					{
+						SendHotkey(uniqueHotkey);
+						forceForegroundWindow = hWnd;
 					}
 				}
 			}
