@@ -178,8 +178,10 @@ namespace Windawesome
 					{
 						currentY += bar.GetBarHeight();
 					}
+
 					NativeMethods.AdjustWindowRectEx(ref barRect, NativeMethods.GetWindowStyleLongPtr(bar.Handle),
 						NativeMethods.GetMenu(bar.Handle) != IntPtr.Zero, NativeMethods.GetWindowExStyleLongPtr(bar.Handle));
+
 					winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, bar.Handle, NativeMethods.HWND_TOPMOST, barRect.left, barRect.top,
 						barRect.right - barRect.left, barRect.bottom - barRect.top,	NativeMethods.SWP.SWP_NOACTIVATE);
 
@@ -755,7 +757,7 @@ namespace Windawesome
 			}
 		}
 
-		public const int minimizeRestoreDelay = 200;
+		public const int minimizeRestoreDelay = 300;
 		internal void WindowActivated(IntPtr hWnd)
 		{
 			Window window;
@@ -1029,7 +1031,7 @@ namespace Windawesome
 			window.DoForSelfOrOwned(w => removedSharedWindows.AddFirst(w));
 		}
 
-		internal IEnumerable<Window> GetWindows()
+		internal LinkedList<Window> GetWindows()
 		{
 			return windows;
 		}

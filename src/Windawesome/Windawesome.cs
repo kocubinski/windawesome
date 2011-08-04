@@ -480,6 +480,7 @@ namespace Windawesome
 					}
 					else
 					{
+						// the foreground window is hung so resort to using the hotkey to set a new one
 						SendHotkey(uniqueHotkey);
 						forceForegroundWindow = hWnd;
 					}
@@ -674,11 +675,14 @@ namespace Windawesome
 			window.Hide();
 		}
 
-		private void ShowHideWindows(IEnumerable<Window> showWindows, IEnumerable<Window> hideWindows)
+		private void ShowHideWindows(Workspace oldWorkspace, Workspace newWorkspace, bool setForeground)
 		{
-			var winPosInfo = NativeMethods.BeginDeferWindowPos(showWindows.Count() + hideWindows.Count());
+			var showWindows = newWorkspace.GetWindows();
+			var hideWindows = oldWorkspace.GetWindows().Except(showWindows);
 
-			foreach (var window in showWindows.Where(WindowIsNotHung))
+			var winPosInfo = NativeMethods.BeginDeferWindowPos(showWindows.Count + oldWorkspace.GetWindows().Count);
+
+			foreach (var window in newWorkspace.GetWindows().Where(WindowIsNotHung))
 			{
 				winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, window.hWnd, IntPtr.Zero, 0, 0, 0, 0,
 					NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE |
@@ -686,16 +690,29 @@ namespace Windawesome
 				window.ShowPopupsAndRedraw();
 			}
 
-			foreach (var window in hideWindows.Where(WindowIsNotHung))
+			foreach (var window in hideWindows)
 			{
-				hiddenApplications.Add(window.hWnd);
-				window.HidePopups();
-				winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, window.hWnd, IntPtr.Zero, 0, 0, 0, 0,
-					NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE |
-					NativeMethods.SWP.SWP_NOZORDER | NativeMethods.SWP.SWP_NOOWNERZORDER | NativeMethods.SWP.SWP_HIDEWINDOW);
+				if (WindowIsNotHung(window))
+				{
+					hiddenApplications.Add(window.hWnd);
+					window.HidePopups();
+					winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, window.hWnd, IntPtr.Zero, 0, 0, 0, 0,
+						NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE |
+						NativeMethods.SWP.SWP_NOZORDER | NativeMethods.SWP.SWP_NOOWNERZORDER | NativeMethods.SWP.SWP_HIDEWINDOW);
+				}
+				else if (!hiddenApplications.Contains(window.hWnd))
+				{
+					HideWindow(window);
+				}
 			}
 
 			NativeMethods.EndDeferWindowPos(winPosInfo);
+
+			// activates the topmost non-minimized window
+			if (setForeground)
+			{
+				newWorkspace.SetTopManagedWindowAsForeground();
+			}
 		}
 
 		// only switches to applications in the current workspace
@@ -810,7 +827,7 @@ namespace Windawesome
 
 					var list = applications[window.hWnd];
 					list.AddFirst(new Tuple<Workspace, Window>(newWorkspace, newWindow));
-					list.Where(t => ++t.Item2.WorkspacesCount == 2).ForEach(t => t.Item1.AddToSharedWindows(t.Item2));
+					list.TakeWhile(t => ++t.Item2.WorkspacesCount == 2).ForEach(t => t.Item1.AddToSharedWindows(t.Item2));
 
 					FollowWindow(toWorkspace, follow, window);
 				}
@@ -866,20 +883,11 @@ namespace Windawesome
 			if (workspace != oldWorkspace.id)
 			{
 				var willReposition = newWorkspace.hasChanges || newWorkspace.repositionOnSwitchedTo;
-
-				var showWindows = newWorkspace.GetWindows();
-				var hideWindows = oldWorkspace.GetWindows().Except(showWindows);
-
+				
 				if (!willReposition)
 				{
 					// first show and hide if there are no changes
-					ShowHideWindows(showWindows, hideWindows);
-
-					// activates the topmost non-minimized window
-					if (setForeground)
-					{
-						newWorkspace.SetTopManagedWindowAsForeground();
-					}
+					ShowHideWindows(oldWorkspace, newWorkspace, setForeground);
 				}
 
 				if (temporarilyShownWindows.Count > 0)
@@ -898,13 +906,7 @@ namespace Windawesome
 				if (willReposition)
 				{
 					// show and hide only after Reposition has been called if there are changes
-					ShowHideWindows(showWindows, hideWindows);
-
-					// activates the topmost non-minimized window
-					if (setForeground)
-					{
-						newWorkspace.SetTopManagedWindowAsForeground();
-					}
+					ShowHideWindows(oldWorkspace, newWorkspace, setForeground);
 				}
 
 				return true;
@@ -979,7 +981,7 @@ namespace Windawesome
 			var displayNameRegex = new System.Text.RegularExpressions.Regex(displayName, System.Text.RegularExpressions.RegexOptions.Compiled);
 			var processNameRegex = new System.Text.RegularExpressions.Regex(processName, System.Text.RegularExpressions.RegexOptions.Compiled);
 
-			Window window = applications.Values.Select(list => list.First.Value.Item2).
+			var window = applications.Values.Select(list => list.First.Value.Item2).
 				FirstOrDefault(w => classNameRegex.IsMatch(w.className) && displayNameRegex.IsMatch(w.DisplayName) && processNameRegex.IsMatch(w.processName));
 			if (window != null)
 			{
@@ -1160,7 +1162,7 @@ namespace Windawesome
 			switch ((NativeMethods.ShellEvents) wParam)
 			{
 				case NativeMethods.ShellEvents.HSHELL_WINDOWCREATED: // window created or restored from tray
-					if (!applications.TryGetValue(lParam, out list)) // if a new window has shown
+					if (!applications.ContainsKey(lParam)) // if a new window has shown
 					{
 						AddWindowToWorkspace(lParam);
 					}

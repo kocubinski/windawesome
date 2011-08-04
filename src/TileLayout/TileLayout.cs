@@ -56,7 +56,7 @@ namespace Windawesome
 			{
 				masterAreaWindowsCount = 0;
 			}
-			this.Reposition(windows);
+			this.Reposition();
 		}
 
 		public void ToggleLayoutAxis()
@@ -80,7 +80,7 @@ namespace Windawesome
 			{
 				this.layoutAxis = layoutAxis;
 
-				this.Reposition(windows);
+				this.Reposition();
 
 				Windawesome.DoLayoutUpdated();
 			}
@@ -92,7 +92,7 @@ namespace Windawesome
 			{
 				this.masterAreaAxis = masterAreaAxis;
 
-				this.Reposition(windows);
+				this.Reposition();
 
 				Windawesome.DoLayoutUpdated();
 			}
@@ -104,7 +104,7 @@ namespace Windawesome
 			{
 				this.stackAreaAxis = stackAreaAxis;
 
-				this.Reposition(windows);
+				this.Reposition();
 
 				Windawesome.DoLayoutUpdated();
 			}
@@ -118,7 +118,7 @@ namespace Windawesome
 				windows.AddAfter(node.Next, window);
 				windows.Remove(node);
 
-				this.Reposition(windows);
+				this.Reposition();
 			}
 		}
 
@@ -130,7 +130,7 @@ namespace Windawesome
 				windows.AddBefore(node.Previous, window);
 				windows.Remove(node);
 
-				this.Reposition(windows);
+				this.Reposition();
 			}
 		}
 
@@ -142,7 +142,7 @@ namespace Windawesome
 				windows.Remove(node);
 				windows.AddFirst(node);
 
-				this.Reposition(windows);
+				this.Reposition();
 			}
 		}
 
@@ -158,7 +158,7 @@ namespace Windawesome
 				masterAreaFactor = 0;
 			}
 
-			this.Reposition(windows);
+			this.Reposition();
 		}
 
 		#endregion
@@ -269,6 +269,15 @@ namespace Windawesome
 			}
 		}
 
+		private void Reposition()
+		{
+			var workingArea = System.Windows.Forms.SystemInformation.WorkingArea;
+			var winPosInfo = NativeMethods.BeginDeferWindowPos(this.windows.Count);
+			winPosInfo = PositionAreaWindows(winPosInfo, workingArea, true);
+			winPosInfo = PositionAreaWindows(winPosInfo, workingArea, false);
+			NativeMethods.EndDeferWindowPos(winPosInfo);
+		}
+
 		#region ILayout Members
 
 		string ILayout.LayoutSymbol(int windowsCount)
@@ -311,19 +320,18 @@ namespace Windawesome
 			return false;
 		}
 
-		public void Reposition(IEnumerable<Window> windows)
+		void ILayout.Reposition(IEnumerable<Window> windows)
 		{
-			// restore any maximized windows - should not use SW_RESTORE as it activates the window
-			windows.ForEach(window => NativeMethods.ShowWindowAsync(window.hWnd, NativeMethods.SW.SW_SHOWNOACTIVATE));
-			System.Threading.Thread.Sleep(Workspace.minimizeRestoreDelay);
+			if (this.windows.Count != windows.Count() || !new HashSet<Window>(this.windows).SetEquals(new HashSet<Window>(windows)))
+			{
+				// restore any maximized windows - should not use SW_RESTORE as it activates the window
+				windows.ForEach(window => NativeMethods.ShowWindowAsync(window.hWnd, NativeMethods.SW.SW_SHOWNOACTIVATE));
+				System.Threading.Thread.Sleep(Workspace.minimizeRestoreDelay);
 
-			this.windows = new LinkedList<Window>(windows);
+				this.windows = new LinkedList<Window>(windows);
+			}
 
-			var workingArea = System.Windows.Forms.SystemInformation.WorkingArea;
-			var winPosInfo = NativeMethods.BeginDeferWindowPos(this.windows.Count);
-			winPosInfo = PositionAreaWindows(winPosInfo, workingArea, true);
-			winPosInfo = PositionAreaWindows(winPosInfo, workingArea, false);
-			NativeMethods.EndDeferWindowPos(winPosInfo);
+			Reposition();
 		}
 
 		void ILayout.WindowTitlebarToggled(Window window, IEnumerable<Window> windows)
@@ -336,27 +344,31 @@ namespace Windawesome
 
 		void ILayout.WindowMinimized(Window window, IEnumerable<Window> windows)
 		{
-			this.Reposition(windows);
+			this.windows.Remove(window);
+			Reposition();
 		}
 
 		void ILayout.WindowRestored(Window window, IEnumerable<Window> windows)
 		{
-			this.Reposition(windows);
+			this.windows.AddFirst(window);
+			Reposition();
 		}
 
 		void ILayout.WindowCreated(Window window, IEnumerable<Window> windows, bool reLayout)
 		{
+			this.windows.AddFirst(window);
 			if (reLayout)
 			{
-				this.Reposition(windows);
+				Reposition();
 			}
 		}
 
 		void ILayout.WindowDestroyed(Window window, IEnumerable<Window> windows, bool reLayout)
 		{
+			this.windows.Remove(window);
 			if (reLayout)
 			{
-				this.Reposition(windows);
+				Reposition();
 			}
 		}
 

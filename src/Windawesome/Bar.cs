@@ -56,7 +56,7 @@ namespace Windawesome
 
 		#endregion
 
-		private sealed class NonActivatableForm : Form
+		public class NonActivatableForm : Form
 		{
 			protected override CreateParams CreateParams
 			{
@@ -94,7 +94,6 @@ namespace Windawesome
 				};
 
 			newForm.VisibleChanged += this.OnFormVisibleChanged;
-			newForm.FormClosing += (s, ea) => ea.Cancel = true;
 
 			return newForm;
 		}
