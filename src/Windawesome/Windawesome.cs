@@ -26,8 +26,6 @@ namespace Windawesome
 		private static readonly NativeMethods.NONCLIENTMETRICS originalNonClientMetrics;
 		private static readonly uint windawesomeThreadId;
 
-		private static readonly Tuple<NativeMethods.MOD, Keys> altTabCombination = new Tuple<NativeMethods.MOD, Keys>(NativeMethods.MOD.MOD_ALT, Keys.Tab);
-
 		public delegate bool HandleMessageDelegate(ref Message m);
 
 		public static IntPtr HandleStatic { get; private set; }
@@ -465,22 +463,23 @@ namespace Windawesome
 				var foregroundWindow = NativeMethods.GetForegroundWindow();
 				if (foregroundWindow != hWnd)
 				{
+					bool successfullyChanged = false;
 					if (foregroundWindow == IntPtr.Zero)
 					{
-						TrySetForegroundWindow(hWnd);
+						successfullyChanged = TrySetForegroundWindow(hWnd);
 					}
 					else if (WindowIsNotHung(foregroundWindow))
 					{
 						var foregroundWindowThread = NativeMethods.GetWindowThreadProcessId(foregroundWindow, IntPtr.Zero);
 						if (NativeMethods.AttachThreadInput(windawesomeThreadId, foregroundWindowThread, true))
 						{
-							TrySetForegroundWindow(hWnd);
+							successfullyChanged = TrySetForegroundWindow(hWnd);
 							NativeMethods.AttachThreadInput(windawesomeThreadId, foregroundWindowThread, false);
 						}
 					}
-					else
+					
+					if (!successfullyChanged)
 					{
-						// the foreground window is hung so resort to using the hotkey to set a new one
 						SendHotkey(uniqueHotkey);
 						forceForegroundWindow = hWnd;
 					}
@@ -488,30 +487,24 @@ namespace Windawesome
 			}
 		}
 
-		private static void TrySetForegroundWindow(IntPtr hWnd)
+		private static bool TrySetForegroundWindow(IntPtr hWnd)
 		{
-			TrySetForegroundWindow(hWnd, h =>
-				{
-					SendHotkey(uniqueHotkey);
-					forceForegroundWindow = h;
-				});
-		}
-
-		private static void TrySetForegroundWindow(IntPtr hWnd, Action<IntPtr> actionOnUnsuccess)
-		{
+			const int tryCount = 5;
 			var count = 0;
-			while (!NativeMethods.SetForegroundWindow(hWnd) && ++count < 5)
+			while (!NativeMethods.SetForegroundWindow(hWnd) && ++count < tryCount)
 			{
 			}
 
-			if (count == 5)
+			if (count == tryCount)
 			{
-				actionOnUnsuccess(hWnd);
+				return false;
 			}
 			else
 			{
 				NativeMethods.SetWindowPos(hWnd, NativeMethods.HWND_TOP, 0, 0, 0, 0,
 					NativeMethods.SWP.SWP_ASYNCWINDOWPOS | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
+
+				return true;
 			}
 		}
 
@@ -827,7 +820,7 @@ namespace Windawesome
 
 					var list = applications[window.hWnd];
 					list.AddFirst(new Tuple<Workspace, Window>(newWorkspace, newWindow));
-					list.TakeWhile(t => ++t.Item2.WorkspacesCount == 2).ForEach(t => t.Item1.AddToSharedWindows(t.Item2));
+					list.Where(t => ++t.Item2.WorkspacesCount == 2).ForEach(t => t.Item1.AddToSharedWindows(t.Item2));
 
 					FollowWindow(toWorkspace, follow, window);
 				}
@@ -1272,7 +1265,8 @@ namespace Windawesome
 			}
 			else if (m.Msg == NativeMethods.WM_HOTKEY && m.WParam == this.getForegroundPrivilageAtom)
 			{
-				TrySetForegroundWindow(forceForegroundWindow, _ => SendHotkey(altTabCombination));
+				TrySetForegroundWindow(forceForegroundWindow);
+				forceForegroundWindow = IntPtr.Zero;
 			}
 			else if (messageHandlers.TryGetValue(m.Msg, out messageDelegate))
 			{
