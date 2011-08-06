@@ -339,9 +339,17 @@ namespace Windawesome
 
 		#endregion
 
+		#region IsIconic/IsZoomed
+
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
 		public static extern bool IsIconic(IntPtr hWnd);
+
+		[DllImport("user32.dll")]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		public static extern bool IsZoomed(IntPtr hWnd);
+
+		#endregion
 
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]

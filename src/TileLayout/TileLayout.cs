@@ -350,12 +350,17 @@ namespace Windawesome
 
 		void ILayout.WindowRestored(Window window, IEnumerable<Window> windows)
 		{
-			this.windows.AddFirst(window);
-			Reposition();
+			(this as ILayout).WindowCreated(window, windows, true);
 		}
 
 		void ILayout.WindowCreated(Window window, IEnumerable<Window> windows, bool reLayout)
 		{
+			if (NativeMethods.IsZoomed(window.hWnd))
+			{
+				// restore if maximized - should not use SW_RESTORE as it activates the window
+				NativeMethods.ShowWindowAsync(window.hWnd, NativeMethods.SW.SW_SHOWNOACTIVATE);
+				System.Threading.Thread.Sleep(Workspace.minimizeRestoreDelay);
+			}
 			this.windows.AddFirst(window);
 			if (reLayout)
 			{

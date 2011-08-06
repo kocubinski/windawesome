@@ -10,7 +10,7 @@ namespace Windawesome
 			var ws = NativeMethods.GetWindowStyleLongPtr(window.hWnd);
 			if (ws.HasFlag(NativeMethods.WS.WS_CAPTION) && ws.HasFlag(NativeMethods.WS.WS_MAXIMIZEBOX))
 			{
-				if (!ws.HasFlag(NativeMethods.WS.WS_MAXIMIZE))
+				if (!NativeMethods.IsZoomed(window.hWnd))
 				{
 					// if there is a caption, we can make the window maximized
 					// TODO: this activates the window which is not desirable. Is there a way NOT to?
