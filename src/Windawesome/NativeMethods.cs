@@ -19,7 +19,6 @@ namespace Windawesome
 				GetWindowStyleLongPtr = hWnd => GetWindowLongPtr64WS(hWnd, GWL_STYLE);
 				GetWindowExStyleLongPtr = hWnd => GetWindowLongPtr64WS_EX(hWnd, GWL_EXSTYLE);
 				GetClassLongPtr = GetClassLongPtr64;
-				IsAppWindow = IsAppWindow64;
 				UnsubclassWindow = UnsubclassWindow64;
 				RunApplicationNonElevated = RunApplicationNonElevated64;
 				RegisterSystemTrayHook = RegisterSystemTrayHook64;
@@ -32,7 +31,6 @@ namespace Windawesome
 				GetWindowStyleLongPtr = hWnd => GetWindowLong32WS(hWnd, GWL_STYLE);
 				GetWindowExStyleLongPtr = hWnd => GetWindowLong32WS_EX(hWnd, GWL_EXSTYLE);
 				GetClassLongPtr = GetClassLong32;
-				IsAppWindow = IsAppWindow32;
 				UnsubclassWindow = UnsubclassWindow32;
 				RunApplicationNonElevated = RunApplicationNonElevated32;
 				if (Environment.Is64BitOperatingSystem)
@@ -358,6 +356,9 @@ namespace Windawesome
 
 		[DllImport("user32.dll")]
 		public static extern IntPtr GetMenu(IntPtr hWnd);
+
+		[DllImport("user32.dll")]
+		public static extern IntPtr GetParent(IntPtr hWnd);
 
 		#region GetWindow
 
@@ -892,9 +893,6 @@ namespace Windawesome
 
 		#region Solution Native DLL functions
 
-		public delegate bool IsAppWindowDelegate(IntPtr hWnd);
-		public static readonly IsAppWindowDelegate IsAppWindow;
-
 		public delegate void RunApplicationNonElevatedDelegate(string path, string arguments);
 		public static readonly RunApplicationNonElevatedDelegate RunApplicationNonElevated;
 
@@ -906,14 +904,6 @@ namespace Windawesome
 
 		public delegate bool UnregisterSystemTrayHookDelegate();
 		public static readonly UnregisterSystemTrayHookDelegate UnregisterSystemTrayHook;
-
-		[DllImport("Helpers32.dll", CallingConvention = CallingConvention.Cdecl, EntryPoint = "IsAppWindow")]
-		[return: MarshalAs(UnmanagedType.Bool)]
-		private static extern bool IsAppWindow32(IntPtr hWnd);
-
-		[DllImport("Helpers64.dll", CallingConvention = CallingConvention.Cdecl, EntryPoint = "IsAppWindow")]
-		[return: MarshalAs(UnmanagedType.Bool)]
-		private static extern bool IsAppWindow64(IntPtr hWnd);
 
 		[DllImport("Helpers32.dll", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Unicode, EntryPoint = "RunApplicationNonElevated")]
 		private static extern void RunApplicationNonElevated32([MarshalAs(UnmanagedType.LPWStr)] string path, [MarshalAs(UnmanagedType.LPWStr)] string arguments);

@@ -2,49 +2,6 @@
 #include "stdafx.h"
 #include "Helpers.h"
 
-//BOOL IsAppWindow(HWND hWnd)
-//{
-//	if (IsWindowVisible(hWnd) && !(GetWindowLongPtr(hWnd, GWL_EXSTYLE) & WS_EX_TOOLWINDOW) && !GetParent(hWnd))
-//	{
-//		HWND hWndOwner = GetWindow(hWnd, GW_OWNER);
-//		if (!hWndOwner || (IsWindowVisible(hWndOwner) && GetWindowLongPtr(hWndOwner, GWL_EXSTYLE) & WS_EX_TOOLWINDOW))
-//		{
-//			return TRUE;
-//		}
-//	}
-//
-//	return FALSE;
-//}
-
-BOOL IsAppWindow(HWND hWnd)
-{
-	if (IsWindowVisible(hWnd) && !GetParent(hWnd))
-	{
-		LONG_PTR exStyle = GetWindowLongPtr(hWnd, GWL_EXSTYLE);
-		return !(exStyle & WS_CHILD);
-	}
-
-	return FALSE;
-}
-
-//BOOL IsAppWindow(HWND hWnd)
-//{
-//	LONG_PTR exStyle = GetWindowLongPtr(hWnd, GWL_EXSTYLE);
-//	if (IsWindowVisible(hWnd) && !GetParent(hWnd) &&
-//		(exStyle & WS_EX_APPWINDOW ||
-//		(!(exStyle & (WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE)) && !GetWindow(hWnd, GW_OWNER))))
-//	{
-//		return TRUE;
-//	}
-//
-//	return FALSE;
-//}
-
-//BOOL IsAppWindow(HWND hWnd)
-//{
-//	return IsWindowVisible(hWnd) && !(GetWindowLongPtr(hWnd, GWL_EXSTYLE) & WS_EX_TOOLWINDOW) && !GetParent(hWnd);
-//}
-
 static IShellDispatch2 *psd = NULL;
 
 void RunApplicationNonElevated(const WCHAR* path, const WCHAR* arguments)

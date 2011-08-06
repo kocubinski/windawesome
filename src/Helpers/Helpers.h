@@ -4,8 +4,6 @@
 #define HELPERS_API __declspec(dllexport)
 
 extern "C" {
-HELPERS_API BOOL __cdecl IsAppWindow(HWND hWnd);
-HELPERS_API BOOL __cdecl IsAppWindowSimple(HWND hWnd);
 HELPERS_API void __cdecl RunApplicationNonElevated(const WCHAR*, const WCHAR*);
 }
 

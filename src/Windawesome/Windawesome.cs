@@ -257,9 +257,20 @@ namespace Windawesome
 			Quit();
 		}
 
+		private static bool IsAppWindow(IntPtr hWnd)
+		{
+			if (NativeMethods.IsWindowVisible(hWnd) && NativeMethods.GetParent(hWnd) == IntPtr.Zero)
+			{
+				var style = NativeMethods.GetWindowStyleLongPtr(hWnd);
+				return (style & NativeMethods.WS.WS_CHILD) == 0;
+			}
+
+			return false;
+		}
+
 		private bool AddWindowToWorkspace(IntPtr hWnd, bool firstTry = true)
 		{
-			if (NativeMethods.IsAppWindow(hWnd))
+			if (IsAppWindow(hWnd))
 			{
 				var className = NativeMethods.GetWindowClassName(hWnd);
 				var displayName = NativeMethods.GetText(hWnd);
@@ -463,7 +474,7 @@ namespace Windawesome
 				var foregroundWindow = NativeMethods.GetForegroundWindow();
 				if (foregroundWindow != hWnd)
 				{
-					bool successfullyChanged = false;
+					var successfullyChanged = false;
 					if (foregroundWindow == IntPtr.Zero)
 					{
 						successfullyChanged = TrySetForegroundWindow(hWnd);
