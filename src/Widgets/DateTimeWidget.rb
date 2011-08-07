@@ -79,4 +79,6 @@ class DateTimeWidget
 		@updateTimer.stop
 	end
 
+	def refresh; end
+
 end

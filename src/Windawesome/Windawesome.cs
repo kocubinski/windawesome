@@ -789,6 +789,9 @@ namespace Windawesome
 
 			// redraw all windows in current workspace
 			config.Workspaces[0].GetWindows().ForEach(w => w.Redraw());
+
+			// refresh bars
+			config.Bars.ForEach(b => b.Refresh());
 		}
 
 		public void ChangeApplicationToWorkspace(IntPtr hWnd, int toWorkspace = 0, int fromWorkspace = 0, bool follow = true)

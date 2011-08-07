@@ -195,6 +195,12 @@ namespace Windawesome
 			this.form.Hide();
 		}
 
+		void IBar.Refresh()
+		{
+			this.leftAlignedWidgets.Cast<IWidget>().Concat(this.rightAlignedWidgets).Concat(this.middleAlignedWidgets).
+				ForEach(w => w.Refresh());
+		}
+
 		#endregion
 
 		#endregion

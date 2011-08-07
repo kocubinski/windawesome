@@ -831,6 +831,7 @@ namespace Windawesome
 		[return: MarshalAs(UnmanagedType.Bool)]
 		public static extern bool UnregisterHotKey([Optional] IntPtr hWnd, int id);
 
+		[Flags]
 		public enum MOD : uint
 		{
 			MOD_ALT = 0x1,
@@ -1203,7 +1204,10 @@ namespace Windawesome
 		public static readonly IntPtr SH_TRAY_DATA = NativeMethods.IntPtrOne;
 		public const int WM_COPYDATA = 0x004A;
 
-		public const byte TBSTATE_HIDDEN = 0x08;
+		public enum TBSTATE : byte
+		{
+			TBSTATE_HIDDEN = 0x08
+		}
 
 		#region TBBUTTON/TRAYDATA
 
@@ -1211,7 +1215,7 @@ namespace Windawesome
 		{
 			int iBitmap { get; set; }
 			int idCommand { get; set; }
-			byte fsState { get; set; }
+			TBSTATE fsState { get; set; }
 			byte fsStyle { get; set; }
 			IntPtr dwData { get; set; }
 			IntPtr iString { get; set; }
@@ -1229,7 +1233,7 @@ namespace Windawesome
 				[FieldOffset(4)]
 				public int idCommand;
 				[FieldOffset(8)]
-				public byte fsState;
+				public TBSTATE fsState;
 				[FieldOffset(9)]
 				public byte fsStyle;
 				[FieldOffset(12)]
@@ -1252,7 +1256,7 @@ namespace Windawesome
 				set { data.idCommand = value; }
 			}
 
-			public byte fsState
+			public TBSTATE fsState
 			{
 				get { return data.fsState; }
 				set { data.fsState = value; }
@@ -1296,7 +1300,7 @@ namespace Windawesome
 				[FieldOffset(4)]
 				public int idCommand;
 				[FieldOffset(8)]
-				public byte fsState;
+				public TBSTATE fsState;
 				[FieldOffset(9)]
 				public byte fsStyle;
 				[FieldOffset(16)]
@@ -1319,7 +1323,7 @@ namespace Windawesome
 				set { data.idCommand = value; }
 			}
 
-			public byte fsState
+			public TBSTATE fsState
 			{
 				get { return data.fsState; }
 				set { data.fsState = value; }

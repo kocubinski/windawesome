@@ -137,7 +137,7 @@ namespace Windawesome
 			}
 		}
 
-		private void OnWindowActivated(IntPtr hWnd)
+		private void StopFlashingApplication(IntPtr hWnd)
 		{
 			Workspace workspace;
 			if (flashingWindows.TryGetValue(hWnd, out workspace))
@@ -168,8 +168,9 @@ namespace Windawesome
 			if (flashWorkspaces)
 			{
 				flashTimer.Tick += OnTimerTick;
-				Workspace.WindowActivatedEvent += OnWindowActivated;
-				Workspace.WorkspaceApplicationRestored += (ws, w) => OnWindowActivated(w.hWnd);
+				Workspace.WorkspaceApplicationRemoved += (_, w) => StopFlashingApplication(w.hWnd);
+				Workspace.WindowActivatedEvent += StopFlashingApplication;
+				Workspace.WorkspaceApplicationRestored += (_, w) => StopFlashingApplication(w.hWnd);
 				Windawesome.WindowFlashing += OnWindowFlashing;
 			}
 
@@ -207,11 +208,9 @@ namespace Windawesome
 
 		public void RepositionControls(int left, int right)
 		{
-			this.left = left;
-			this.right = right;
-
 			if (isLeft)
 			{
+				this.left = left;
 				for (var i = 1; i <= config.WorkspacesCount; i++)
 				{
 					var label = workspaceLabels[i - 1];
@@ -222,6 +221,7 @@ namespace Windawesome
 			}
 			else
 			{
+				this.right = right;
 				for (var i = config.WorkspacesCount; i > 0; i--)
 				{
 					var label = workspaceLabels[i - 1];
@@ -266,6 +266,12 @@ namespace Windawesome
 
 		void IWidget.Dispose()
 		{
+		}
+
+		void IWidget.Refresh()
+		{
+			// remove all flashing windows that no longer exist
+			flashingWindows.Keys.Unless(NativeMethods.IsWindow).ForEach(StopFlashingApplication);
 		}
 
 		#endregion

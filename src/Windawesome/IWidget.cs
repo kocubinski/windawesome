@@ -59,7 +59,7 @@ namespace Windawesome
 		 */
 		void Dispose();
 
-		// TODO: must add a way to "refresh" the widget - to be used when RefreshWindawesome is called for example
+		void Refresh();
 	}
 
 	public interface ISpanWidget : IWidget

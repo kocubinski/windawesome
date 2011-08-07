@@ -15,6 +15,7 @@ namespace Windawesome
 		private Bar bar;
 		private int left, right;
 		private bool isLeft;
+		private bool showFullSystemTray;
 
 		#region Events
 
@@ -42,12 +43,19 @@ namespace Windawesome
 
 		public SystemTrayWidget(bool showFullSystemTray = false)
 		{
+			this.showFullSystemTray = Windawesome.isAtLeast7 && showFullSystemTray;
+
 			icons = new Dictionary<Tuple<int, uint>, Tuple<SystemTray.TrayIcon, PictureBox, ToolTip>>(10);
 
 			IconAdded	 += OnIconAdded;
 			IconModified += OnIconModified;
 			IconRemoved	 += OnIconRemoved;
 
+			GetIcons();
+		}
+
+		private void GetIcons()
+		{
 			foreach (var icon in SystemTray.GetButtons(SystemTray.trayHandle))
 			{
 				var pictureBox = CreatePictureBox(icon);
@@ -55,9 +63,9 @@ namespace Windawesome
 				icons[new Tuple<int, uint>((int) icon.hWnd, icon.id)] = new Tuple<SystemTray.TrayIcon, PictureBox, ToolTip>(icon, pictureBox, toolTip);
 			}
 
-			if (Windawesome.isAtLeast7 && showFullSystemTray)
+			if (showFullSystemTray)
 			{
-				HiddenIconAdded	+= OnIconAdded;
+				HiddenIconAdded += OnIconAdded;
 
 				foreach (var icon in SystemTray.GetButtons(SystemTray.hiddenTrayHandle))
 				{
@@ -179,9 +187,9 @@ namespace Windawesome
 			var pictureBox = new PictureBox { SizeMode = PictureBoxSizeMode.CenterImage };
 			SetPictureBoxIcon(pictureBox, trayIcon);
 
-			pictureBox.MouseDoubleClick += (s, e) => OnMouseEvent(trayIcon, e, NativeMethods.WM_LBUTTONDBLCLK, NativeMethods.WM_RBUTTONDBLCLK);
-			pictureBox.MouseDown += (s, e) => OnMouseEvent(trayIcon, e, NativeMethods.WM_LBUTTONDOWN, NativeMethods.WM_RBUTTONDOWN);
-			pictureBox.MouseUp += (s, e) => OnMouseEvent(trayIcon, e, NativeMethods.WM_LBUTTONUP, NativeMethods.WM_RBUTTONUP);
+			pictureBox.MouseDoubleClick += (_, e) => OnMouseEvent(trayIcon, e, NativeMethods.WM_LBUTTONDBLCLK, NativeMethods.WM_RBUTTONDBLCLK);
+			pictureBox.MouseDown += (_, e) => OnMouseEvent(trayIcon, e, NativeMethods.WM_LBUTTONDOWN, NativeMethods.WM_RBUTTONDOWN);
+			pictureBox.MouseUp += (_, e) => OnMouseEvent(trayIcon, e, NativeMethods.WM_LBUTTONUP, NativeMethods.WM_RBUTTONUP);
 
 			return pictureBox;
 		}
@@ -321,12 +329,10 @@ namespace Windawesome
 
 		public void RepositionControls(int left, int right)
 		{
-			this.left = left;
-			this.right = right;
-
 			var trayIcons = GetPictureBoxes();
 			if (isLeft)
 			{
+				this.left = left;
 				foreach (var pictureBox in trayIcons)
 				{
 					pictureBox.Size = new Size(bar.GetBarHeight(), bar.GetBarHeight());
@@ -337,6 +343,7 @@ namespace Windawesome
 			}
 			else
 			{
+				this.right = right;
 				foreach (var pictureBox in trayIcons.Reverse())
 				{
 					pictureBox.Size = new Size(bar.GetBarHeight(), bar.GetBarHeight());
@@ -376,6 +383,15 @@ namespace Windawesome
 
 		void IWidget.Dispose()
 		{
+		}
+
+		void IWidget.Refresh()
+		{
+			var oldIcons = GetPictureBoxes().ToArray();
+			icons.Clear();
+			GetIcons();
+			RepositionControls(left, right);
+			bar.DoWidgetControlsChanged(this, oldIcons, GetPictureBoxes());
 		}
 
 		#endregion
@@ -555,7 +571,7 @@ namespace Windawesome
 					trayIcon.hWnd = data.trayData.hWnd;
 					trayIcon.iconHandle = data.trayData.hIcon;
 					trayIcon.state = 0;
-					if ((data.button.fsState & NativeMethods.TBSTATE_HIDDEN) == NativeMethods.TBSTATE_HIDDEN)
+					if (data.button.fsState.HasFlag(NativeMethods.TBSTATE.TBSTATE_HIDDEN))
 					{
 						trayIcon.state |= NativeMethods.IconState.NIS_HIDDEN;
 					}

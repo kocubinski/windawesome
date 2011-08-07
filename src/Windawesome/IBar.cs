@@ -16,5 +16,7 @@ namespace Windawesome
 
 		void Show();
 		void Hide();
+
+		void Refresh();
 	}
 }

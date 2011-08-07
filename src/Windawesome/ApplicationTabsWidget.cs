@@ -337,6 +337,10 @@ namespace Windawesome
 		{
 		}
 
+		void IWidget.Refresh()
+		{
+		}
+
 		#endregion
 	}
 }
