@@ -165,11 +165,10 @@ namespace Windawesome
 
 		private IntPtr PositionAreaWindows(IntPtr winPosInfo, Rectangle workingArea, bool master)
 		{
-			var masterOrStackWindows = master ? this.windows.Take(masterAreaWindowsCount) : this.windows.Skip(masterAreaWindowsCount);
-			var count = masterOrStackWindows.Count();
+			var count = master ? masterAreaWindowsCount : windows.Count - masterAreaWindowsCount;
 			if (count > 0)
 			{
-				var otherWindowsCount = master ? windows.Count - count : -1;
+				var otherWindowsCount = master ? windows.Count - masterAreaWindowsCount : masterAreaWindowsCount;
 				var factor = otherWindowsCount == 0 ? 1 : (master ? masterAreaFactor : 1 - masterAreaFactor);
 				var axis = master ? masterAreaAxis : stackAreaAxis;
 
@@ -225,6 +224,7 @@ namespace Windawesome
 						break;
 				}
 
+				var masterOrStackWindows = master ? this.windows.Take(masterAreaWindowsCount) : this.windows.Skip(masterAreaWindowsCount);
 				foreach (var window in masterOrStackWindows.Where(Windawesome.WindowIsNotHung))
 				{
 					// TODO: this doesn't work for ICQ 7.5's windows. MoveWindow works in Debug mode, but not in Release

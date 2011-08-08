@@ -8,7 +8,7 @@ namespace Windawesome
 		private static void MaximizeWindow(Window window)
 		{
 			var ws = NativeMethods.GetWindowStyleLongPtr(window.hWnd);
-			if (ws.HasFlag(NativeMethods.WS.WS_CAPTION) && ws.HasFlag(NativeMethods.WS.WS_MAXIMIZEBOX))
+			if (ws.HasFlag(NativeMethods.WS.WS_CAPTION | NativeMethods.WS.WS_MAXIMIZEBOX))
 			{
 				if (!NativeMethods.IsZoomed(window.hWnd))
 				{
