@@ -541,19 +541,11 @@ namespace Windawesome
 
 		internal void Unswitch()
 		{
-			sharedWindows.ForEach(SaveSharedWindowState);
+			sharedWindows.Where(w => !repositionOnSwitchedTo || w.IsFloating || Layout.ShouldSaveAndRestoreSharedWindowsPosition()).ForEach(w => w.SavePosition());
 
 			IsCurrentWorkspace = false;
 
 			DoWorkspaceChangedFrom(this);
-		}
-
-		private void SaveSharedWindowState(Window window)
-		{
-			if (!repositionOnSwitchedTo || window.IsFloating || Layout.ShouldSaveAndRestoreSharedWindowsPosition())
-			{
-				window.SavePosition();
-			}
 		}
 
 		private void RestoreSharedWindowState(Window window)
@@ -1075,7 +1067,7 @@ namespace Windawesome
 		public readonly OnWindowShownAction onHiddenWindowShownAction;
 		public readonly IntPtr menu;
 
-		internal readonly LinkedList<Window> ownedWindows;
+		private readonly LinkedList<Window> ownedWindows;
 
 		private readonly NativeMethods.WS titlebarStyle;
 
@@ -1163,6 +1155,17 @@ namespace Windawesome
 
 			windowPlacement = window.windowPlacement;
 			originalWindowPlacement = window.originalWindowPlacement;
+		}
+
+		public override int GetHashCode()
+		{
+			return hWnd.GetHashCode();
+		}
+
+		public override bool Equals(object obj)
+		{
+			var window = obj as Window;
+			return window != null && window.hWnd == hWnd;
 		}
 
 		internal void Initialize()
@@ -1368,17 +1371,6 @@ namespace Windawesome
 
 			windowPlacement = originalWindowPlacement;
 			RestorePosition();
-		}
-
-		public override int GetHashCode()
-		{
-			return hWnd.GetHashCode();
-		}
-
-		public override bool Equals(object obj)
-		{
-			var window = obj as Window;
-			return window != null && window.hWnd == hWnd;
 		}
 	}
 }

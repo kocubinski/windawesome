@@ -51,6 +51,7 @@ windowCreatedDelay - the time, in milliseconds, to wait before taking any action
 handleOwnedWindows - if true, Windawesome will handle a window that is owned by this one. Useful for applications using the VCL framework as they use a window which owns the "real" window
 hideOwnedPopups - if true, Windawesome will hide all popups that are owned of the window being hidden
 redrawDesktopOnWindowCreated - if true, Windawesome will redraw the Desktop when this window is created. Useful if you have problems with that. I've seen it with mintty (the cygwin terminal emulator)
+showMenu - if true, the menu bar (if any) of a window is shown, otherwise - not. Note that actually this doesn't work for a lot of windows, because they don't have a menu in Window's sense
 onWindowCreatedAction - specifies what to do when a window is created. Can be one of the enum values:
 	SwitchToWindowsWorkspace - switches to that window's workspace. The default value
 	MoveWindowToCurrentWorkspace - moves the window to the current workspace

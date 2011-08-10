@@ -15,16 +15,20 @@ namespace Windawesome
 		private readonly HashMultiSet<IntPtr> hiddenApplications;
 		private readonly uint shellMessageNum;
 		private readonly HashSet<IntPtr> temporarilyShownWindows;
+#if !DEBUG
 		private readonly bool changedNonClientMetrics;
-		private readonly bool finishedInitializing;
+#endif
 		private readonly IntPtr getForegroundPrivilageAtom;
 		private static Tuple<NativeMethods.MOD, Keys> uniqueHotkey;
 		private static IntPtr forceForegroundWindow;
 		private const uint postActionMessageNum = NativeMethods.WM_USER;
 		private static readonly Queue<Action> postedActions;
 		private static readonly Dictionary<int, HandleMessageDelegate> messageHandlers;
+#if !DEBUG
 		private static readonly NativeMethods.NONCLIENTMETRICS originalNonClientMetrics;
+#endif
 		private static readonly uint windawesomeThreadId;
+		private static System.Threading.Tasks.TaskScheduler uiThreadTaskScheduler;
 
 		public delegate bool HandleMessageDelegate(ref Message m);
 
@@ -103,10 +107,12 @@ namespace Windawesome
 			windawesomeThreadId = NativeMethods.GetCurrentThreadId();
 
 			messageHandlers = new Dictionary<int, HandleMessageDelegate>(2);
-
+			
+#if !DEBUG
 			originalNonClientMetrics = NativeMethods.NONCLIENTMETRICS.GetNONCLIENTMETRICS();
 			NativeMethods.SystemParametersInfo(NativeMethods.SPI_GETNONCLIENTMETRICS, originalNonClientMetrics.cbSize,
 				ref originalNonClientMetrics, 0);
+#endif
 
 			smallIconSize = SystemInformation.SmallIconSize;
 
@@ -137,7 +143,7 @@ namespace Windawesome
 			temporarilyShownWindows = new HashSet<IntPtr>();
 
 			// add all windows to their respective workspace
-			NativeMethods.EnumDesktopWindows(IntPtr.Zero, (hWnd, _) => AddWindowToWorkspace(hWnd) || true, IntPtr.Zero);
+			NativeMethods.EnumDesktopWindows(IntPtr.Zero, (hWnd, _) => AddWindowToWorkspace(hWnd, finishedInitializing: false) || true, IntPtr.Zero);
 
 			WindawesomeExiting += OnWindawesomeExiting;
 
@@ -146,21 +152,18 @@ namespace Windawesome
 			SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
 			SystemEvents.SessionEnding += OnSessionEnding;
 
+#if !DEBUG
 			// set the global border and padded border widths
 			var metrics = originalNonClientMetrics;
 			if (config.BorderWidth >= 0 && metrics.iBorderWidth != config.BorderWidth)
 			{
 				metrics.iBorderWidth = config.BorderWidth;
-#if !DEBUG
 				changedNonClientMetrics = true;
-#endif
 			}
 			if (isAtLeastVista && config.PaddedBorderWidth >= 0 && metrics.iPaddedBorderWidth != config.PaddedBorderWidth)
 			{
 				metrics.iPaddedBorderWidth = config.PaddedBorderWidth;
-#if !DEBUG
 				changedNonClientMetrics = true;
-#endif
 			}
 			if (changedNonClientMetrics)
 			{
@@ -168,6 +171,7 @@ namespace Windawesome
 					NativeMethods.SystemParametersInfo(NativeMethods.SPI_SETNONCLIENTMETRICS, metrics.cbSize,
 						ref metrics, NativeMethods.SPIF_SENDCHANGE));
 			}
+#endif
 
 			// register hotkey for forcing a foreground window
 			uniqueHotkey = config.UniqueHotkey;
@@ -183,6 +187,9 @@ namespace Windawesome
 			NativeMethods.RegisterShellHookWindow(this.Handle);
 			shellMessageNum = NativeMethods.RegisterWindowMessage("SHELLHOOK");
 
+			// set UI thread task scheduler
+			uiThreadTaskScheduler = System.Threading.Tasks.TaskScheduler.FromCurrentSynchronizationContext();
+
 			// initialize all workspaces
 			foreach (var ws in config.Workspaces.Skip(1).Where(ws => ws.id != config.StartingWorkspace))
 			{
@@ -194,8 +201,6 @@ namespace Windawesome
 			// switches to the default starting workspace
 			config.Workspaces[0].SwitchTo();
 			config.Workspaces[0].SetTopManagedWindowAsForeground();
-
-			finishedInitializing = true;
 		}
 
 		private void OnWindawesomeExiting()
@@ -226,7 +231,8 @@ namespace Windawesome
 			// dispose of plugins and bars
 			config.Plugins.ForEach(p => p.Dispose());
 			config.Bars.ForEach(b => b.Dispose());
-
+			
+#if !DEBUG
 			// revert the size of non-client area of windows
 			if (changedNonClientMetrics)
 			{
@@ -234,6 +240,7 @@ namespace Windawesome
 				NativeMethods.SystemParametersInfo(NativeMethods.SPI_SETNONCLIENTMETRICS, metrics.cbSize,
 					ref metrics, NativeMethods.SPIF_SENDCHANGE);
 			}
+#endif
 		}
 
 		public void Quit()
@@ -259,16 +266,11 @@ namespace Windawesome
 
 		private static bool IsAppWindow(IntPtr hWnd)
 		{
-			if (NativeMethods.IsWindowVisible(hWnd) && NativeMethods.GetParent(hWnd) == IntPtr.Zero)
-			{
-				var style = NativeMethods.GetWindowStyleLongPtr(hWnd);
-				return (style & NativeMethods.WS.WS_CHILD) == 0;
-			}
-
-			return false;
+			return NativeMethods.IsWindowVisible(hWnd) && NativeMethods.GetParent(hWnd) == IntPtr.Zero &&
+				!NativeMethods.GetWindowStyleLongPtr(hWnd).HasFlag(NativeMethods.WS.WS_CHILD);
 		}
 
-		private bool AddWindowToWorkspace(IntPtr hWnd, bool firstTry = true)
+		private bool AddWindowToWorkspace(IntPtr hWnd, bool firstTry = true, bool finishedInitializing = true)
 		{
 			if (IsAppWindow(hWnd))
 			{
@@ -371,9 +373,11 @@ namespace Windawesome
 									var exStyleOwned = NativeMethods.GetWindowExStyleLongPtr(h);
 									var ownedMenu = NativeMethods.GetMenu(h);
 									i = 0;
-									matchingRules.ForEach(rule =>
+									foreach (var rule in matchingRules)
+									{
 										ownedLists[i++].AddLast(new Window(h, classNameOwned, displayNameOwned, processName,
-											workspacesCount, is64BitProcess, styleOwned, exStyleOwned, null, rule, programRule, ownedMenu)));
+											workspacesCount, is64BitProcess, styleOwned, exStyleOwned, null, rule, programRule, ownedMenu));
+									}
 								}
 							}
 							return true;
@@ -491,9 +495,7 @@ namespace Windawesome
 						if (NativeMethods.AttachThreadInput(windawesomeThreadId, foregroundWindowThread, true))
 						{
 							successfullyChanged = TrySetForegroundWindow(hWnd);
-							if (!NativeMethods.AttachThreadInput(windawesomeThreadId, foregroundWindowThread, false))
-							{
-							}
+							NativeMethods.AttachThreadInput(windawesomeThreadId, foregroundWindowThread, false);
 						}
 					}
 					
@@ -694,10 +696,11 @@ namespace Windawesome
 
 			var winPosInfo = NativeMethods.BeginDeferWindowPos(showWindows.Count + oldWorkspace.GetWindows().Count);
 
+			var newTopmostWindow = newWorkspace.GetTopmostWindow();
 			foreach (var window in newWorkspace.GetWindows().Where(WindowIsNotHung))
 			{
 				winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, window.hWnd, IntPtr.Zero, 0, 0, 0, 0,
-					NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE |
+					(window == newTopmostWindow ? 0 : NativeMethods.SWP.SWP_NOACTIVATE) | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE |
 					NativeMethods.SWP.SWP_NOZORDER | NativeMethods.SWP.SWP_NOOWNERZORDER | NativeMethods.SWP.SWP_SHOWWINDOW);
 				window.ShowPopupsAndRedraw();
 			}
@@ -887,7 +890,7 @@ namespace Windawesome
 			{
 				list.First.Value.Item2.DoForSelfOrOwned(w =>
 					{
-						if (!w.ShowMenu)
+						if (!w.ShowMenu && w.menu != IntPtr.Zero)
 						{
 							NativeMethods.DestroyMenu(w.menu);
 						}
@@ -1109,8 +1112,6 @@ namespace Windawesome
 								return ;
 							}
 
-							var uiThread = System.Threading.Tasks.TaskScheduler.FromCurrentSynchronizationContext();
-
 							System.Threading.Tasks.Task.Factory.StartNew(() =>
 								{
 									Bitmap bitmap = null;
@@ -1145,7 +1146,7 @@ namespace Windawesome
 
 									return bitmap;
 								}).ContinueWith(t => action(t.Result), System.Threading.CancellationToken.None,
-									System.Threading.Tasks.TaskContinuationOptions.None, uiThread);
+									System.Threading.Tasks.TaskContinuationOptions.None, uiThreadTaskScheduler);
 						};
 
 					if (NativeMethods.SendMessageCallback(hWnd1, NativeMethods.WM_QUERYDRAGICON, UIntPtr.Zero,
