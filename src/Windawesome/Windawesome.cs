@@ -137,7 +137,7 @@ namespace Windawesome
 			temporarilyShownWindows = new HashSet<IntPtr>();
 
 			// add all windows to their respective workspace
-			NativeMethods.EnumDesktopWindows(IntPtr.Zero, (hWnd, _) => (NativeMethods.IsWindowVisible(hWnd) && AddWindowToWorkspace(hWnd)) || true, IntPtr.Zero);
+			NativeMethods.EnumDesktopWindows(IntPtr.Zero, (hWnd, _) => AddWindowToWorkspace(hWnd) || true, IntPtr.Zero);
 
 			WindawesomeExiting += OnWindawesomeExiting;
 
@@ -344,15 +344,17 @@ namespace Windawesome
 					}
 				}
 
-				LinkedList<Tuple<IntPtr, string, string, NativeMethods.WS, NativeMethods.WS_EX>> ownedList = null;
+				var is64BitProcess = NativeMethods.Is64BitProcess(hWnd);
+				LinkedList<Window>[] ownedLists = null;
 
+				int i;
 				if (programRule.handleOwnedWindows)
 				{
-					ownedList = new LinkedList<Tuple<IntPtr, string, string, NativeMethods.WS, NativeMethods.WS_EX>>();
+					ownedLists = matchingRules.Select(_ => new LinkedList<Window>()).ToArray();
 
 					NativeMethods.EnumDesktopWindows(IntPtr.Zero, (h, hOwner) =>
 						{
-							if (NativeMethods.IsWindowVisible(h))
+							if (IsAppWindow(h))
 							{
 								var owner = h;
 								do
@@ -367,14 +369,17 @@ namespace Windawesome
 									var displayNameOwned = NativeMethods.GetText(h);
 									var styleOwned = NativeMethods.GetWindowStyleLongPtr(h);
 									var exStyleOwned = NativeMethods.GetWindowExStyleLongPtr(h);
-									ownedList.AddLast(new Tuple<IntPtr, string, string, NativeMethods.WS, NativeMethods.WS_EX>
-										(h, classNameOwned, displayNameOwned, styleOwned, exStyleOwned));
+									var ownedMenu = NativeMethods.GetMenu(h);
+									i = 0;
+									matchingRules.ForEach(rule =>
+										ownedLists[i++].AddLast(new Window(h, classNameOwned, displayNameOwned, processName,
+											workspacesCount, is64BitProcess, styleOwned, exStyleOwned, null, rule, programRule, ownedMenu)));
 								}
 							}
 							return true;
 						}, hWnd);
 
-					if (ownedList.Count == 0)
+					if (ownedLists[0].Count == 0)
 					{
 						if (firstTry && finishedInitializing)
 						{
@@ -402,23 +407,24 @@ namespace Windawesome
 						NativeMethods.RedrawWindowFlags.RDW_INVALIDATE);
 				}
 
-				var is64BitProcess = NativeMethods.Is64BitProcess(hWnd);
-
 				var list = new LinkedList<Tuple<Workspace, Window>>();
-
 				applications[hWnd] = list;
 
+				var menu = NativeMethods.GetMenu(hWnd);
+				i = 0;
 				foreach (var rule in matchingRules)
 				{
-					var newOwnedList = ownedList == null ? null :
-						new LinkedList<Window>(ownedList.Select(w => new Window(w.Item1, w.Item2, w.Item3, processName,
-							workspacesCount, is64BitProcess, w.Item4, w.Item5, null, rule, programRule)));
 					var window = new Window(hWnd, className, displayName, processName, workspacesCount,
-						is64BitProcess, style, exStyle, newOwnedList, rule, programRule);
+						is64BitProcess, style, exStyle, ownedLists == null ? null : ownedLists[i++], rule, programRule, menu);
 
 					list.AddLast(new Tuple<Workspace, Window>(config.Workspaces[rule.workspace], window));
 
 					config.Workspaces[rule.workspace].WindowCreated(window);
+				}
+
+				if (!programRule.showMenu)
+				{
+					list.First.Value.Item2.DoForSelfOrOwned(w => w.ShowWindowMenu());
 				}
 
 				return true;
@@ -485,14 +491,16 @@ namespace Windawesome
 						if (NativeMethods.AttachThreadInput(windawesomeThreadId, foregroundWindowThread, true))
 						{
 							successfullyChanged = TrySetForegroundWindow(hWnd);
-							NativeMethods.AttachThreadInput(windawesomeThreadId, foregroundWindowThread, false);
+							if (!NativeMethods.AttachThreadInput(windawesomeThreadId, foregroundWindowThread, false))
+							{
+							}
 						}
 					}
 					
 					if (!successfullyChanged)
 					{
-						SendHotkey(uniqueHotkey);
 						forceForegroundWindow = hWnd;
+						SendHotkey(uniqueHotkey);
 					}
 				}
 			}
@@ -877,6 +885,13 @@ namespace Windawesome
 			LinkedList<Tuple<Workspace, Window>> list;
 			if (applications.TryGetValue(hWnd, out list))
 			{
+				list.First.Value.Item2.DoForSelfOrOwned(w =>
+					{
+						if (!w.ShowMenu)
+						{
+							NativeMethods.DestroyMenu(w.menu);
+						}
+					});
 				list.ForEach(tuple => tuple.Item1.WindowDestroyed(tuple.Item2));
 				applications.Remove(hWnd);
 				temporarilyShownWindows.Remove(hWnd);
@@ -955,6 +970,11 @@ namespace Windawesome
 		public void ToggleTaskbarVisibility()
 		{
 			config.Workspaces[0].ToggleWindowsTaskbarVisibility();
+		}
+
+		public void ToggleShowHideWindowMenu(IntPtr hWnd)
+		{
+			config.Workspaces[0].ToggleShowHideWindowMenu(hWnd);
 		}
 
 		public void SwitchToApplication(IntPtr hWnd)
@@ -1256,7 +1276,7 @@ namespace Windawesome
 			}
 		}
 
-		private bool inShellMessage;
+		public bool inShellMessage;
 		protected override void WndProc(ref Message m)
 		{
 			HandleMessageDelegate messageDelegate;

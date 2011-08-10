@@ -16,7 +16,7 @@ namespace Windawesome
 			return "Floating";
 		}
 
-		bool ILayout.ShouldRestoreSharedWindowsPosition()
+		bool ILayout.ShouldSaveAndRestoreSharedWindowsPosition()
 		{
 			return true;
 		}

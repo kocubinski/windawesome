@@ -63,9 +63,29 @@ namespace Windawesome
 				get
 				{
 					var createParams = base.CreateParams;
-					// make the bar not activatable
+					// make the form not activatable
 					createParams.ExStyle |= (int) NativeMethods.WS_EX.WS_EX_NOACTIVATE;
 					return createParams;
+				}
+			}
+
+			protected override bool ShowWithoutActivation
+			{
+				get
+				{
+					return true;
+				}
+			}
+
+			protected override void WndProc(ref Message m)
+			{
+				if (m.Msg == NativeMethods.WM_MOUSEACTIVATE)
+				{
+					m.Result = NativeMethods.MA_NOACTIVATE;
+				}
+				else
+				{
+					base.WndProc(ref m);
 				}
 			}
 		}

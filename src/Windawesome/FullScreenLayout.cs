@@ -43,7 +43,7 @@ namespace Windawesome
 			return "Full Screen";
 		}
 
-		bool ILayout.ShouldRestoreSharedWindowsPosition()
+		bool ILayout.ShouldSaveAndRestoreSharedWindowsPosition()
 		{
 			return false;
 		}

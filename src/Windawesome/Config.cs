@@ -14,7 +14,6 @@ namespace Windawesome
 	{
 		public IPlugin[] Plugins { get; set; }
 		public IBar[] Bars { get; set; }
-		public ILayout[] Layouts { get; set; }
 		public int WorkspacesCount { get; set; }
 		public Workspace[] Workspaces { get; set; }
 		public int StartingWorkspace { get; set; }
@@ -130,7 +129,7 @@ namespace Windawesome
 				return null;
 			}
 
-			internal static void LoadAll(Windawesome windawesome, Config config, IEnumerable<FileInfo> files)
+			public static void LoadAll(Windawesome windawesome, Config config, IEnumerable<FileInfo> files)
 			{
 				ScriptScope scope = null;
 				ScriptEngine previousLanguage = null;
@@ -196,6 +195,7 @@ namespace Windawesome
 		internal readonly bool handleOwnedWindows;
 		internal readonly bool hideOwnedPopups;
 		internal readonly bool redrawDesktopOnWindowCreated;
+		internal readonly bool showMenu;
 		internal readonly OnWindowShownAction onWindowCreatedAction;
 		internal readonly OnWindowShownAction onHiddenWindowShownAction;
 		internal readonly Rule[] rules;
@@ -221,7 +221,7 @@ namespace Windawesome
 			CustomMatchingFunction customMatchingFunction = null,
 
 			bool isManaged = true, int tryAgainAfter = -1, int windowCreatedDelay = 0, bool handleOwnedWindows = false,
-			bool hideOwnedPopups = true, bool redrawDesktopOnWindowCreated = false,
+			bool hideOwnedPopups = true, bool redrawDesktopOnWindowCreated = false, bool showMenu = true,
 			OnWindowShownAction onWindowCreatedAction = OnWindowShownAction.SwitchToWindowsWorkspace,
 			OnWindowShownAction onHiddenWindowShownAction = OnWindowShownAction.SwitchToWindowsWorkspace,
 			int showOnWorkspacesCount = 0, IEnumerable<Rule> rules = null)
@@ -243,6 +243,7 @@ namespace Windawesome
 				this.handleOwnedWindows = handleOwnedWindows;
 				this.hideOwnedPopups = hideOwnedPopups;
 				this.redrawDesktopOnWindowCreated = redrawDesktopOnWindowCreated;
+				this.showMenu = showMenu;
 				this.onWindowCreatedAction = onWindowCreatedAction;
 				this.onHiddenWindowShownAction = onHiddenWindowShownAction;
 

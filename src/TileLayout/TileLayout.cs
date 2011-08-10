@@ -315,7 +315,7 @@ namespace Windawesome
 			return "Tile";
 		}
 
-		bool ILayout.ShouldRestoreSharedWindowsPosition()
+		bool ILayout.ShouldSaveAndRestoreSharedWindowsPosition()
 		{
 			return false;
 		}

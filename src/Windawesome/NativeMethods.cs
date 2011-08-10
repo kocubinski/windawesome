@@ -173,6 +173,8 @@ namespace Windawesome
 			SMTO_ERRORONEXIT = 0x0020
 		}
 
+		public const int WM_MOUSEACTIVATE = 0x0021;
+		public static readonly IntPtr MA_NOACTIVATE = (IntPtr) 0x0003;
 		public const uint WM_SYSCOMMAND = 0x0112;
 		public static readonly IntPtr WM_LBUTTONDBLCLK = (IntPtr) 0x0203;
 		public static readonly IntPtr WM_RBUTTONDBLCLK = (IntPtr) 0x0206;
@@ -360,10 +362,22 @@ namespace Windawesome
 		public static extern bool IsWindow([Optional] IntPtr hWnd);
 
 		[DllImport("user32.dll")]
-		public static extern IntPtr GetDesktopWindow();
+		public static extern IntPtr GetShellWindow();
+
+		#region GetMenu/SetMenu/DestroyMenu
 
 		[DllImport("user32.dll")]
 		public static extern IntPtr GetMenu(IntPtr hWnd);
+
+		[DllImport("user32.dll")]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		public static extern bool SetMenu(IntPtr hWnd, [Optional] IntPtr hMenu);
+
+		[DllImport("user32.dll")]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		public static extern bool DestroyMenu(IntPtr hMenu);
+
+		#endregion
 
 		[DllImport("user32.dll")]
 		public static extern IntPtr GetParent(IntPtr hWnd);

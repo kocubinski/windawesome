@@ -13,14 +13,17 @@ namespace Windawesome
 		private Label layoutLabel;
 		private readonly Color backgroundColor;
 		private readonly Color foregroundColor;
+		private Action onClick;
 		private Bar bar;
 		private int left, right;
 		private bool isLeft;
 
-		public LayoutWidget(Color? backColor = null, Color? foreColor = null)
+		public LayoutWidget(Color? backColor = null, Color? foreColor = null, Action onClick = null)
 		{
 			backgroundColor = backColor ?? Color.FromArgb(0x99, 0xB4, 0xD1);
 			foregroundColor = foreColor ?? Color.FromArgb(0x00, 0x00, 0x00);
+
+			this.onClick = onClick;
 		}
 
 		private void OnUpdateLayoutLabel()
@@ -33,12 +36,6 @@ namespace Windawesome
 				this.RepositionControls(left, right);
 				bar.DoFixedWidthWidgetWidthChanged(this);
 			}
-		}
-
-		private static void LayoutLabelClick(object sender, EventArgs e)
-		{
-			windawesome.CurrentWorkspace.ChangeLayout(
-				config.Layouts[(Array.IndexOf(config.Layouts, windawesome.CurrentWorkspace.Layout) + 1) % config.Layouts.Length]);
 		}
 
 		#region IWidget Members
@@ -59,7 +56,10 @@ namespace Windawesome
 			layoutLabel.TextAlign = ContentAlignment.MiddleCenter;
 			layoutLabel.BackColor = backgroundColor;
 			layoutLabel.ForeColor = foregroundColor;
-			layoutLabel.Click += LayoutLabelClick;
+			if (onClick != null)
+			{
+				layoutLabel.Click += (_1, _2) => onClick();
+			}
 		}
 
 		IEnumerable<Control> IWidget.GetControls(int left, int right)

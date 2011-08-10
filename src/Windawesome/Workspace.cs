@@ -520,7 +520,7 @@ namespace Windawesome
 			}
 
 			// sets the layout- and workspace-specific changes to the windows
-			sharedWindows.ForEach(SetSharedWindowChanges);
+			sharedWindows.ForEach(RestoreSharedWindowState);
 			if (removedSharedWindows.Count > 0)
 			{
 				removedSharedWindows.ForEach(w => sharedWindows.Remove(w));
@@ -541,17 +541,25 @@ namespace Windawesome
 
 		internal void Unswitch()
 		{
-			sharedWindows.ForEach(window => window.SavePosition());
+			sharedWindows.ForEach(SaveSharedWindowState);
 
 			IsCurrentWorkspace = false;
 
 			DoWorkspaceChangedFrom(this);
 		}
 
-		private void SetSharedWindowChanges(Window window)
+		private void SaveSharedWindowState(Window window)
+		{
+			if (!repositionOnSwitchedTo || window.IsFloating || Layout.ShouldSaveAndRestoreSharedWindowsPosition())
+			{
+				window.SavePosition();
+			}
+		}
+
+		private void RestoreSharedWindowState(Window window)
 		{
 			window.Initialize();
-			if ((!hasChanges && !repositionOnSwitchedTo) || window.IsFloating || Layout.ShouldRestoreSharedWindowsPosition())
+			if ((!hasChanges && !repositionOnSwitchedTo) || window.IsFloating || Layout.ShouldSaveAndRestoreSharedWindowsPosition())
 			{
 				window.RestorePosition();
 			}
@@ -706,7 +714,7 @@ namespace Windawesome
 			}
 			else
 			{
-				Windawesome.ForceForegroundWindow(NativeMethods.GetDesktopWindow());
+				Windawesome.ForceForegroundWindow(NativeMethods.GetShellWindow());
 			}
 		}
 
@@ -944,6 +952,15 @@ namespace Windawesome
 			}
 		}
 
+		internal void ToggleShowHideWindowMenu(IntPtr hWnd)
+		{
+			var window = GetWindow(hWnd);
+			if (window != null)
+			{
+				window.ToggleShowHideWindowMenu();
+			}
+		}
+
 		internal void Initialize(bool startingWorkspace)
 		{
 			// I'm adding to the front of the list in WindowCreated, however EnumWindows enums
@@ -1054,7 +1071,9 @@ namespace Windawesome
 		public readonly bool redrawOnShow;
 		public readonly bool activateLastActivePopup;
 		public readonly bool hideOwnedPopups;
+		public bool ShowMenu { get; internal set; }
 		public readonly OnWindowShownAction onHiddenWindowShownAction;
+		public readonly IntPtr menu;
 
 		internal readonly LinkedList<Window> ownedWindows;
 
@@ -1067,7 +1086,8 @@ namespace Windawesome
 		private readonly NativeMethods.WINDOWPLACEMENT originalWindowPlacement;
 
 		internal Window(IntPtr hWnd, string className, string displayName, string processName, int workspacesCount, bool is64BitProcess,
-			NativeMethods.WS originalStyle, NativeMethods.WS_EX originalExStyle, LinkedList<Window> ownedWindows, ProgramRule.Rule rule, ProgramRule programRule)
+			NativeMethods.WS originalStyle, NativeMethods.WS_EX originalExStyle, LinkedList<Window> ownedWindows, ProgramRule.Rule rule, ProgramRule programRule,
+			IntPtr menu)
 		{
 			this.hWnd = hWnd;
 			IsFloating = rule.isFloating;
@@ -1084,7 +1104,9 @@ namespace Windawesome
 			redrawOnShow = rule.redrawOnShow;
 			activateLastActivePopup = rule.activateLastActivePopup;
 			hideOwnedPopups = programRule.hideOwnedPopups;
+			ShowMenu = programRule.showMenu;
 			onHiddenWindowShownAction = programRule.onHiddenWindowShownAction;
+			this.menu = menu;
 
 			this.ownedWindows = ownedWindows;
 
@@ -1125,7 +1147,9 @@ namespace Windawesome
 			redrawOnShow = window.redrawOnShow;
 			activateLastActivePopup = window.activateLastActivePopup;
 			hideOwnedPopups = window.hideOwnedPopups;
+			ShowMenu = window.ShowMenu;
 			onHiddenWindowShownAction = window.onHiddenWindowShownAction;
+			menu = window.menu;
 
 			if (window.ownedWindows != null)
 			{
@@ -1211,6 +1235,12 @@ namespace Windawesome
 			Initialize();
 		}
 
+		internal void ToggleShowHideWindowMenu()
+		{
+			ShowMenu = !ShowMenu;
+			ShowWindowMenu();
+		}
+
 		internal void Redraw()
 		{
 			// this whole thing is a hack but I've found no other way to make it work (and I've tried
@@ -1288,6 +1318,21 @@ namespace Windawesome
 			NativeMethods.ShowWindowAsync(hWnd, NativeMethods.SW.SW_HIDE);
 		}
 
+		internal void ShowWindowMenu()
+		{
+			if (menu != IntPtr.Zero)
+			{
+				if (ShowMenu)
+				{
+					NativeMethods.SetMenu(hWnd, menu);
+				}
+				else
+				{
+					NativeMethods.SetMenu(hWnd, IntPtr.Zero);
+				}
+			}
+		}
+
 		internal void DoForSelfOrOwned(Action<Window> action)
 		{
 			if (ownedWindows != null)
@@ -1315,6 +1360,11 @@ namespace Windawesome
 				this.WindowBorders = State.SHOWN;
 			}
 			Initialize();
+
+			if (!ShowMenu)
+			{
+				ToggleShowHideWindowMenu();
+			}
 
 			windowPlacement = originalWindowPlacement;
 			RestorePosition();

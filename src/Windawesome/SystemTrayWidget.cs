@@ -298,7 +298,7 @@ namespace Windawesome
 			{
 				if (Windawesome.isAtLeast7)
 				{
-					NativeMethods.ChangeWindowMessageFilterEx(Windawesome.HandleStatic, NativeMethods.WM_COPYDATA, NativeMethods.MSGFLT_ADD, IntPtr.Zero);
+					NativeMethods.ChangeWindowMessageFilterEx(windawesome.Handle, NativeMethods.WM_COPYDATA, NativeMethods.MSGFLT_ADD, IntPtr.Zero);
 				}
 				else
 				{
@@ -307,7 +307,7 @@ namespace Windawesome
 			}
 
 			// system tray hook
-			if (NativeMethods.RegisterSystemTrayHook(Windawesome.HandleStatic))
+			if (NativeMethods.RegisterSystemTrayHook(windawesome.Handle))
 			{
 				Windawesome.RegisterMessage(NativeMethods.WM_COPYDATA, OnSystemTrayMessage);
 			}
