@@ -325,7 +325,7 @@ namespace Windawesome
 			if (this.windows.Count != windows.Count() || !new HashSet<Window>(this.windows).SetEquals(new HashSet<Window>(windows)))
 			{
 				// restore any maximized windows - should not use SW_RESTORE as it activates the window
-				windows.ForEach(window => NativeMethods.ShowWindowAsync(window.hWnd, NativeMethods.SW.SW_SHOWNOACTIVATE));
+				windows.ForEach(w => NativeMethods.ShowWindowAsync(w.hWnd, NativeMethods.SW.SW_SHOWNOACTIVATE));
 				System.Threading.Thread.Sleep(Workspace.minimizeRestoreDelay);
 
 				this.windows = new LinkedList<Window>(windows);

@@ -133,7 +133,7 @@ namespace Windawesome
 
 			workspaces = config.Workspaces.Resize(config.Workspaces.Length + 1);
 			workspaces[0] = workspaces[config.StartingWorkspace];
-			PreviousWorkspace = workspaces[0].id;
+			PreviousWorkspace = CurrentWorkspace.id;
 
 			config.Bars.ForEach(b => b.InitializeBar(this, config));
 			config.Plugins.ForEach(p => p.InitializePlugin(this, config));
@@ -193,13 +193,12 @@ namespace Windawesome
 			// set UI thread task scheduler
 			uiThreadTaskScheduler = System.Threading.Tasks.TaskScheduler.FromCurrentSynchronizationContext();
 
-			// TODO: use ws as workspace and w as window
 			// initialize all workspaces
-			foreach (var ws in config.Workspaces.Where(ws => ws.id != config.StartingWorkspace))
+			foreach (var workspace in config.Workspaces.Where(ws => ws.id != config.StartingWorkspace))
 			{
-				ws.GetWindows().Where(w =>
+				workspace.GetWindows().Where(w =>
 					hiddenApplications.AddUnique(w.hWnd) == HashMultiSet<IntPtr>.AddResult.AddedFirst).ForEach(w => w.Hide());
-				ws.Initialize(false);
+				workspace.Initialize(false);
 			}
 			CurrentWorkspace.Initialize(true);
 
@@ -468,8 +467,7 @@ namespace Windawesome
 				}, IntPtr.Zero);
 
 			// remove all non-existent applications
-			applications.Keys.Unless(set.Contains).ToArray().
-				ForEach(RemoveApplicationFromAllWorkspaces);
+			applications.Keys.Unless(set.Contains).ToArray().ForEach(RemoveApplicationFromAllWorkspaces);
 		}
 
 		internal static void ForceForegroundWindow(Window window)
@@ -702,7 +700,7 @@ namespace Windawesome
 			var winPosInfo = NativeMethods.BeginDeferWindowPos(showWindows.Count + oldWorkspace.GetWindows().Count);
 
 			var newTopmostWindow = newWorkspace.GetTopmostWindow();
-			foreach (var window in newWorkspace.GetWindows().Where(WindowIsNotHung))
+			foreach (var window in showWindows.Where(WindowIsNotHung))
 			{
 				winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, window.hWnd, IntPtr.Zero, 0, 0, 0, 0,
 					(window == newTopmostWindow ? 0 : NativeMethods.SWP.SWP_NOACTIVATE) | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE |
@@ -900,7 +898,7 @@ namespace Windawesome
 							NativeMethods.DestroyMenu(w.menu);
 						}
 					});
-				list.ForEach(tuple => tuple.Item1.WindowDestroyed(tuple.Item2));
+				list.ForEach(t => t.Item1.WindowDestroyed(t.Item2));
 				applications.Remove(hWnd);
 				temporarilyShownWindows.Remove(hWnd);
 			}

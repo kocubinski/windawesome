@@ -52,12 +52,15 @@ namespace Windawesome
 		private sealed class AppBarNativeWindow : NativeWindow
 		{
 			public readonly int Height;
+
 			private NativeMethods.RECT rect;
 			private bool visible;
 			private IEnumerable<IBar> bars;
 			private readonly uint callbackMessageNum;
 			private readonly NativeMethods.ABE edge;
 			private bool isTopMost;
+
+			private static uint count;
 
 			public AppBarNativeWindow(int barHeight, bool topBar)
 			{
@@ -68,7 +71,7 @@ namespace Windawesome
 
 				this.CreateHandle(new CreateParams { Parent = NativeMethods.HWND_MESSAGE });
 
-				callbackMessageNum = NativeMethods.RegisterWindowMessage("APP_BAR_MESSAGE_" + this.Handle);
+				callbackMessageNum = NativeMethods.WM_USER + ++count;
 
 				// register as AppBar
 				var appBarData = new NativeMethods.APPBARDATA
@@ -422,7 +425,7 @@ namespace Windawesome
 			if (appBarTopWindows != null) // if this is not the first time calling this function, i.e. a bar is hidden/shown by the user
 			{
 				// this statement uses the laziness of Where
-				appBarTopWindows.Concat(appBarBottomWindows).Where(nw => nw != null && nw.Handle != IntPtr.Zero).ForEach(ab => ab.Destroy());
+				appBarTopWindows.Concat(appBarBottomWindows).Where(ab => ab != null && ab.Handle != IntPtr.Zero).ForEach(ab => ab.Destroy());
 			}
 			appBarTopWindows = new AppBarNativeWindow[workspacesCount];
 			appBarBottomWindows = new AppBarNativeWindow[workspacesCount];
@@ -585,7 +588,7 @@ namespace Windawesome
 			NativeMethods.EndDeferWindowPos(winPosInfo);
 
 			// and only after that hide the old ones to avoid flickering
-			shownBars.Except(barsAtTop.Concat(barsAtBottom)).ForEach(bar => bar.Hide());
+			shownBars.Except(barsAtTop.Concat(barsAtBottom)).ForEach(b => b.Hide());
 
 			shownBars = barsAtTop.Concat(barsAtBottom);
 		}
