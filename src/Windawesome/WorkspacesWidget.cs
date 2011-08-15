@@ -176,7 +176,7 @@ namespace Windawesome
 
 			isShown = false;
 
-			workspaceLabels = new Label[config.WorkspacesCount];
+			workspaceLabels = new Label[config.Workspaces.Length];
 
 			Workspace.WorkspaceApplicationAdded += SetWorkspaceLabelColor;
 			Workspace.WorkspaceApplicationRemoved += SetWorkspaceLabelColor;
@@ -184,15 +184,15 @@ namespace Windawesome
 			Workspace.WorkspaceChangedFrom += OnWorkspaceChangedFromTo;
 			Workspace.WorkspaceChangedTo += OnWorkspaceChangedFromTo;
 
-			for (var i = 1; i < config.Workspaces.Length; i++)
+			for (var i = 0; i < config.Workspaces.Length; i++)
 			{
 				var workspace = config.Workspaces[i];
-				var name = i + (workspace.name == "" ? "" : ":" + workspace.name);
+				var name = (i + 1) + (workspace.name == "" ? "" : ":" + workspace.name);
 
 				var label = bar.CreateLabel(" " + name + " ", 0);
 				label.TextAlign = ContentAlignment.MiddleCenter;
 				label.Click += OnWorkspaceLabelClick;
-				workspaceLabels[i - 1] = label;
+				workspaceLabels[i] = label;
 				SetWorkspaceLabelColor(workspace, null);
 			}
 		}
@@ -211,7 +211,7 @@ namespace Windawesome
 			if (isLeft)
 			{
 				this.left = left;
-				for (var i = 1; i <= config.WorkspacesCount; i++)
+				for (var i = 1; i <= config.Workspaces.Length; i++)
 				{
 					var label = workspaceLabels[i - 1];
 					label.Location = new Point(left, 0);
@@ -222,7 +222,7 @@ namespace Windawesome
 			else
 			{
 				this.right = right;
-				for (var i = config.WorkspacesCount; i > 0; i--)
+				for (var i = config.Workspaces.Length; i > 0; i--)
 				{
 					var label = workspaceLabels[i - 1];
 					right -= label.Width;
@@ -246,7 +246,7 @@ namespace Windawesome
 		{
 			isShown = true;
 
-			SetWorkspaceLabelColor(config.Workspaces[0], null);
+			SetWorkspaceLabelColor(windawesome.CurrentWorkspace, null);
 		}
 
 		void IWidget.WidgetHidden()
@@ -257,7 +257,7 @@ namespace Windawesome
 			{
 				flashingWindows.Values.ForEach(w => SetWorkspaceLabelColor(w, null));
 			}
-			SetWorkspaceLabelColor(config.Workspaces[0], null);
+			SetWorkspaceLabelColor(windawesome.CurrentWorkspace, null);
 		}
 
 		void IWidget.StaticDispose()

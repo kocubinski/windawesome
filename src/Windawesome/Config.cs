@@ -14,22 +14,21 @@ namespace Windawesome
 	{
 		public IPlugin[] Plugins { get; set; }
 		public IBar[] Bars { get; set; }
-		public int WorkspacesCount { get; set; }
 		public Workspace[] Workspaces { get; set; }
 		public int StartingWorkspace { get; set; }
 		public ProgramRule[] ProgramRules { get; set; }
-		public int BorderWidth { get; set; }
-		public int PaddedBorderWidth { get; set; }
+		public int WindowBorderWidth { get; set; }
+		public int WindowPaddedBorderWidth { get; set; }
 		public Tuple<NativeMethods.MOD, System.Windows.Forms.Keys> UniqueHotkey { get; set; }
 
 		internal Config()
 		{
 			this.StartingWorkspace = 1;
-			this.BorderWidth = -1;
-			this.PaddedBorderWidth = -1;
+			this.WindowBorderWidth = -1;
+			this.WindowPaddedBorderWidth = -1;
 		}
 
-		internal void LoadPlugins(Windawesome windawesome)
+		internal void LoadConfiguration(Windawesome windawesome)
 		{
 			const string layoutsDirName = "Layouts";
 			const string widgetsDirName = "Widgets";
@@ -216,8 +215,8 @@ namespace Windawesome
 		}
 
 		public ProgramRule(string className = ".*", string displayName = ".*", string processName = ".*",
-			NativeMethods.WS styleContains = (NativeMethods.WS) 0, NativeMethods.WS styleNotContains = (NativeMethods.WS) 0,
-			NativeMethods.WS_EX exStyleContains = (NativeMethods.WS_EX) 0, NativeMethods.WS_EX exStyleNotContains = (NativeMethods.WS_EX) 0,
+			NativeMethods.WS styleContains = 0, NativeMethods.WS styleNotContains = 0,
+			NativeMethods.WS_EX exStyleContains = 0, NativeMethods.WS_EX exStyleNotContains = 0,
 			CustomMatchingFunction customMatchingFunction = null,
 
 			bool isManaged = true, int tryAgainAfter = -1, int windowCreatedDelay = 0, bool handleOwnedWindows = false,

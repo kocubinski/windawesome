@@ -278,9 +278,9 @@ namespace Windawesome
 
 			currentlyHighlightedPanel = null;
 
-			mustResize = new bool[config.WorkspacesCount];
-			applicationPanels = new Dictionary<IntPtr, Panel>[config.WorkspacesCount];
-			for (var i = 0; i < config.WorkspacesCount; i++)
+			mustResize = new bool[config.Workspaces.Length];
+			applicationPanels = new Dictionary<IntPtr, Panel>[config.Workspaces.Length];
+			for (var i = 0; i < config.Workspaces.Length; i++)
 			{
 				applicationPanels[i] = new Dictionary<IntPtr, Panel>(3);
 			}
@@ -299,7 +299,7 @@ namespace Windawesome
 			this.left = left;
 			this.right = right;
 
-			for (var i = 0; i < config.WorkspacesCount; i++)
+			for (var i = 0; i < config.Workspaces.Length; i++)
 			{
 				mustResize[i] = true;
 			}
@@ -320,12 +320,12 @@ namespace Windawesome
 		void IWidget.WidgetShown()
 		{
 			isShown = true;
-			OnWorkspaceChangedTo(config.Workspaces[0]);
+			OnWorkspaceChangedTo(windawesome.CurrentWorkspace);
 		}
 
 		void IWidget.WidgetHidden()
 		{
-			OnWorkspaceChangedFrom(config.Workspaces[0]);
+			OnWorkspaceChangedFrom(windawesome.CurrentWorkspace);
 			isShown = false;
 		}
 

@@ -128,8 +128,8 @@ namespace Windawesome
 			Workspace.WorkspaceLayoutChanged += OnWorkspaceLayoutChanged;
 			this.windawesome = windawesome;
 
-			subclassedWindows = new HashMultiSet<Window>[config.WorkspacesCount];
-			for (var i = 0; i < config.WorkspacesCount; i++)
+			subclassedWindows = new HashMultiSet<Window>[config.Workspaces.Length];
+			for (var i = 0; i < config.Workspaces.Length; i++)
 			{
 				subclassedWindows[i] = new HashMultiSet<Window>();
 			}

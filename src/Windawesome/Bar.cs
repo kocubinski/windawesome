@@ -359,7 +359,7 @@ namespace Windawesome
 			}
 			rightmostLeftAlign = x;
 
-			x = this.form.Size.Width;
+			x = this.form.ClientSize.Width; // TODO: should this be Size or ClientSize?
 			foreach (var controls in this.rightAlignedWidgets.Reverse().Select(widget => widget.GetControls(-1, x)))
 			{
 				controls.ForEach(this.form.Controls.Add);
