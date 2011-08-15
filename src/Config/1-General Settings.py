@@ -7,6 +7,14 @@ from Windawesome.NativeMethods import MOD
 from System import Tuple
 from System.Windows.Forms import Keys
 
+def onLayoutLabelClick():
+	if windawesome.CurrentWorkspace.Layout.LayoutName() == "Full Screen":
+		windawesome.CurrentWorkspace.ChangeLayout(FloatingLayout())
+	elif windawesome.CurrentWorkspace.Layout.LayoutName() == "Floating":
+		windawesome.CurrentWorkspace.ChangeLayout(TileLayout())
+	else:
+		windawesome.CurrentWorkspace.ChangeLayout(FullScreenLayout())
+
 config.WindowBorderWidth = 1
 config.WindowPaddedBorderWidth = 0
 
@@ -14,12 +22,12 @@ config.UniqueHotkey = Tuple[MOD, Keys](MOD.MOD_ALT, Keys.D0)
 
 config.Bars = Enumerable.ToArray[Bar]([
 	Bar(
-		[WorkspacesWidget(), LayoutWidget()],
+		[WorkspacesWidget(), LayoutWidget(onClick = onLayoutLabelClick)],
 		[SystemTrayWidget(True), DateTimeWidget("ddd, d-MMM"), DateTimeWidget("h:mm tt", Color.FromArgb(0xA8, 0xA8, 0xA8))],
 		[ApplicationTabsWidget()]
 	),
 	Bar(
-		[WorkspacesWidget(), LayoutWidget()],
+		[WorkspacesWidget(), LayoutWidget(onClick = onLayoutLabelClick)],
 		[SystemTrayWidget(), DateTimeWidget("ddd, d-MMM"), DateTimeWidget("h:mm tt", Color.FromArgb(0xA8, 0xA8, 0xA8))],
 		[ApplicationTabsWidget()]
 	)

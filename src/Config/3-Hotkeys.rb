@@ -114,17 +114,17 @@ end
 
 # change layout to Tile
 subscribe modifiers.Alt | modifiers.Shift, key.T do
-	windawesome.current_workspace.change_layout config.layouts[0]
+	windawesome.current_workspace.change_layout Windawesome::TileLayout.new
 end
 
 # change layout to Full Screen
 subscribe modifiers.Alt | modifiers.Shift, key.M do
-	windawesome.current_workspace.change_layout config.layouts[1]
+	windawesome.current_workspace.change_layout Windawesome::FullScreenLayout.new
 end
 
 # change layout to Floating
 subscribe modifiers.Alt | modifiers.Shift, key.F do
-	windawesome.current_workspace.change_layout config.layouts[2]
+	windawesome.current_workspace.change_layout Windawesome::FloatingLayout.new
 end
 
 subscribe modifiers.Control | modifiers.Alt | modifiers.Shift, key.Q do
