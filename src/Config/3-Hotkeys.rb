@@ -54,7 +54,7 @@ end
 
 # switch to previous workspace
 subscribe modifiers.Alt, key.Oemtilde do
-	windawesome.switch_to_workspace Windawesome::Windawesome.previous_workspace
+	windawesome.switch_to_workspace windawesome.previous_workspace
 end
 
 # start Firefox
@@ -172,7 +172,7 @@ subscribe modifiers.Control | modifiers.Alt | modifiers.Shift, key.Return do
 	end
 end
 
-(1 .. config.workspaces_count).each do |i|
+(1 .. config.workspaces.length).each do |i|
 	k = eval("key.D" + i.to_s)
 
 	subscribe modifiers.Alt, k do

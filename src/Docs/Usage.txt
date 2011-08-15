@@ -1,6 +1,8 @@
 
 Windawesome
 
+http://windawesome.codeplex.com
+
 Windawesome (pronounced - contrary to what you would expect from the way it is written - Windows-om, not Wind-awesome) is a highly customizable dynamic window manager for Windows, which works on top of explorer.exe and NOT as a shell replacement. It is heavily inspired by Bug.n, but it goes much furthur. Windawesome is (mostly) written in C# and is scriptable and pluggable in IronRuby, IronPython and any .NET language that compiles down to an assembly. Requires .NET Framework 4 Client Profile, Visual C++ 2010 Redistributable and IronRuby/IronPython DLLs. The main bundle comes with 3 configuration files (2 in Python, 1 in Ruby), 3 layouts (2 built-in and one as a C# DLL), a couple of Plugins and some Widgets, one of which is written in Ruby. Works with 32- and 64-bit versions of Windows XP, Vista and 7. Goes under the GNU General Public License version 2.
 
 Installation:
@@ -22,16 +24,14 @@ Configuration files are read in order so if you use something in one file from a
 
 Config:
 This is the global configuration unit of Windawesome. These instance variables are set in the configuration files and should ALL be given values.
-plugins - an array of IPlugin objects
-bars - an array of IBar objects
-layouts - an array of ILayout objects
-workspaces - an array of Workspace objects
-workspacesCount - the number of elements in the "workspaces" array
-startingWorkspace - the ID of the workspace to be shown when the application is run (1-based)
-programRules - an array of ProgramRule objects
-borderWidth - the thickness of the sizing border, in pixels. The default is 1 pixel
-paddedBorderWidth - the thickness of the padded border, in pixels. The default value is 4 pixels. Only in Vista or later
-uniqueHotkey - Windawesome uses this hotkey so it can switch to applications when you change workspaces (only if another method fails). Make sure you use a unique hotkey that is not in use by any other application. Windawesome will output a warning in a warnings.txt file if there is a problem registering this hotkey. The default one probably is fine (it is ALT+0)
+Plugins - an array of IPlugin objects
+Bars - an array of IBar objects
+Workspaces - an array of Workspace objects
+StartingWorkspace - the ID of the workspace to be shown when the application is run (1-based)
+ProgramRules - an array of ProgramRule objects
+WindowBorderWidth - the thickness of the sizing border, in pixels. The default is 1 pixel
+WindowPaddedBorderWidth - the thickness of the padded border, in pixels. The default value is 4 pixels. Only in Vista or later
+UniqueHotkey - Windawesome uses this hotkey so it can switch to applications when you change workspaces (only if another method fails). Make sure you use a unique hotkey that is not in use by any other application. Windawesome will output a warning in a warnings.txt file if there is a problem registering this hotkey. The default one probably is fine (it is ALT+0)
 
 ProgramRule:
 A program rule tells Windawesome how to treat any newly created window - this can be customized in a variety of ways:
@@ -94,7 +94,7 @@ Left and right aligned widgets SHOULD be of type IFixedWidthWidget (which means 
 Workspace:
 A workspace contains windows and bars and is displaying the windows in a particular layout.
 
-layout - the layout to be used to position windows
+layout - the layout to be used to position windows (make sure to use a new instance for each workspace)
 barsAtTop - a list of IBar objects to be visible at the top of this workspace
 barsAtBottom - a list of IBar objects to be visible at the bottom of this workspace
 name - a short, descriptive name that is going to be shown next to the workspace ID in the Workspaces Widget
@@ -171,6 +171,6 @@ Known bugs/limitations:
 - Whenever a label's text is longer than the width, ellipsis show. However, then the text alignment changes to Top or something. This is a bug in the .NET Framework since version 2.0 and hasn't been fixed even in 4.0. Should be relatively easy to fix that by drawing one's own text, but I won't bother.
 - There is a minor chance that the System Tray Widget is not going to work properly in some case. Let me know if that happens with the exact scenario.
 - Currently only one monitor is supported. Unfortunatelly I have only one and I cannot test it even if I wrote something for multimonitor support. Feel free to let me know if you know exactly how it should be done or if you want to do it. :)
-- Do not change the resolution of the monitor when Windawesome is running if you have other programs that dock to the end of the screen other than the Windows taskbar. It will not work right. First quit either Windawesome or the programs and then change the resolution.
+- Do not dock an application that is managed - when you change the workspace Windawesome will hide it but the working area will not reset. If you want to dock a window - make sure it is not managed.
 
-For any suggestions, complaints or the likes, feel free to write to boris underscore petrov at live dot com.
+For any suggestions, complaints or the likes, feel free to write to boris underscore petrov at live dot com or use the discussions/issues tabs on the website.

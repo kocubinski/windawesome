@@ -8,12 +8,11 @@ namespace Windawesome
 	public class LayoutWidget : IFixedWidthWidget
 	{
 		private static Windawesome windawesome;
-		private static Config config;
 
 		private Label layoutLabel;
 		private readonly Color backgroundColor;
 		private readonly Color foregroundColor;
-		private Action onClick;
+		private readonly Action onClick;
 		private Bar bar;
 		private int left, right;
 		private bool isLeft;
@@ -43,7 +42,6 @@ namespace Windawesome
 		void IWidget.StaticInitializeWidget(Windawesome windawesome, Config config)
 		{
 			LayoutWidget.windawesome = windawesome;
-			LayoutWidget.config = config;
 		}
 
 		void IWidget.InitializeWidget(Bar bar)

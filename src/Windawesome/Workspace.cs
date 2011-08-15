@@ -29,8 +29,6 @@ namespace Windawesome
 		private readonly LinkedList<Window> removedSharedWindows; // windows that need to be Initialized but then removed from shared
 		internal bool hasChanges;
 
-		private static readonly HashSet<IBar> registeredBars = new HashSet<IBar>();
-
 		private static int[] workspaceBarsEquivalentClasses;
 		private static AppBarNativeWindow[] appBarTopWindows;
 		private static AppBarNativeWindow[] appBarBottomWindows;
@@ -183,7 +181,7 @@ namespace Windawesome
 					NativeMethods.AdjustWindowRectEx(ref barRect, NativeMethods.GetWindowStyleLongPtr(bar.Handle),
 						NativeMethods.GetMenu(bar.Handle) != IntPtr.Zero, NativeMethods.GetWindowExStyleLongPtr(bar.Handle));
 
-					Size newSize = new Size(barRect.right - barRect.left, barRect.bottom - barRect.top);
+					var newSize = new Size(barRect.right - barRect.left, barRect.bottom - barRect.top);
 					winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, bar.Handle, NativeMethods.HWND_TOPMOST, barRect.left, barRect.top,
 						newSize.Width, newSize.Height, NativeMethods.SWP.SWP_NOACTIVATE);
 
@@ -1295,14 +1293,7 @@ namespace Windawesome
 		{
 			if (menu != IntPtr.Zero)
 			{
-				if (ShowMenu)
-				{
-					NativeMethods.SetMenu(hWnd, menu);
-				}
-				else
-				{
-					NativeMethods.SetMenu(hWnd, IntPtr.Zero);
-				}
+				NativeMethods.SetMenu(this.hWnd, this.ShowMenu ? this.menu : IntPtr.Zero);
 			}
 		}
 

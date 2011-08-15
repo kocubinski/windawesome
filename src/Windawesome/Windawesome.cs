@@ -110,7 +110,7 @@ namespace Windawesome
 			windawesomeThreadId = NativeMethods.GetCurrentThreadId();
 
 			messageHandlers = new Dictionary<int, HandleMessageDelegate>(2);
-			
+
 #if !DEBUG
 			originalNonClientMetrics = NativeMethods.NONCLIENTMETRICS.GetNONCLIENTMETRICS();
 			NativeMethods.SystemParametersInfo(NativeMethods.SPI_GETNONCLIENTMETRICS, originalNonClientMetrics.cbSize,
@@ -158,14 +158,14 @@ namespace Windawesome
 #if !DEBUG
 			// set the global border and padded border widths
 			var metrics = originalNonClientMetrics;
-			if (config.BorderWidth >= 0 && metrics.iBorderWidth != config.BorderWidth)
+			if (config.WindowBorderWidth >= 0 && metrics.iBorderWidth != config.WindowBorderWidth)
 			{
-				metrics.iBorderWidth = config.BorderWidth;
+				metrics.iBorderWidth = config.WindowBorderWidth;
 				changedNonClientMetrics = true;
 			}
-			if (isAtLeastVista && config.PaddedBorderWidth >= 0 && metrics.iPaddedBorderWidth != config.PaddedBorderWidth)
+			if (isAtLeastVista && config.WindowPaddedBorderWidth >= 0 && metrics.iPaddedBorderWidth != config.WindowPaddedBorderWidth)
 			{
-				metrics.iPaddedBorderWidth = config.PaddedBorderWidth;
+				metrics.iPaddedBorderWidth = config.WindowPaddedBorderWidth;
 				changedNonClientMetrics = true;
 			}
 			if (changedNonClientMetrics)
@@ -236,7 +236,7 @@ namespace Windawesome
 			// dispose of plugins and bars
 			config.Plugins.ForEach(p => p.Dispose());
 			config.Bars.ForEach(b => b.Dispose());
-			
+
 #if !DEBUG
 			// revert the size of non-client area of windows
 			if (changedNonClientMetrics)
@@ -503,7 +503,7 @@ namespace Windawesome
 							NativeMethods.AttachThreadInput(windawesomeThreadId, foregroundWindowThread, false);
 						}
 					}
-					
+
 					if (!successfullyChanged)
 					{
 						forceForegroundWindow = hWnd;
@@ -913,7 +913,7 @@ namespace Windawesome
 			if (workspace != oldWorkspace.id)
 			{
 				var willReposition = newWorkspace.hasChanges || newWorkspace.repositionOnSwitchedTo;
-				
+
 				if (!willReposition)
 				{
 					// first show and hide if there are no changes

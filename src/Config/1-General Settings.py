@@ -7,12 +7,10 @@ from Windawesome.NativeMethods import MOD
 from System import Tuple
 from System.Windows.Forms import Keys
 
-config.BorderWidth = 1
-config.PaddedBorderWidth = 0
+config.WindowBorderWidth = 1
+config.WindowPaddedBorderWidth = 0
 
 config.UniqueHotkey = Tuple[MOD, Keys](MOD.MOD_ALT, Keys.D0)
-
-config.Layouts = Enumerable.ToArray[ILayout]([TileLayout(), FullScreenLayout(), FloatingLayout()])
 
 config.Bars = Enumerable.ToArray[Bar]([
 	Bar(
@@ -28,18 +26,17 @@ config.Bars = Enumerable.ToArray[Bar]([
 ])
 
 config.Workspaces = Enumerable.ToArray[Workspace]([
-	Workspace(config.Layouts[2], [config.Bars[0]], name = 'main'),
-	Workspace(config.Layouts[1], [config.Bars[1]], name = 'web'),
-	Workspace(config.Layouts[1], [config.Bars[1]]),
-	Workspace(config.Layouts[0], [config.Bars[1]], name = 'chat'),
-	Workspace(config.Layouts[1], [config.Bars[1]]),
-	Workspace(config.Layouts[1], [config.Bars[1]]),
-	Workspace(config.Layouts[1], [config.Bars[1]]),
-	Workspace(config.Layouts[1], [config.Bars[1]], name = 'mail'),
-	Workspace(config.Layouts[1], [config.Bars[1]], name = 'BC')
+	Workspace(FloatingLayout(), [config.Bars[0]], name = 'main'),
+	Workspace(FullScreenLayout(), [config.Bars[1]], name = 'web'),
+	Workspace(FullScreenLayout(), [config.Bars[1]]),
+	Workspace(TileLayout(), [config.Bars[1]], name = 'chat'),
+	Workspace(FullScreenLayout(), [config.Bars[1]]),
+	Workspace(FullScreenLayout(), [config.Bars[1]]),
+	Workspace(FullScreenLayout(), [config.Bars[1]]),
+	Workspace(FullScreenLayout(), [config.Bars[1]], name = 'mail'),
+	Workspace(FullScreenLayout(), [config.Bars[1]], name = 'BC')
 ])
 config.StartingWorkspace = 1 # workspace indices start from one!
-config.WorkspacesCount = config.Workspaces.Length
 
 config.Plugins = Enumerable.ToArray[IPlugin]([
 	#WindowSubclassing([

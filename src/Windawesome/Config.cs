@@ -215,8 +215,8 @@ namespace Windawesome
 		}
 
 		public ProgramRule(string className = ".*", string displayName = ".*", string processName = ".*",
-			NativeMethods.WS styleContains = 0, NativeMethods.WS styleNotContains = 0,
-			NativeMethods.WS_EX exStyleContains = 0, NativeMethods.WS_EX exStyleNotContains = 0,
+			NativeMethods.WS styleContains = (NativeMethods.WS) 0, NativeMethods.WS styleNotContains = (NativeMethods.WS) 0,
+			NativeMethods.WS_EX exStyleContains = (NativeMethods.WS_EX) 0, NativeMethods.WS_EX exStyleNotContains = (NativeMethods.WS_EX) 0,
 			CustomMatchingFunction customMatchingFunction = null,
 
 			bool isManaged = true, int tryAgainAfter = -1, int windowCreatedDelay = 0, bool handleOwnedWindows = false,

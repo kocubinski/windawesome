@@ -15,7 +15,7 @@ namespace Windawesome
 		private Bar bar;
 		private int left, right;
 		private bool isLeft;
-		private bool showFullSystemTray;
+		private readonly bool showFullSystemTray;
 
 		#region Events
 
