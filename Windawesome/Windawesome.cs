@@ -15,6 +15,8 @@ namespace Windawesome
 			get { return workspaces[0]; }
 		}
 
+		public readonly Monitor[] monitors;
+
 		public int PreviousWorkspace { get; private set; }
 
 		public delegate bool HandleMessageDelegate(ref Message m);
@@ -128,17 +130,26 @@ namespace Windawesome
 
 			HandleStatic = this.Handle;
 
+			monitors = Screen.AllScreens.Select((_, i) => new Monitor(i)).ToArray();
+
 			config = new Config();
 			config.LoadConfiguration(this);
 
+			//if (config.StartingWorkspaces.Length == 0 ||
+			//    new HashSet<Monitor>(config.StartingWorkspaces.Select(w => w.Monitor)).Count != config.StartingWorkspaces.Length)
+			//{
+			//    throw new Exception("StartingWorkspaces either contains no elements or contains two or more workspaces " +
+			//        "which are on the same monitor!");
+			//}
+
 			workspaces = config.Workspaces.Resize(config.Workspaces.Length + 1);
-			workspaces[0] = workspaces[config.StartingWorkspace];
+			workspaces[0] = config.StartingWorkspaces.FirstOrDefault(w => w.Monitor.screen.Primary) ?? config.StartingWorkspaces[0];
 			PreviousWorkspace = CurrentWorkspace.id;
 
 			config.Bars.ForEach(b => b.InitializeBar(this, config));
 			config.Plugins.ForEach(p => p.InitializePlugin(this, config));
 
-			Workspace.FindWorkspaceBarsEquivalentClasses(config.Workspaces.Length, config.Workspaces);
+			monitors.ForEach(m => m.AddManyWorkspaces(config.Workspaces.Where(w => w.Monitor == m))); // n ^ 2 but hopefully fast enough
 
 			applications = new Dictionary<IntPtr, LinkedList<Tuple<Workspace, Window>>>(20);
 			hiddenApplications = new HashMultiSet<IntPtr>();
@@ -194,16 +205,20 @@ namespace Windawesome
 			uiThreadTaskScheduler = System.Threading.Tasks.TaskScheduler.FromCurrentSynchronizationContext();
 
 			// initialize all workspaces
-			foreach (var workspace in config.Workspaces.Where(ws => ws.id != config.StartingWorkspace))
+			foreach (var workspace in config.Workspaces.Where(ws => ws != CurrentWorkspace))
 			{
 				workspace.GetWindows().Where(w =>
 					hiddenApplications.AddUnique(w.hWnd) == HashMultiSet<IntPtr>.AddResult.AddedFirst).ForEach(w => w.Hide());
-				workspace.Initialize(false);
+				workspace.Initialize();
 			}
-			CurrentWorkspace.Initialize(true);
+			CurrentWorkspace.Initialize();
 
-			// switches to the default starting workspace
-			CurrentWorkspace.SwitchTo(PreviousWorkspace);
+			// switches to the default starting workspaces
+			Monitor.ShowHideWindowsTaskbar(CurrentWorkspace.ShowWindowsTaskbar);
+
+			config.StartingWorkspaces.ForEach(w => w.Monitor.Initialize(w));
+
+			CurrentWorkspace.SwitchTo();
 			CurrentWorkspace.SetTopManagedWindowAsForeground();
 		}
 
@@ -219,7 +234,8 @@ namespace Windawesome
 			NativeMethods.GlobalDeleteAtom((ushort) getForegroundPrivilageAtom);
 
 			// roll back any changes to Windows
-			Workspace.Dispose();
+			monitors.ForEach(m => m.Dispose());
+			Monitor.StaticDispose();
 
 			var winPosInfo = NativeMethods.BeginDeferWindowPos(applications.Values.Count);
 			foreach (var window in applications.Values.Select(l => l.First.Value.Item2))
@@ -910,31 +926,52 @@ namespace Windawesome
 			var newWorkspace = workspaces[workspace];
 			if (workspace != oldWorkspace.id)
 			{
-				var willReposition = newWorkspace.hasChanges || newWorkspace.repositionOnSwitchedTo;
-
-				if (!willReposition)
+				if (newWorkspace.IsWorkspaceVisible)
 				{
-					// first show and hide if there are no changes
-					ShowHideWindows(oldWorkspace, newWorkspace, setForeground);
+					// workspace is already visible on another monitor
+
+					if (setForeground)
+					{
+						newWorkspace.SetTopManagedWindowAsForeground();
+					}
+
+					oldWorkspace.IsCurrentWorkspace = false;
+					newWorkspace.IsCurrentWorkspace = true;
+
+					// TODO: events for monitor-only change
+					PreviousWorkspace = oldWorkspace.id;
+					workspaces[0] = newWorkspace;
 				}
-
-				if (temporarilyShownWindows.Count > 0)
+				else
 				{
-					temporarilyShownWindows.ForEach(hWnd => HideWindow(applications[hWnd].First.Value.Item2));
-					temporarilyShownWindows.Clear();
-				}
+					var willReposition = newWorkspace.hasChanges || newWorkspace.repositionOnSwitchedTo;
 
-				oldWorkspace.Unswitch();
+					if (!willReposition)
+					{
+						// first show and hide if there are no changes
+						ShowHideWindows(oldWorkspace, newWorkspace, setForeground);
+					}
 
-				PreviousWorkspace = oldWorkspace.id;
-				workspaces[0] = newWorkspace;
+					if (temporarilyShownWindows.Count > 0)
+					{
+						temporarilyShownWindows.ForEach(hWnd => HideWindow(applications[hWnd].First.Value.Item2));
+						temporarilyShownWindows.Clear();
+					}
 
-				newWorkspace.SwitchTo(PreviousWorkspace);
+					oldWorkspace.Unswitch();
 
-				if (willReposition)
-				{
-					// show and hide only after Reposition has been called if there are changes
-					ShowHideWindows(oldWorkspace, newWorkspace, setForeground);
+					PreviousWorkspace = oldWorkspace.id;
+					workspaces[0] = newWorkspace;
+
+					newWorkspace.Monitor.SwitchToWorkspace(newWorkspace);
+
+					newWorkspace.SwitchTo();
+
+					if (willReposition)
+					{
+						// show and hide only after Reposition has been called if there are changes
+						ShowHideWindows(oldWorkspace, newWorkspace, setForeground);
+					}
 				}
 
 				return true;
@@ -945,12 +982,14 @@ namespace Windawesome
 
 		public bool HideBar(IBar bar)
 		{
-			return CurrentWorkspace.HideBar(config.Workspaces.Length, config.Workspaces, bar);
+			return true;
+			//return CurrentWorkspace.HideBar(config.Workspaces.Length, config.Workspaces, bar);
 		}
 
 		public bool ShowBar(IBar bar, bool top = true, int position = 0)
 		{
-			return CurrentWorkspace.ShowBar(config.Workspaces.Length, config.Workspaces, bar, top, position);
+			return true;
+			//return CurrentWorkspace.ShowBar(config.Workspaces.Length, config.Workspaces, bar, top, position);
 		}
 
 		public void ToggleWindowFloating(IntPtr hWnd)

@@ -10,6 +10,8 @@ namespace Windawesome
 
 		IntPtr Handle { get; }
 
+		Monitor Monitor { get; }
+
 		int GetBarHeight();
 
 		void OnSizeChanging(Size newSize);

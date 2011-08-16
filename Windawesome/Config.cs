@@ -15,7 +15,7 @@ namespace Windawesome
 		public IPlugin[] Plugins { get; set; }
 		public IBar[] Bars { get; set; }
 		public Workspace[] Workspaces { get; set; }
-		public int StartingWorkspace { get; set; }
+		public Workspace[] StartingWorkspaces { get; set; }
 		public ProgramRule[] ProgramRules { get; set; }
 		public int WindowBorderWidth { get; set; }
 		public int WindowPaddedBorderWidth { get; set; }
@@ -23,7 +23,6 @@ namespace Windawesome
 
 		internal Config()
 		{
-			this.StartingWorkspace = 1;
 			this.WindowBorderWidth = -1;
 			this.WindowPaddedBorderWidth = -1;
 		}
