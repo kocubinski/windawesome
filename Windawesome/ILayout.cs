@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Drawing;
 
 namespace Windawesome
 {
@@ -14,7 +15,7 @@ namespace Windawesome
 		 */
 		bool ShouldSaveAndRestoreSharedWindowsPosition();
 
-		void Reposition(IEnumerable<Window> windows);
+		void Reposition(IEnumerable<Window> windows, Rectangle workingArea);
 
 		void WindowTitlebarToggled(Window window, IEnumerable<Window> windows);
 

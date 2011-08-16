@@ -454,8 +454,7 @@ namespace Windawesome
 
 			private static IntPtr FindTrayHandle()
 			{
-				var hWnd = NativeMethods.FindWindow("Shell_TrayWnd", null);
-				hWnd = NativeMethods.FindWindowEx(hWnd, IntPtr.Zero, "TrayNotifyWnd", null);
+				var hWnd = NativeMethods.FindWindowEx(Monitor.taskbarHandle, IntPtr.Zero, "TrayNotifyWnd", null);
 				hWnd = NativeMethods.FindWindowEx(hWnd, IntPtr.Zero, "SysPager", null);
 				return NativeMethods.FindWindowEx(hWnd, IntPtr.Zero, "ToolbarWindow32", null);
 			}

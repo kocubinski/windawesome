@@ -143,7 +143,7 @@ namespace Windawesome
 			//}
 
 			workspaces = config.Workspaces.Resize(config.Workspaces.Length + 1);
-			workspaces[0] = config.StartingWorkspaces.FirstOrDefault(w => w.Monitor.screen.Primary) ?? config.StartingWorkspaces[0];
+			workspaces[0] = config.StartingWorkspaces.First(w => w.Monitor.screen.Primary);
 			PreviousWorkspace = CurrentWorkspace.id;
 
 			config.Bars.ForEach(b => b.InitializeBar(this, config));
@@ -205,21 +205,25 @@ namespace Windawesome
 			uiThreadTaskScheduler = System.Threading.Tasks.TaskScheduler.FromCurrentSynchronizationContext();
 
 			// initialize all workspaces
-			foreach (var workspace in config.Workspaces.Where(ws => ws != CurrentWorkspace))
+			foreach (var workspace in config.Workspaces)
 			{
-				workspace.GetWindows().Where(w =>
-					hiddenApplications.AddUnique(w.hWnd) == HashMultiSet<IntPtr>.AddResult.AddedFirst).ForEach(w => w.Hide());
+				if (!config.StartingWorkspaces.Contains(workspace))
+				{
+					// TODO: this will hide a window which is shared between a StartingWorkspace an a non-Starting one
+					workspace.GetWindows().Where(w =>
+						hiddenApplications.AddUnique(w.hWnd) == HashMultiSet<IntPtr>.AddResult.AddedFirst).ForEach(w => w.Hide());
+				}
 				workspace.Initialize();
 			}
-			CurrentWorkspace.Initialize();
 
 			// switches to the default starting workspaces
 			Monitor.ShowHideWindowsTaskbar(CurrentWorkspace.ShowWindowsTaskbar);
 
+			// initialize monitors
 			config.StartingWorkspaces.ForEach(w => w.Monitor.Initialize(w));
 
-			CurrentWorkspace.SwitchTo();
 			CurrentWorkspace.SetTopManagedWindowAsForeground();
+			CurrentWorkspace.IsCurrentWorkspace = true;
 		}
 
 		private void OnWindawesomeExiting()
@@ -922,9 +926,8 @@ namespace Windawesome
 
 		public bool SwitchToWorkspace(int workspace, bool setForeground = true)
 		{
-			var oldWorkspace = CurrentWorkspace;
 			var newWorkspace = workspaces[workspace];
-			if (workspace != oldWorkspace.id)
+			if (workspace != CurrentWorkspace.id)
 			{
 				if (newWorkspace.IsWorkspaceVisible)
 				{
@@ -935,11 +938,11 @@ namespace Windawesome
 						newWorkspace.SetTopManagedWindowAsForeground();
 					}
 
-					oldWorkspace.IsCurrentWorkspace = false;
+					CurrentWorkspace.IsCurrentWorkspace = false;
 					newWorkspace.IsCurrentWorkspace = true;
 
 					// TODO: events for monitor-only change
-					PreviousWorkspace = oldWorkspace.id;
+					PreviousWorkspace = CurrentWorkspace.id;
 					workspaces[0] = newWorkspace;
 				}
 				else
@@ -949,28 +952,26 @@ namespace Windawesome
 					if (!willReposition)
 					{
 						// first show and hide if there are no changes
-						ShowHideWindows(oldWorkspace, newWorkspace, setForeground);
+						ShowHideWindows(newWorkspace.Monitor.CurrentVisibleWorkspace, newWorkspace, setForeground);
 					}
 
 					if (temporarilyShownWindows.Count > 0)
 					{
+						// TODO: temporarilyShownWindows should be per monitor probably?
 						temporarilyShownWindows.ForEach(hWnd => HideWindow(applications[hWnd].First.Value.Item2));
 						temporarilyShownWindows.Clear();
 					}
 
-					oldWorkspace.Unswitch();
-
-					PreviousWorkspace = oldWorkspace.id;
+					// TODO: these should not be here?
+					PreviousWorkspace = CurrentWorkspace.id;
 					workspaces[0] = newWorkspace;
 
 					newWorkspace.Monitor.SwitchToWorkspace(newWorkspace);
 
-					newWorkspace.SwitchTo();
-
 					if (willReposition)
 					{
 						// show and hide only after Reposition has been called if there are changes
-						ShowHideWindows(oldWorkspace, newWorkspace, setForeground);
+						ShowHideWindows(newWorkspace.Monitor.CurrentVisibleWorkspace, newWorkspace, setForeground);
 					}
 				}
 

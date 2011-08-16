@@ -10,12 +10,12 @@ namespace Windawesome
 	{
 		public readonly int monitorIndex;
 		public readonly Screen screen;
+		public Workspace CurrentVisibleWorkspace { get; private set; }
 
 		public static readonly IntPtr taskbarHandle;
 		public static readonly IntPtr startButtonHandle;
 
 		private readonly Dictionary<Workspace, Tuple<int, AppBarNativeWindow, AppBarNativeWindow>> workspaces;
-		private Workspace currentVisibleWorkspace;
 
 		private static bool isWindowsTaskbarShown;
 
@@ -287,10 +287,12 @@ namespace Windawesome
 
 		internal void Initialize(Workspace startingWorkspace)
 		{
-			var workspace = workspaces[startingWorkspace];
-			ShowHideBars(null, null, workspace.Item2, workspace.Item3, startingWorkspace, startingWorkspace);
+			var workspaceTuple = workspaces[startingWorkspace];
+			ShowHideBars(null, null, workspaceTuple.Item2, workspaceTuple.Item3, startingWorkspace, startingWorkspace);
 
-			currentVisibleWorkspace = startingWorkspace;
+			startingWorkspace.SwitchTo();
+
+			CurrentVisibleWorkspace = startingWorkspace;
 		}
 
 		public override bool Equals(object obj)
@@ -306,13 +308,15 @@ namespace Windawesome
 
 		internal void SwitchToWorkspace(Workspace workspace)
 		{
+			CurrentVisibleWorkspace.Unswitch();
+
 			// hides or shows the Windows taskbar
 			if (screen.Primary && workspace.ShowWindowsTaskbar != isWindowsTaskbarShown)
 			{
 				ShowHideWindowsTaskbar(workspace.ShowWindowsTaskbar);
 			}
 
-			var oldWorkspace = workspaces[currentVisibleWorkspace];
+			var oldWorkspace = workspaces[CurrentVisibleWorkspace];
 			var newWorkspace = workspaces[workspace];
 
 			// hides the Bars for the old workspace and shows the new ones
@@ -320,10 +324,12 @@ namespace Windawesome
 			{
 				ShowHideBars(oldWorkspace.Item2, oldWorkspace.Item3,
 					newWorkspace.Item2, newWorkspace.Item3,
-					currentVisibleWorkspace, workspace);
+					CurrentVisibleWorkspace, workspace);
 			}
 
-			currentVisibleWorkspace = workspace;
+			workspace.SwitchTo();
+
+			CurrentVisibleWorkspace = workspace;
 		}
 
 		internal static void ShowHideWindowsTaskbar(bool showWindowsTaskbar)
@@ -356,11 +362,6 @@ namespace Windawesome
 			FindWorkspaceBarsEquivalentClasses(workspaces.Keys.Concat(new Workspace[] { workspace }).ToArray());
 		}
 
-		internal void RemoveManyWorkspaces(IEnumerable<Workspace> workspaces)
-		{
-			FindWorkspaceBarsEquivalentClasses(this.workspaces.Keys.Except(workspaces).ToArray());
-		}
-
 		internal void RemoveWorkspace(Workspace workspace)
 		{
 			FindWorkspaceBarsEquivalentClasses(workspaces.Keys.Where(w => w != workspace).ToArray());
@@ -371,6 +372,8 @@ namespace Windawesome
 			// this statement uses the laziness of Where
 			this.workspaces.Values.Select(t => t.Item2).Concat(this.workspaces.Values.Select(t => t.Item3)).
 				Where(ab => ab != null && ab.Handle != IntPtr.Zero).ForEach(ab => ab.Destroy());
+
+			this.workspaces.Clear();
 
 			var listOfUniqueBars = new LinkedList<Tuple<IEnumerable<IBar>, IEnumerable<IBar>, int>>();
 			var listOfUniqueTopAppBars = new LinkedList<AppBarNativeWindow>();

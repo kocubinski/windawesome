@@ -187,7 +187,7 @@ namespace Windawesome
 				hasChanges = false;
 			}
 
-			IsCurrentWorkspace = IsWorkspaceVisible = true;
+			IsWorkspaceVisible = true;
 
 			DoWorkspaceChangedTo(this);
 		}
@@ -196,7 +196,7 @@ namespace Windawesome
 		{
 			sharedWindows.Where(w => !repositionOnSwitchedTo || w.IsFloating || Layout.ShouldSaveAndRestoreSharedWindowsPosition()).ForEach(w => w.SavePosition());
 
-			IsCurrentWorkspace = IsWorkspaceVisible = false;
+			IsWorkspaceVisible = false;
 
 			DoWorkspaceChangedFrom(this);
 		}
@@ -212,7 +212,7 @@ namespace Windawesome
 
 		public void Reposition()
 		{
-			Layout.Reposition(managedWindows);
+			Layout.Reposition(managedWindows, Monitor.screen.WorkingArea);
 		}
 
 		public void ChangeLayout(ILayout layout)

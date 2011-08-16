@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Drawing;
 
 namespace Windawesome
 {
@@ -21,7 +22,7 @@ namespace Windawesome
 			return true;
 		}
 
-		void ILayout.Reposition(IEnumerable<Window> windows)
+		void ILayout.Reposition(IEnumerable<Window> windows, Rectangle workingArea)
 		{
 		}
 

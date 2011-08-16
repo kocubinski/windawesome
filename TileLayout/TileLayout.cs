@@ -22,6 +22,7 @@ namespace Windawesome
 		private double masterAreaFactor;
 		private LinkedList<Window> windows;
 		private int masterAreaWindowsCount;
+		private Rectangle workingArea;
 
 		public TileLayout(LayoutAxis layoutAxis = LayoutAxis.LeftToRight, LayoutAxis masterAreaAxis = LayoutAxis.Monocle,
 			LayoutAxis stackAreaAxis = LayoutAxis.TopToBottom, double masterAreaFactor = 0.6, int masterAreaWindowsCount = 1)
@@ -163,7 +164,7 @@ namespace Windawesome
 
 		#endregion
 
-		private IntPtr PositionAreaWindows(IntPtr winPosInfo, Rectangle workingArea, bool master)
+		private IntPtr PositionAreaWindows(IntPtr winPosInfo, bool master)
 		{
 			var count = master ? masterAreaWindowsCount : windows.Count - masterAreaWindowsCount;
 			if (count > 0)
@@ -271,10 +272,9 @@ namespace Windawesome
 
 		private void Reposition()
 		{
-			var workingArea = System.Windows.Forms.SystemInformation.WorkingArea;
 			var winPosInfo = NativeMethods.BeginDeferWindowPos(this.windows.Count);
-			winPosInfo = PositionAreaWindows(winPosInfo, workingArea, true);
-			winPosInfo = PositionAreaWindows(winPosInfo, workingArea, false);
+			winPosInfo = PositionAreaWindows(winPosInfo, true);
+			winPosInfo = PositionAreaWindows(winPosInfo, false);
 			NativeMethods.EndDeferWindowPos(winPosInfo);
 		}
 
@@ -320,7 +320,7 @@ namespace Windawesome
 			return false;
 		}
 
-		void ILayout.Reposition(IEnumerable<Window> windows)
+		void ILayout.Reposition(IEnumerable<Window> windows, Rectangle workingArea)
 		{
 			if (this.windows.Count != windows.Count() || !new HashSet<Window>(this.windows).SetEquals(new HashSet<Window>(windows)))
 			{
@@ -331,6 +331,7 @@ namespace Windawesome
 				this.windows = new LinkedList<Window>(windows);
 			}
 
+			this.workingArea = workingArea;
 			Reposition();
 		}
 
