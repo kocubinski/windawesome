@@ -169,14 +169,14 @@ namespace Windawesome
 
 		private void OnWorkspaceApplicationAdded(Workspace workspace, Window window)
 		{
-			if (window.ShowInTabs)
+			if (workspace.Monitor == bar.monitor && window.ShowInTabs)
 			{
 				var workspaceId = workspace.id - 1;
 				var newPanel = CreatePanel(window);
 
 				applicationPanels[workspaceId].Add(window.hWnd, newPanel);
 
-				if (isShown && workspace.IsCurrentWorkspace)
+				if (isShown && workspace.IsWorkspaceVisible)
 				{
 					OnWindowActivated(window.hWnd);
 					ResizeApplicationPanels(left, right, workspaceId);
@@ -194,10 +194,10 @@ namespace Windawesome
 		{
 			var workspaceId = workspace.id - 1;
 			Panel removedPanel;
-			if (applicationPanels[workspaceId].TryGetValue(window.hWnd, out removedPanel))
+			if (workspace.Monitor == bar.monitor && applicationPanels[workspaceId].TryGetValue(window.hWnd, out removedPanel))
 			{
 				applicationPanels[workspaceId].Remove(window.hWnd);
-				if (isShown && workspace.IsCurrentWorkspace)
+				if (isShown && workspace.IsWorkspaceVisible)
 				{
 					ActivateTopmost(workspace);
 					ResizeApplicationPanels(left, right, workspaceId);
@@ -210,9 +210,9 @@ namespace Windawesome
 			}
 		}
 
-		private void OnWorkspaceActivated(Workspace workspace)
+		private void OnWorkspaceShown(Workspace workspace)
 		{
-			if (isShown)
+			if (isShown && workspace.Monitor == bar.monitor)
 			{
 				var workspaceId = workspace.id - 1;
 				if (applicationPanels[workspaceId].Count > 0)
@@ -231,9 +231,9 @@ namespace Windawesome
 			}
 		}
 
-		private void OnWorkspaceDeactivated(Workspace workspace)
+		private void OnWorkspaceHidden(Workspace workspace)
 		{
-			if (isShown)
+			if (isShown && workspace.Monitor == bar.monitor)
 			{
 				var workspaceId = workspace.id - 1;
 				if (applicationPanels[workspaceId].Count > 0)
@@ -259,12 +259,12 @@ namespace Windawesome
 		private void OnBarShown()
 		{
 			isShown = true;
-			OnWorkspaceActivated(windawesome.CurrentWorkspace);
+			OnWorkspaceShown(bar.monitor.CurrentVisibleWorkspace);
 		}
 
 		private void OnBarHidden()
 		{
-			OnWorkspaceDeactivated(windawesome.CurrentWorkspace);
+			OnWorkspaceHidden(bar.monitor.CurrentVisibleWorkspace);
 			isShown = false;
 		}
 
@@ -288,8 +288,8 @@ namespace Windawesome
 			Workspace.WorkspaceApplicationRemoved += OnWorkspaceApplicationRemoved;
 			Workspace.WorkspaceApplicationRestored += (_, w) => OnWindowActivated(w.hWnd);
 			Workspace.WindowActivatedEvent += OnWindowActivated;
-			Workspace.WorkspaceDeactivated += OnWorkspaceDeactivated;
-			Workspace.WorkspaceActivated += OnWorkspaceActivated;
+			Workspace.WorkspaceHidden += OnWorkspaceHidden;
+			Workspace.WorkspaceShown += OnWorkspaceShown;
 
 			currentlyHighlightedPanel = null;
 

@@ -290,13 +290,13 @@ namespace Windawesome
 
 		internal void Initialize(Workspace startingWorkspace)
 		{
+			CurrentVisibleWorkspace = startingWorkspace;
+
 			var workspaceTuple = workspaces[startingWorkspace];
 			ShowHideBars(null, null, workspaceTuple.Item2, workspaceTuple.Item3, startingWorkspace, startingWorkspace);
 
 			startingWorkspace.SwitchTo();
 			startingWorkspace.IsCurrentWorkspace = false;
-
-			CurrentVisibleWorkspace = startingWorkspace;
 		}
 
 		public override bool Equals(object obj)

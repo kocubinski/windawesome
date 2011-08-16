@@ -71,9 +71,7 @@ class DateTimeWidget
 
 	def static_dispose; end
 
-	def dispose
-		@updateTimer.stop
-	end
+	def dispose; end
 
 	def refresh; end
 

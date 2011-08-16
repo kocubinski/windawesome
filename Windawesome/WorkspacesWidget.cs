@@ -8,13 +8,14 @@ namespace Windawesome
 {
 	public class WorkspacesWidget : IFixedWidthWidget
 	{
-		private static Windawesome windawesome;
-		private static Config config;
+		private Bar bar;
 		private Label[] workspaceLabels;
 		private readonly Color[] normalForegroundColor;
 		private readonly Color[] normalBackgroundColor;
 		private readonly Color highlightedForegroundColor;
 		private readonly Color highlightedBackgroundColor;
+		private readonly Color highlightedInactiveForegroundColor;
+		private readonly Color highlightedInactiveBackgroundColor;
 		private readonly Color flashingForegroundColor;
 		private readonly Color flashingBackgroundColor;
 		private int left, right;
@@ -22,11 +23,15 @@ namespace Windawesome
 		private bool isShown;
 		private readonly bool flashWorkspaces;
 		private readonly Dictionary<IntPtr, Workspace> flashingWindows;
+
+		private static Windawesome windawesome;
+		private static Config config;
 		private static Timer flashTimer;
 		private static HashSet<Workspace> flashingWorkspaces;
 
 		public WorkspacesWidget(Color[] normalForegroundColor = null, Color[] normalBackgroundColor = null,
 			Color? highlightedForegroundColor = null, Color? highlightedBackgroundColor = null,
+			Color? highlightedInactiveForegroundColor = null, Color? highlightedInactiveBackgroundColor = null,
 			Color? flashingForegroundColor = null, Color? flashingBackgroundColor = null, bool flashWorkspaces = true)
 		{
 			this.normalForegroundColor = normalForegroundColor ?? new[]
@@ -57,6 +62,8 @@ namespace Windawesome
 				};
 			this.highlightedForegroundColor = highlightedForegroundColor ?? Color.FromArgb(0xFF, 0xFF, 0xFF);
 			this.highlightedBackgroundColor = highlightedBackgroundColor ?? Color.FromArgb(0x33, 0x99, 0xFF);
+			this.highlightedInactiveForegroundColor = highlightedInactiveForegroundColor ?? Color.White;
+			this.highlightedInactiveBackgroundColor = highlightedInactiveBackgroundColor ?? Color.Green;
 			this.flashingForegroundColor = flashingForegroundColor ?? Color.White;
 			this.flashingBackgroundColor = flashingBackgroundColor ?? Color.Red;
 			this.flashWorkspaces = flashWorkspaces;
@@ -77,13 +84,18 @@ namespace Windawesome
 			windawesome.SwitchToWorkspace(Array.IndexOf(workspaceLabels, sender as Label) + 1);
 		}
 
-		private void SetWorkspaceLabelColor(Workspace workspace, Window window)
+		private void SetWorkspaceLabelColor(Workspace workspace)
 		{
 			var workspaceLabel = workspaceLabels[workspace.id - 1];
 			if (workspace.IsCurrentWorkspace && isShown)
 			{
 				workspaceLabel.BackColor = highlightedBackgroundColor;
 				workspaceLabel.ForeColor = highlightedForegroundColor;
+			}
+			else if (workspace.IsWorkspaceVisible && isShown)
+			{
+				workspaceLabel.BackColor = highlightedInactiveBackgroundColor;
+				workspaceLabel.ForeColor = highlightedInactiveForegroundColor;
 			}
 			else
 			{
@@ -101,7 +113,7 @@ namespace Windawesome
 		{
 			if (isShown)
 			{
-				SetWorkspaceLabelColor(workspace, null);
+				SetWorkspaceLabelColor(workspace);
 			}
 		}
 
@@ -126,7 +138,7 @@ namespace Windawesome
 				{
 					if (workspaceLabels[flashingWorkspace.id - 1].BackColor == flashingBackgroundColor)
 					{
-						SetWorkspaceLabelColor(flashingWorkspace, null);
+						SetWorkspaceLabelColor(flashingWorkspace);
 					}
 					else
 					{
@@ -145,7 +157,7 @@ namespace Windawesome
 				flashingWindows.Remove(hWnd);
 				if (flashingWindows.Values.All(w => w != workspace))
 				{
-					SetWorkspaceLabelColor(workspace, null);
+					SetWorkspaceLabelColor(workspace);
 					flashingWorkspaces.Remove(workspace);
 					if (flashingWorkspaces.Count == 0)
 					{
@@ -158,8 +170,7 @@ namespace Windawesome
 		private void OnBarShown()
 		{
 			isShown = true;
-
-			SetWorkspaceLabelColor(windawesome.CurrentWorkspace, null);
+			SetWorkspaceLabelColor(bar.monitor.CurrentVisibleWorkspace);
 		}
 
 		private void OnBarHidden()
@@ -168,9 +179,9 @@ namespace Windawesome
 
 			if (flashWorkspaces)
 			{
-				flashingWindows.Values.ForEach(w => SetWorkspaceLabelColor(w, null));
+				flashingWindows.Values.ForEach(SetWorkspaceLabelColor);
 			}
-			SetWorkspaceLabelColor(windawesome.CurrentWorkspace, null);
+			SetWorkspaceLabelColor(bar.monitor.CurrentVisibleWorkspace);
 		}
 
 		#region IWidget Members
@@ -183,6 +194,8 @@ namespace Windawesome
 
 		void IWidget.InitializeWidget(Bar bar)
 		{
+			this.bar = bar;
+
 			if (flashWorkspaces)
 			{
 				flashTimer.Tick += OnTimerTick;
@@ -199,11 +212,13 @@ namespace Windawesome
 
 			workspaceLabels = new Label[config.Workspaces.Length];
 
-			Workspace.WorkspaceApplicationAdded += SetWorkspaceLabelColor;
-			Workspace.WorkspaceApplicationRemoved += SetWorkspaceLabelColor;
+			Workspace.WorkspaceApplicationAdded += (ws, _) => SetWorkspaceLabelColor(ws);
+			Workspace.WorkspaceApplicationRemoved += (ws, _) => SetWorkspaceLabelColor(ws);
 
 			Workspace.WorkspaceDeactivated += OnWorkspaceChangedFromTo;
 			Workspace.WorkspaceActivated += OnWorkspaceChangedFromTo;
+			Workspace.WorkspaceShown += OnWorkspaceChangedFromTo;
+			Workspace.WorkspaceHidden += OnWorkspaceChangedFromTo;
 
 			for (var i = 0; i < config.Workspaces.Length; i++)
 			{
@@ -214,7 +229,7 @@ namespace Windawesome
 				label.TextAlign = ContentAlignment.MiddleCenter;
 				label.Click += OnWorkspaceLabelClick;
 				workspaceLabels[i] = label;
-				SetWorkspaceLabelColor(workspace, null);
+				SetWorkspaceLabelColor(workspace);
 			}
 		}
 
