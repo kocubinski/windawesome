@@ -32,7 +32,6 @@ namespace Windawesome
 		private readonly Dictionary<IntPtr, LinkedList<Tuple<Workspace, Window>>> applications; // hWnd to a list of workspaces and windows
 		private readonly HashMultiSet<IntPtr> hiddenApplications;
 		private readonly uint shellMessageNum;
-		private readonly HashSet<IntPtr> temporarilyShownWindows;
 #if !DEBUG
 		private readonly bool changedNonClientMetrics;
 #endif
@@ -142,6 +141,8 @@ namespace Windawesome
 			//        "which are on the same monitor!");
 			//}
 
+			// TODO: must check if each monitor has at least one workspace (or maybe not?) and fix if not (what happens if more monitors than workspaces?)
+
 			workspaces = config.Workspaces.Resize(config.Workspaces.Length + 1);
 			workspaces[0] = config.StartingWorkspaces.First(w => w.Monitor.screen.Primary);
 			PreviousWorkspace = CurrentWorkspace.id;
@@ -153,8 +154,6 @@ namespace Windawesome
 
 			applications = new Dictionary<IntPtr, LinkedList<Tuple<Workspace, Window>>>(20);
 			hiddenApplications = new HashMultiSet<IntPtr>();
-
-			temporarilyShownWindows = new HashSet<IntPtr>();
 
 			// add all windows to their respective workspace
 			NativeMethods.EnumDesktopWindows(IntPtr.Zero, (hWnd, _) => AddWindowToWorkspace(hWnd, finishedInitializing: false) || true, IntPtr.Zero);
@@ -204,23 +203,30 @@ namespace Windawesome
 			// set UI thread task scheduler
 			uiThreadTaskScheduler = System.Threading.Tasks.TaskScheduler.FromCurrentSynchronizationContext();
 
-			// initialize all workspaces
+			// initialize all workspaces and hide windows not on StartingWorkspaces
+			var windowsToHide = new HashSet<Window>();
+			var windowsNotToHide = new LinkedList<Window>();
 			foreach (var workspace in config.Workspaces)
 			{
-				if (!config.StartingWorkspaces.Contains(workspace))
+				if (config.StartingWorkspaces.Contains(workspace))
 				{
-					// TODO: this will hide a window which is shared between a StartingWorkspace an a non-Starting one
-					workspace.GetWindows().Where(w =>
-						hiddenApplications.AddUnique(w.hWnd) == HashMultiSet<IntPtr>.AddResult.AddedFirst).ForEach(w => w.Hide());
+					workspace.GetWindows().ForEach(w => windowsNotToHide.AddLast(w));
+				}
+				else
+				{
+					workspace.GetWindows().ForEach(w => windowsToHide.Add(w));
 				}
 				workspace.Initialize();
 			}
 
-			// switches to the default starting workspaces
-			Monitor.ShowHideWindowsTaskbar(CurrentWorkspace.ShowWindowsTaskbar);
+			windowsToHide.ExceptWith(windowsNotToHide);
+			windowsToHide.ForEach(HideWindow);
 
 			// initialize monitors
 			config.StartingWorkspaces.ForEach(w => w.Monitor.Initialize(w));
+
+			// switches to the default starting workspaces
+			Monitor.ShowHideWindowsTaskbar(CurrentWorkspace.ShowWindowsTaskbar);
 
 			CurrentWorkspace.SetTopManagedWindowAsForeground();
 			CurrentWorkspace.IsCurrentWorkspace = true;
@@ -279,6 +285,7 @@ namespace Windawesome
 
 		private void OnDisplaySettingsChanged(object sender, EventArgs e)
 		{
+			// TODO: this should be fixed for a multi-monitor solution
 			CurrentWorkspace.Reposition();
 			config.Workspaces.Where(ws => !ws.IsCurrentWorkspace).ForEach(ws => ws.hasChanges = true);
 		}
@@ -352,12 +359,12 @@ namespace Windawesome
 								PostAction(() => ChangeApplicationToWorkspace(hWnd, workspaceId, matchingRuleWorkspace));
 								break;
 							case OnWindowShownAction.TemporarilyShowWindowOnCurrentWorkspace:
-								temporarilyShownWindows.Add(hWnd);
+								CurrentWorkspace.Monitor.temporarilyShownWindows.Add(hWnd);
 								ActivateWindow(hWnd, hWnd, NativeMethods.IsIconic(hWnd)); // TODO: there should be an option for this
 								break;
 							case OnWindowShownAction.HideWindow:
 								System.Threading.Thread.Sleep(500); // TODO: is this enough? Is it too much?
-								CurrentWorkspace.SetTopManagedWindowAsForeground(); // TODO: perhaps switch to the last window that was foreground?
+								CurrentWorkspace.SetTopManagedWindowAsForeground();
 								hiddenApplications.Add(hWnd);
 								NativeMethods.ShowWindow(hWnd, NativeMethods.SW.SW_HIDE);
 								break;
@@ -681,12 +688,12 @@ namespace Windawesome
 					ChangeApplicationToWorkspace(hWnd, CurrentWorkspace.id, tuple.Item1.id);
 					break;
 				case OnWindowShownAction.TemporarilyShowWindowOnCurrentWorkspace:
-					temporarilyShownWindows.Add(hWnd);
+					CurrentWorkspace.Monitor.temporarilyShownWindows.Add(hWnd);
 					break;
 				case OnWindowShownAction.HideWindow:
 					System.Threading.Thread.Sleep(1000); // TODO: is this enough? Is it too much?
 					HideWindow(tuple.Item2);
-					CurrentWorkspace.SetTopManagedWindowAsForeground(); // TODO: perhaps switch to the last window that was foreground?
+					CurrentWorkspace.SetTopManagedWindowAsForeground();
 					break;
 			}
 		}
@@ -702,7 +709,7 @@ namespace Windawesome
 			}
 			else
 			{
-				CurrentWorkspace.SetTopManagedWindowAsForeground(); // TODO: perhaps switch to the last window that was foreground?
+				CurrentWorkspace.SetTopManagedWindowAsForeground();
 			}
 		}
 
@@ -879,7 +886,7 @@ namespace Windawesome
 		{
 			if (!CurrentWorkspace.ContainsWindow(window.hWnd))
 			{
-				temporarilyShownWindows.Add(window.hWnd);
+				CurrentWorkspace.Monitor.temporarilyShownWindows.Add(window.hWnd);
 				window.Show();
 			}
 		}
@@ -920,7 +927,7 @@ namespace Windawesome
 					});
 				list.ForEach(t => t.Item1.WindowDestroyed(t.Item2));
 				applications.Remove(hWnd);
-				temporarilyShownWindows.Remove(hWnd);
+				monitors.ForEach(m => m.temporarilyShownWindows.Remove(hWnd));
 			}
 		}
 
@@ -929,6 +936,8 @@ namespace Windawesome
 			var newWorkspace = workspaces[workspace];
 			if (workspace != CurrentWorkspace.id)
 			{
+				// TODO: perhaps move mouse over monitors? an option?
+
 				if (newWorkspace.IsWorkspaceVisible)
 				{
 					// workspace is already visible on another monitor
@@ -940,40 +949,38 @@ namespace Windawesome
 
 					CurrentWorkspace.IsCurrentWorkspace = false;
 					newWorkspace.IsCurrentWorkspace = true;
-
-					// TODO: events for monitor-only change
-					PreviousWorkspace = CurrentWorkspace.id;
-					workspaces[0] = newWorkspace;
 				}
 				else
 				{
-					var willReposition = newWorkspace.hasChanges || newWorkspace.repositionOnSwitchedTo;
+					// TODO: must check if there are shared windows on two different monitors
+					
+					var currentVisibleWorkspace = newWorkspace.Monitor.CurrentVisibleWorkspace;
 
-					if (!willReposition)
+					var needsToReposition = newWorkspace.NeedsToReposition();
+
+					if (!needsToReposition)
 					{
 						// first show and hide if there are no changes
-						ShowHideWindows(newWorkspace.Monitor.CurrentVisibleWorkspace, newWorkspace, setForeground);
+						ShowHideWindows(currentVisibleWorkspace, newWorkspace, setForeground);
 					}
 
-					if (temporarilyShownWindows.Count > 0)
+					if (newWorkspace.Monitor.temporarilyShownWindows.Count > 0)
 					{
-						// TODO: temporarilyShownWindows should be per monitor probably?
-						temporarilyShownWindows.ForEach(hWnd => HideWindow(applications[hWnd].First.Value.Item2));
-						temporarilyShownWindows.Clear();
+						newWorkspace.Monitor.temporarilyShownWindows.ForEach(hWnd => HideWindow(applications[hWnd].First.Value.Item2));
+						newWorkspace.Monitor.temporarilyShownWindows.Clear();
 					}
-
-					// TODO: these should not be here?
-					PreviousWorkspace = CurrentWorkspace.id;
-					workspaces[0] = newWorkspace;
 
 					newWorkspace.Monitor.SwitchToWorkspace(newWorkspace);
 
-					if (willReposition)
+					if (needsToReposition)
 					{
 						// show and hide only after Reposition has been called if there are changes
-						ShowHideWindows(newWorkspace.Monitor.CurrentVisibleWorkspace, newWorkspace, setForeground);
+						ShowHideWindows(currentVisibleWorkspace, newWorkspace, setForeground);
 					}
 				}
+
+				PreviousWorkspace = CurrentWorkspace.id;
+				workspaces[0] = newWorkspace;
 
 				return true;
 			}
@@ -1214,11 +1221,14 @@ namespace Windawesome
 
 		public void DismissTemporarilyShownWindow(IntPtr hWnd)
 		{
-			if (temporarilyShownWindows.Contains(hWnd))
+			Monitor monitor;
+			if ((monitor = monitors.FirstOrDefault(m => m.temporarilyShownWindows.Remove(hWnd))) != null)
 			{
 				HideWindow(applications[hWnd].First.Value.Item2);
-				CurrentWorkspace.SetTopManagedWindowAsForeground();
-				temporarilyShownWindows.Remove(hWnd);
+				if (monitor.CurrentVisibleWorkspace.IsCurrentWorkspace)
+				{
+					CurrentWorkspace.SetTopManagedWindowAsForeground();
+				}
 			}
 		}
 
@@ -1237,7 +1247,7 @@ namespace Windawesome
 					{
 						AddWindowToWorkspace(lParam);
 					}
-					else if (!hiddenApplications.Contains(lParam) && !CurrentWorkspace.ContainsWindow(lParam) && !temporarilyShownWindows.Contains(lParam)) // if a hidden window has shown
+					else if (!hiddenApplications.Contains(lParam) && !CurrentWorkspace.ContainsWindow(lParam) && !CurrentWorkspace.Monitor.temporarilyShownWindows.Contains(lParam)) // if a hidden window has shown
 					{
 						// there is a problem with some windows showing up when others are created.
 						// how to reproduce: start BitComet 1.26 on some workspace, switch to another one
@@ -1261,7 +1271,7 @@ namespace Windawesome
 				case NativeMethods.ShellEvents.HSHELL_RUDEAPPACTIVATED:
 					if (!hiddenApplications.Contains(lParam))
 					{
-						if (lParam != IntPtr.Zero && !temporarilyShownWindows.Contains(lParam))
+						if (lParam != IntPtr.Zero && !CurrentWorkspace.Monitor.temporarilyShownWindows.Contains(lParam))
 						{
 							if (!applications.TryGetValue(lParam, out list)) // if a new window has shown
 							{

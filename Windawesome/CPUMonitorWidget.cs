@@ -41,6 +41,9 @@ namespace Windawesome
 		{
 			label = bar.CreateLabel(prefix + counter.NextValue().ToString("00") + postfix, 0);
 			label.TextAlign = ContentAlignment.MiddleCenter;
+
+			bar.BarShown += () => updateTimer.Start();
+			bar.BarHidden += () => updateTimer.Stop();
 		}
 
 		IEnumerable<Control> IWidget.GetControls(int left, int right)
@@ -76,16 +79,6 @@ namespace Windawesome
 		int IWidget.GetRight()
 		{
 			return right;
-		}
-
-		void IWidget.WidgetShown()
-		{
-			updateTimer.Start();
-		}
-
-		void IWidget.WidgetHidden()
-		{
-			updateTimer.Stop();
 		}
 
 		void IWidget.StaticDispose()

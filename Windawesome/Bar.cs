@@ -8,7 +8,7 @@ namespace Windawesome
 {
 	public sealed class Bar : IBar
 	{
-		private Monitor monitor;
+		public readonly Monitor monitor;
 
 		private readonly int barHeight;
 		private readonly NonActivatableForm form;
@@ -36,6 +36,12 @@ namespace Windawesome
 		private delegate void WidgetControlsChangedEventHandler(IWidget widget, IEnumerable<Control> oldControls, IEnumerable<Control> newControls);
 		private event WidgetControlsChangedEventHandler WidgetControlsChanged;
 
+		public delegate void BarShownEventHandler();
+		public event BarShownEventHandler BarShown;
+
+		public delegate void BarHiddenEventHandler();
+		public event BarHiddenEventHandler BarHidden;
+
 		public void DoWidgetControlsChanged(IWidget widget, IEnumerable<Control> controlsRemoved, IEnumerable<Control> controlsAdded)
 		{
 			WidgetControlsChanged(widget, controlsRemoved, controlsAdded);
@@ -54,6 +60,22 @@ namespace Windawesome
 		public void DoFixedWidthWidgetWidthChanged(IFixedWidthWidget widget)
 		{
 			FixedWidthWidgetWidthChanged(widget);
+		}
+
+		private void DoBarShown()
+		{
+			if (BarShown != null)
+			{
+				BarShown();
+			}
+		}
+
+		private void DoBarHidden()
+		{
+			if (BarHidden != null)
+			{
+				BarHidden();
+			}
 		}
 
 		#endregion
@@ -284,15 +306,11 @@ namespace Windawesome
 		{
 			if (this.form.Visible)
 			{
-				leftAlignedWidgets.ForEach(w => w.WidgetShown());
-				rightAlignedWidgets.ForEach(w => w.WidgetShown());
-				middleAlignedWidgets.ForEach(w => w.WidgetShown());
+				DoBarShown();
 			}
 			else
 			{
-				leftAlignedWidgets.ForEach(w => w.WidgetHidden());
-				rightAlignedWidgets.ForEach(w => w.WidgetHidden());
-				middleAlignedWidgets.ForEach(w => w.WidgetHidden());
+				DoBarHidden();
 			}
 		}
 

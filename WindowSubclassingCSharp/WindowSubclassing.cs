@@ -123,8 +123,8 @@ namespace Windawesome
 		{
 			Workspace.WorkspaceApplicationAdded += OnWorkspaceApplicationAdded;
 			Workspace.WorkspaceApplicationRemoved += OnWorkspaceApplicationRemoved;
-			Workspace.WorkspaceChangedFrom += OnWorkspaceChangedFrom;
-			Workspace.WorkspaceChangedTo += OnWorkspaceChangedTo;
+			//Workspace.WorkspaceChangedFrom += OnWorkspaceChangedFrom;
+			//Workspace.WorkspaceChangedTo += OnWorkspaceChangedTo;
 			Workspace.WorkspaceLayoutChanged += OnWorkspaceLayoutChanged;
 			this.windawesome = windawesome;
 

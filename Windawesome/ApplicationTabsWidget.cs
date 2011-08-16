@@ -210,7 +210,7 @@ namespace Windawesome
 			}
 		}
 
-		private void OnWorkspaceChangedTo(Workspace workspace)
+		private void OnWorkspaceActivated(Workspace workspace)
 		{
 			if (isShown)
 			{
@@ -231,7 +231,7 @@ namespace Windawesome
 			}
 		}
 
-		private void OnWorkspaceChangedFrom(Workspace workspace)
+		private void OnWorkspaceDeactivated(Workspace workspace)
 		{
 			if (isShown)
 			{
@@ -256,6 +256,18 @@ namespace Windawesome
 			}
 		}
 
+		private void OnBarShown()
+		{
+			isShown = true;
+			OnWorkspaceActivated(windawesome.CurrentWorkspace);
+		}
+
+		private void OnBarHidden()
+		{
+			OnWorkspaceDeactivated(windawesome.CurrentWorkspace);
+			isShown = false;
+		}
+
 		#region IWidget Members
 
 		void IWidget.StaticInitializeWidget(Windawesome windawesome, Config config)
@@ -268,13 +280,16 @@ namespace Windawesome
 		{
 			this.bar = bar;
 
+			bar.BarShown += OnBarShown;
+			bar.BarHidden += OnBarHidden;
+
 			Windawesome.WindowTitleOrIconChanged += OnWindowTitleOrIconChanged;
 			Workspace.WorkspaceApplicationAdded += OnWorkspaceApplicationAdded;
 			Workspace.WorkspaceApplicationRemoved += OnWorkspaceApplicationRemoved;
 			Workspace.WorkspaceApplicationRestored += (_, w) => OnWindowActivated(w.hWnd);
 			Workspace.WindowActivatedEvent += OnWindowActivated;
-			Workspace.WorkspaceChangedTo += OnWorkspaceChangedTo;
-			Workspace.WorkspaceChangedFrom += OnWorkspaceChangedFrom;
+			Workspace.WorkspaceDeactivated += OnWorkspaceDeactivated;
+			Workspace.WorkspaceActivated += OnWorkspaceActivated;
 
 			currentlyHighlightedPanel = null;
 
@@ -315,18 +330,6 @@ namespace Windawesome
 		int IWidget.GetRight()
 		{
 			return right;
-		}
-
-		void IWidget.WidgetShown()
-		{
-			isShown = true;
-			OnWorkspaceChangedTo(windawesome.CurrentWorkspace);
-		}
-
-		void IWidget.WidgetHidden()
-		{
-			OnWorkspaceChangedFrom(windawesome.CurrentWorkspace);
-			isShown = false;
 		}
 
 		void IWidget.StaticDispose()

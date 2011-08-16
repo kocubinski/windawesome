@@ -12,11 +12,11 @@ namespace Windawesome
 {
 	public class Config
 	{
-		public IPlugin[] Plugins { get; set; }
+		public IEnumerable<IPlugin> Plugins { get; set; }
 		public IBar[] Bars { get; set; }
 		public Workspace[] Workspaces { get; set; }
-		public Workspace[] StartingWorkspaces { get; set; }
-		public ProgramRule[] ProgramRules { get; set; }
+		public IEnumerable<Workspace> StartingWorkspaces { get; set; }
+		public IEnumerable<ProgramRule> ProgramRules { get; set; }
 		public int WindowBorderWidth { get; set; }
 		public int WindowPaddedBorderWidth { get; set; }
 		public Tuple<NativeMethods.MOD, System.Windows.Forms.Keys> UniqueHotkey { get; set; }

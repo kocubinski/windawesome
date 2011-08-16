@@ -48,6 +48,8 @@ namespace Windawesome
 		{
 			this.bar = bar;
 
+			bar.BarShown += () => OnUpdateLayoutLabel();
+
 			Windawesome.LayoutUpdated += OnUpdateLayoutLabel;
 
 			layoutLabel = bar.CreateLabel("", 0);
@@ -93,15 +95,6 @@ namespace Windawesome
 		int IWidget.GetRight()
 		{
 			return right;
-		}
-
-		void IWidget.WidgetShown()
-		{
-			OnUpdateLayoutLabel();
-		}
-
-		void IWidget.WidgetHidden()
-		{
 		}
 
 		void IWidget.StaticDispose()

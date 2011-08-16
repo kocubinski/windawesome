@@ -14,10 +14,44 @@ namespace Windawesome
 		public readonly LinkedList<IBar>[] barsAtBottom;
 		public readonly string name;
 		public bool ShowWindowsTaskbar { get; private set; }
-		public bool IsCurrentWorkspace { get; internal set; }
-		public bool IsWorkspaceVisible { get; private set; }
+		public bool IsCurrentWorkspace
+		{
+			get	{ return isCurrentWorkspace; }
+
+			internal set
+			{
+				isCurrentWorkspace = value;
+				if (isCurrentWorkspace)
+				{
+					DoWorkspaceActivated(this);
+				}
+				else
+				{
+					DoWorkspaceDeactivated(this);
+				}
+			}
+		}
+		public bool IsWorkspaceVisible
+		{
+			get { return isWorkspaceVisible; }
+
+			private set
+			{
+				isWorkspaceVisible = value;
+				if (isWorkspaceVisible)
+				{
+					DoWorkspaceShown(this);
+				}
+				else
+				{
+					DoWorkspaceHidden(this);
+				}
+			}
+		}
 		public readonly bool repositionOnSwitchedTo;
 
+		private bool isCurrentWorkspace;
+		private bool isWorkspaceVisible;
 		private int floatingWindowsCount;
 		private int windowsShownInTabsCount;
 
@@ -43,11 +77,20 @@ namespace Windawesome
 		public delegate void WorkspaceApplicationRestoredEventHandler(Workspace workspace, Window window);
 		public static event WorkspaceApplicationRestoredEventHandler WorkspaceApplicationRestored;
 
-		public delegate void WorkspaceChangedFromEventHandler(Workspace workspace);
-		public static event WorkspaceChangedFromEventHandler WorkspaceChangedFrom;
+		public delegate void WorkspaceHiddenEventHandler(Workspace workspace);
+		public static event WorkspaceHiddenEventHandler WorkspaceHidden;
 
-		public delegate void WorkspaceChangedToEventHandler(Workspace workspace);
-		public static event WorkspaceChangedToEventHandler WorkspaceChangedTo;
+		public delegate void WorkspaceShownEventHandler(Workspace workspace);
+		public static event WorkspaceShownEventHandler WorkspaceShown;
+
+		public delegate void WorkspaceActivatedEventHandler(Workspace workspace);
+		public static event WorkspaceActivatedEventHandler WorkspaceActivated;
+
+		public delegate void WorkspaceDeactivatedEventHandler(Workspace workspace);
+		public static event WorkspaceDeactivatedEventHandler WorkspaceDeactivated;
+
+		public delegate void WorkspaceMonitorChangedEventHandler(Workspace workspace, Monitor oldMonitor, Monitor newMonitor);
+		public static event WorkspaceMonitorChangedEventHandler WorkspaceMonitorChanged;
 
 		public delegate void WorkspaceLayoutChangedEventHandler(Workspace workspace, ILayout oldLayout);
 		public static event WorkspaceLayoutChangedEventHandler WorkspaceLayoutChanged;
@@ -89,21 +132,46 @@ namespace Windawesome
 			}
 		}
 
-		private static void DoWorkspaceChangedFrom(Workspace workspace)
+		private static void DoWorkspaceHidden(Workspace workspace)
 		{
-			if (WorkspaceChangedFrom != null)
+			if (WorkspaceHidden != null)
 			{
-				WorkspaceChangedFrom(workspace);
+				WorkspaceHidden(workspace);
 			}
 		}
 
-		private static void DoWorkspaceChangedTo(Workspace workspace)
+		private static void DoWorkspaceShown(Workspace workspace)
 		{
-			if (WorkspaceChangedTo != null)
+			if (WorkspaceShown != null)
 			{
-				WorkspaceChangedTo(workspace);
+				WorkspaceShown(workspace);
 			}
-			Windawesome.DoLayoutUpdated();
+
+			//Windawesome.DoLayoutUpdated(); // TODO: ? All of them?
+		}
+
+		private static void DoWorkspaceActivated(Workspace workspace)
+		{
+			if (WorkspaceActivated != null)
+			{
+				WorkspaceActivated(workspace);
+			}
+		}
+
+		private static void DoWorkspaceDeactivated(Workspace workspace)
+		{
+			if (WorkspaceDeactivated != null)
+			{
+				WorkspaceDeactivated(workspace);
+			}
+		}
+
+		private static void DoWorkspaceMonitorChanged(Workspace workspace, Monitor oldMonitor, Monitor newMonitor)
+		{
+			if (WorkspaceMonitorChanged != null)
+			{
+				WorkspaceMonitorChanged(workspace, oldMonitor, newMonitor);
+			}
 		}
 
 		private static void DoWorkspaceLayoutChanged(Workspace workspace, ILayout oldLayout)
@@ -170,6 +238,8 @@ namespace Windawesome
 			return workspace != null && workspace.id == this.id;
 		}
 
+		// TODO: should call Reposition on the layout when changing the monitor of the workspace
+
 		internal void SwitchTo()
 		{
 			// sets the layout- and workspace-specific changes to the windows
@@ -180,7 +250,7 @@ namespace Windawesome
 				removedSharedWindows.Clear();
 			}
 
-			if (hasChanges || repositionOnSwitchedTo)
+			if (NeedsToReposition())
 			{
 				// Repositions if there is/are new/deleted windows
 				Reposition();
@@ -188,26 +258,29 @@ namespace Windawesome
 			}
 
 			IsWorkspaceVisible = true;
-
-			DoWorkspaceChangedTo(this);
+			IsCurrentWorkspace = true;
 		}
 
 		internal void Unswitch()
 		{
 			sharedWindows.Where(w => !repositionOnSwitchedTo || w.IsFloating || Layout.ShouldSaveAndRestoreSharedWindowsPosition()).ForEach(w => w.SavePosition());
 
+			IsCurrentWorkspace = false;
 			IsWorkspaceVisible = false;
-
-			DoWorkspaceChangedFrom(this);
 		}
 
 		private void RestoreSharedWindowState(Window window)
 		{
 			window.Initialize();
-			if ((!hasChanges && !repositionOnSwitchedTo) || window.IsFloating || Layout.ShouldSaveAndRestoreSharedWindowsPosition())
+			if (!NeedsToReposition() || window.IsFloating || Layout.ShouldSaveAndRestoreSharedWindowsPosition())
 			{
 				window.RestorePosition();
 			}
+		}
+
+		public bool NeedsToReposition()
+		{
+			return hasChanges || repositionOnSwitchedTo;
 		}
 
 		public void Reposition()
@@ -281,6 +354,7 @@ namespace Windawesome
 
 		internal void SetTopManagedWindowAsForeground()
 		{
+			// TODO: perhaps switch to the last window that was foreground?
 			var topmost = GetTopmostWindow();
 			if (topmost != null)
 			{
@@ -449,7 +523,7 @@ namespace Windawesome
 
 			if (IsCurrentWorkspace && setForeground)
 			{
-				SetTopManagedWindowAsForeground(); // TODO: perhaps switch to the last window that was foreground?
+				SetTopManagedWindowAsForeground();
 			}
 
 			DoWorkspaceApplicationRemoved(this, window);

@@ -11,10 +11,12 @@ namespace Windawesome
 		public readonly int monitorIndex;
 		public readonly Screen screen;
 		public Workspace CurrentVisibleWorkspace { get; private set; }
+		public IEnumerable<Workspace> Workspaces { get { return workspaces.Keys; } }
 
 		public static readonly IntPtr taskbarHandle;
 		public static readonly IntPtr startButtonHandle;
 
+		internal readonly HashSet<IntPtr> temporarilyShownWindows;
 		private readonly Dictionary<Workspace, Tuple<int, AppBarNativeWindow, AppBarNativeWindow>> workspaces;
 
 		private static bool isWindowsTaskbarShown;
@@ -263,6 +265,7 @@ namespace Windawesome
 		public Monitor(int monitorIndex)
 		{
 			this.workspaces = new Dictionary<Workspace, Tuple<int, AppBarNativeWindow, AppBarNativeWindow>>(3);
+			this.temporarilyShownWindows = new HashSet<IntPtr>();
 
 			this.monitorIndex = monitorIndex;
 			this.screen = Screen.AllScreens[monitorIndex];
@@ -291,6 +294,7 @@ namespace Windawesome
 			ShowHideBars(null, null, workspaceTuple.Item2, workspaceTuple.Item3, startingWorkspace, startingWorkspace);
 
 			startingWorkspace.SwitchTo();
+			startingWorkspace.IsCurrentWorkspace = false;
 
 			CurrentVisibleWorkspace = startingWorkspace;
 		}

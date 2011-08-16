@@ -69,10 +69,6 @@ class DateTimeWidget
 		@right
 	end
 
-	def widget_shown; end
-
-	def widget_hidden; end
-
 	def static_dispose; end
 
 	def dispose

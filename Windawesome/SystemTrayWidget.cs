@@ -364,14 +364,6 @@ namespace Windawesome
 			return right;
 		}
 
-		void IWidget.WidgetShown()
-		{
-		}
-
-		void IWidget.WidgetHidden()
-		{
-		}
-
 		void IWidget.StaticDispose()
 		{
 			// unregister system tray hook

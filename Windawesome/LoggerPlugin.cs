@@ -71,12 +71,12 @@ namespace Windawesome
 				window.className, window.DisplayName, workspace.id);
 		}
 
-		private void OnWorkspaceChangedFrom(Workspace workspace)
+		private void OnWorkspaceHidden(Workspace workspace)
 		{
 			writer.WriteLine("Changed from workspace '{0}'", workspace.id);
 		}
 
-		private void OnWorkspaceChangedTo(Workspace workspace)
+		private void OnWorkspaceShown(Workspace workspace)
 		{
 			writer.WriteLine("Changed to workspace '{0}'", workspace.id);
 		}
@@ -116,8 +116,9 @@ namespace Windawesome
 			}
 			if (logWorkspaceSwitching)
 			{
-				Workspace.WorkspaceChangedFrom += OnWorkspaceChangedFrom;
-				Workspace.WorkspaceChangedTo += OnWorkspaceChangedTo;
+				// TODO: add others
+				Workspace.WorkspaceHidden += OnWorkspaceHidden;
+				Workspace.WorkspaceShown += OnWorkspaceShown;
 			}
 			if (logWindowMinimization)
 			{

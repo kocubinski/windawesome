@@ -155,6 +155,24 @@ namespace Windawesome
 			}
 		}
 
+		private void OnBarShown()
+		{
+			isShown = true;
+
+			SetWorkspaceLabelColor(windawesome.CurrentWorkspace, null);
+		}
+
+		private void OnBarHidden()
+		{
+			isShown = false;
+
+			if (flashWorkspaces)
+			{
+				flashingWindows.Values.ForEach(w => SetWorkspaceLabelColor(w, null));
+			}
+			SetWorkspaceLabelColor(windawesome.CurrentWorkspace, null);
+		}
+
 		#region IWidget Members
 
 		void IWidget.StaticInitializeWidget(Windawesome windawesome, Config config)
@@ -176,13 +194,16 @@ namespace Windawesome
 
 			isShown = false;
 
+			bar.BarShown += OnBarShown;
+			bar.BarHidden += OnBarHidden;
+
 			workspaceLabels = new Label[config.Workspaces.Length];
 
 			Workspace.WorkspaceApplicationAdded += SetWorkspaceLabelColor;
 			Workspace.WorkspaceApplicationRemoved += SetWorkspaceLabelColor;
 
-			Workspace.WorkspaceChangedFrom += OnWorkspaceChangedFromTo;
-			Workspace.WorkspaceChangedTo += OnWorkspaceChangedFromTo;
+			Workspace.WorkspaceDeactivated += OnWorkspaceChangedFromTo;
+			Workspace.WorkspaceActivated += OnWorkspaceChangedFromTo;
 
 			for (var i = 0; i < config.Workspaces.Length; i++)
 			{
@@ -240,24 +261,6 @@ namespace Windawesome
 		int IWidget.GetRight()
 		{
 			return right;
-		}
-
-		void IWidget.WidgetShown()
-		{
-			isShown = true;
-
-			SetWorkspaceLabelColor(windawesome.CurrentWorkspace, null);
-		}
-
-		void IWidget.WidgetHidden()
-		{
-			isShown = false;
-
-			if (flashWorkspaces)
-			{
-				flashingWindows.Values.ForEach(w => SetWorkspaceLabelColor(w, null));
-			}
-			SetWorkspaceLabelColor(windawesome.CurrentWorkspace, null);
 		}
 
 		void IWidget.StaticDispose()

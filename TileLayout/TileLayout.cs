@@ -322,7 +322,7 @@ namespace Windawesome
 
 		void ILayout.Reposition(IEnumerable<Window> windows, Rectangle workingArea)
 		{
-			if (this.windows.Count != windows.Count() || !new HashSet<Window>(this.windows).SetEquals(new HashSet<Window>(windows)))
+			if (this.windows.Count != windows.Count() || !new HashSet<Window>(this.windows).Overlaps(windows))
 			{
 				// restore any maximized windows - should not use SW_RESTORE as it activates the window
 				windows.ForEach(w => NativeMethods.ShowWindowAsync(w.hWnd, NativeMethods.SW.SW_SHOWNOACTIVATE));

@@ -44,10 +44,6 @@ namespace Windawesome
 
 		int GetRight();
 
-		void WidgetShown();
-
-		void WidgetHidden();
-
 		/*
 		 * This is guaranteed to be called exactly once for every widget type. Useful for
 		 * disposing of some shared resources

@@ -15,19 +15,11 @@ namespace Windawesome
 			if (ws.HasFlag(NativeMethods.WS.WS_CAPTION | NativeMethods.WS.WS_MAXIMIZEBOX))
 			{
 				// if there is a caption, we can make the window maximized
+
 				var screen = System.Windows.Forms.Screen.FromHandle(window.hWnd);
 				if (!screen.Bounds.IntersectsWith(workingArea))
 				{
-					if (windowIsMaximized)
-					{
-						NativeMethods.ShowWindowAsync(window.hWnd, NativeMethods.SW.SW_SHOWNOACTIVATE); // should not use SW_RESTORE as it activates the window
-						windowIsMaximized = false;
-					}
-					NativeMethods.SetWindowPos(window.hWnd, IntPtr.Zero,
-						workingArea.X, workingArea.Y, workingArea.Width, workingArea.Height,
-						NativeMethods.SWP.SWP_ASYNCWINDOWPOS | NativeMethods.SWP.SWP_NOACTIVATE |
-						NativeMethods.SWP.SWP_NOZORDER | NativeMethods.SWP.SWP_NOOWNERZORDER |
-						NativeMethods.SWP.SWP_FRAMECHANGED | NativeMethods.SWP.SWP_NOCOPYBITS);
+					windowIsMaximized = RestoreAndMaximizeArea(window, windowIsMaximized);
 				}
 
 				if (!windowIsMaximized)
@@ -40,16 +32,24 @@ namespace Windawesome
 			{
 				// otherwise, Windows would make the window "truly" full-screen, i.e. on top of all shell
 				// windows, which doesn't work for us. So we just set the window to take the maximum possible area
-				if (windowIsMaximized)
-				{
-					NativeMethods.ShowWindowAsync(window.hWnd, NativeMethods.SW.SW_SHOWNOACTIVATE); // should not use SW_RESTORE as it activates the window
-				}
-				NativeMethods.SetWindowPos(window.hWnd, IntPtr.Zero,
-					workingArea.X, workingArea.Y, workingArea.Width, workingArea.Height,
-					NativeMethods.SWP.SWP_ASYNCWINDOWPOS | NativeMethods.SWP.SWP_NOACTIVATE |
-					NativeMethods.SWP.SWP_NOZORDER | NativeMethods.SWP.SWP_NOOWNERZORDER |
-					NativeMethods.SWP.SWP_FRAMECHANGED | NativeMethods.SWP.SWP_NOCOPYBITS);
+
+				RestoreAndMaximizeArea(window, windowIsMaximized);
 			}
+		}
+
+		private bool RestoreAndMaximizeArea(Window window, bool windowIsMaximized)
+		{
+			if (windowIsMaximized)
+			{
+				NativeMethods.ShowWindowAsync(window.hWnd, NativeMethods.SW.SW_SHOWNOACTIVATE); // should not use SW_RESTORE as it activates the window
+				windowIsMaximized = false;
+			}
+			NativeMethods.SetWindowPos(window.hWnd, IntPtr.Zero,
+				workingArea.X, workingArea.Y, workingArea.Width, workingArea.Height,
+				NativeMethods.SWP.SWP_ASYNCWINDOWPOS | NativeMethods.SWP.SWP_NOACTIVATE |
+				NativeMethods.SWP.SWP_NOZORDER | NativeMethods.SWP.SWP_NOOWNERZORDER |
+				NativeMethods.SWP.SWP_FRAMECHANGED | NativeMethods.SWP.SWP_NOCOPYBITS);
+			return windowIsMaximized;
 		}
 
 		#region ILayout Members
