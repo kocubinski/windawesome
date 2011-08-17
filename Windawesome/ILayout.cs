@@ -5,9 +5,11 @@ namespace Windawesome
 {
 	public interface ILayout
 	{
-		string LayoutSymbol(int windowsCount);
+		string LayoutSymbol();
 
 		string LayoutName();
+
+		void Initialize(Workspace workspace);
 
 		/*
 		 * Should return whether Windawesome should restore a shared window's position if there
@@ -15,18 +17,14 @@ namespace Windawesome
 		 */
 		bool ShouldSaveAndRestoreSharedWindowsPosition();
 
-		void Reposition(IEnumerable<Window> windows, Rectangle workingArea);
+		void Reposition();
 
-		void WindowTitlebarToggled(Window window, IEnumerable<Window> windows);
+		void WindowMinimized(Window window);
 
-		void WindowBorderToggled(Window window, IEnumerable<Window> windows);
+		void WindowRestored(Window window);
 
-		void WindowMinimized(Window window, IEnumerable<Window> windows);
+		void WindowCreated(Window window);
 
-		void WindowRestored(Window window, IEnumerable<Window> windows);
-
-		void WindowCreated(Window window, IEnumerable<Window> windows, bool reLayout);
-
-		void WindowDestroyed(Window window, IEnumerable<Window> windows, bool reLayout);
+		void WindowDestroyed(Window window);
 	}
 }

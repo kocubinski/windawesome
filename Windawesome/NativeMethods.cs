@@ -133,7 +133,7 @@ namespace Windawesome
 
 		// messages stuff
 
-		#region SendNotifyMessage/ReplyMessage/PostMessage/SendMessageTimeout/SendMessageCallback
+		#region SendNotifyMessage/ReplyMessage/PostMessage/SendMessageTimeout
 
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
@@ -156,12 +156,6 @@ namespace Windawesome
 
 		[DllImport("User32.dll", SetLastError = true)]
 		public static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint uMsg, UIntPtr wParam, IntPtr lParam, SMTO fuFlags, uint uTimeout, [Optional, Out] IntPtr lpdwResult);
-
-		public delegate void SendMessageCallbackDelegate(IntPtr hWnd, uint uMsg, UIntPtr dwData, IntPtr lResult);
-
-		[DllImport("user32.dll")]
-		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool SendMessageCallback(IntPtr hWnd, uint Msg, UIntPtr wParam, IntPtr lParam, [MarshalAs(UnmanagedType.FunctionPtr)] SendMessageCallbackDelegate lpCallBack, UIntPtr dwData);
 
 		[Flags]
 		public enum SMTO : uint

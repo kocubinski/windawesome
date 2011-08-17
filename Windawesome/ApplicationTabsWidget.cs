@@ -77,7 +77,7 @@ namespace Windawesome
 			pictureBox.Click += this.OnApplicationTabClick;
 			panel.Controls.Add(pictureBox);
 
-			Windawesome.GetWindowSmallIconAsBitmap(window.hWnd, bitmap => pictureBox.Image = bitmap);
+			windawesome.GetWindowSmallIconAsBitmap(window.hWnd, bitmap => pictureBox.Image = bitmap);
 
 			var label = bar.CreateLabel(window.DisplayName, bar.GetBarHeight(), 0);
 			label.Click += this.OnApplicationTabClick;

@@ -242,7 +242,7 @@ namespace Windawesome
 
 		void IPlugin.InitializePlugin(Windawesome windawesome, Config config)
 		{
-			Windawesome.RegisterMessage(NativeMethods.WM_HOTKEY,
+			windawesome.RegisterMessage(NativeMethods.WM_HOTKEY,
 				(ref Message m) => registeredHotkeys[m.WParam.ToInt32()]());
 		}
 

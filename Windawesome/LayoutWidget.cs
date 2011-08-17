@@ -30,7 +30,7 @@ namespace Windawesome
 			if (workspace.Monitor == bar.Monitor)
 			{
 				var oldWidth = layoutLabel.Width;
-				layoutLabel.Text = workspace.LayoutSymbol;
+				layoutLabel.Text = workspace.Layout.LayoutSymbol();
 				layoutLabel.Width = TextRenderer.MeasureText(layoutLabel.Text, layoutLabel.Font).Width;
 				if (layoutLabel.Width != oldWidth)
 				{

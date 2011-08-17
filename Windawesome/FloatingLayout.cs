@@ -7,7 +7,7 @@ namespace Windawesome
 	{
 		#region ILayout Members
 
-		string ILayout.LayoutSymbol(int windowsCount)
+		string ILayout.LayoutSymbol()
 		{
 			return "><>";
 		}
@@ -17,36 +17,32 @@ namespace Windawesome
 			return "Floating";
 		}
 
+		void ILayout.Initialize(Workspace workspace)
+		{
+		}
+
 		bool ILayout.ShouldSaveAndRestoreSharedWindowsPosition()
 		{
 			return true;
 		}
 
-		void ILayout.Reposition(IEnumerable<Window> windows, Rectangle workingArea)
+		void ILayout.Reposition()
 		{
 		}
 
-		void ILayout.WindowTitlebarToggled(Window window, IEnumerable<Window> windows)
+		void ILayout.WindowMinimized(Window window)
 		{
 		}
 
-		void ILayout.WindowBorderToggled(Window window, IEnumerable<Window> windows)
+		void ILayout.WindowRestored(Window window)
 		{
 		}
 
-		void ILayout.WindowMinimized(Window window, IEnumerable<Window> windows)
+		void ILayout.WindowCreated(Window window)
 		{
 		}
 
-		void ILayout.WindowRestored(Window window, IEnumerable<Window> windows)
-		{
-		}
-
-		void ILayout.WindowCreated(Window window, IEnumerable<Window> windows, bool reLayout)
-		{
-		}
-
-		void ILayout.WindowDestroyed(Window window, IEnumerable<Window> windows, bool reLayout)
+		void ILayout.WindowDestroyed(Window window)
 		{
 		}
 

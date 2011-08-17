@@ -35,15 +35,16 @@ namespace Windawesome
 		private readonly IntPtr getForegroundPrivilageAtom;
 		private const uint postActionMessageNum = NativeMethods.WM_USER;
 
-		private static Tuple<NativeMethods.MOD, Keys> uniqueHotkey;
-		private static IntPtr forceForegroundWindow;
-		private static readonly Queue<Action> postedActions;
-		private static readonly Dictionary<int, HandleMessageDelegate> messageHandlers;
+		private readonly Tuple<NativeMethods.MOD, Keys> uniqueHotkey;
+		private readonly Queue<Action> postedActions;
+		private readonly Dictionary<int, HandleMessageDelegate> messageHandlers;
+		private readonly uint windawesomeThreadId;
+
+		private IntPtr forceForegroundWindow;
+
 #if !DEBUG
 		private static readonly NativeMethods.NONCLIENTMETRICS originalNonClientMetrics;
 #endif
-		private static readonly uint windawesomeThreadId;
-		private static System.Threading.Tasks.TaskScheduler uiThreadTaskScheduler;
 
 		#region Events
 
@@ -105,10 +106,6 @@ namespace Windawesome
 
 			isRunningElevated = isAtLeastVista && NativeMethods.IsUserAnAdmin();
 
-			windawesomeThreadId = NativeMethods.GetCurrentThreadId();
-
-			messageHandlers = new Dictionary<int, HandleMessageDelegate>(2);
-
 #if !DEBUG
 			originalNonClientMetrics = NativeMethods.NONCLIENTMETRICS.GetNONCLIENTMETRICS();
 			NativeMethods.SystemParametersInfo(NativeMethods.SPI_GETNONCLIENTMETRICS, originalNonClientMetrics.cbSize,
@@ -116,19 +113,20 @@ namespace Windawesome
 #endif
 
 			smallIconSize = SystemInformation.SmallIconSize;
-
-			postedActions = new Queue<Action>(5);
 		}
 
 		internal Windawesome()
 		{
-			this.CreateHandle(new CreateParams { Parent = NativeMethods.HWND_MESSAGE });
-			HandleStatic = this.Handle;
-
 			applications = new Dictionary<IntPtr, LinkedList<Tuple<Workspace, Window>>>(20);
 			hiddenApplications = new HashMultiSet<IntPtr>();
+			windawesomeThreadId = NativeMethods.GetCurrentThreadId();
+			messageHandlers = new Dictionary<int, HandleMessageDelegate>(2);
+			postedActions = new Queue<Action>(5);
 
 			monitors = Screen.AllScreens.Select((_, i) => new Monitor(i)).ToArray();
+
+			this.CreateHandle(new CreateParams { Parent = NativeMethods.HWND_MESSAGE });
+			HandleStatic = this.Handle;
 
 			config = new Config();
 			config.LoadConfiguration(this);
@@ -156,9 +154,6 @@ namespace Windawesome
 			// initialize bars and plugins
 			config.Bars.ForEach(b => b.InitializeBar(this, config));
 			config.Plugins.ForEach(p => p.InitializePlugin(this, config));
-
-			// set UI thread task scheduler
-			uiThreadTaskScheduler = System.Threading.Tasks.TaskScheduler.FromCurrentSynchronizationContext();
 
 			// add all windows to their respective workspaces
 			NativeMethods.EnumDesktopWindows(IntPtr.Zero, (hWnd, _) => AddWindowToWorkspace(hWnd, finishedInitializing: false) || true, IntPtr.Zero);
@@ -207,15 +202,18 @@ namespace Windawesome
 			var windowsToHide = new HashSet<Window>();
 			foreach (var workspace in config.Workspaces)
 			{
-				workspace.GetWindows().ForEach(w => windowsToHide.Add(w));
+				workspace.GetOwnerWindows().ForEach(w => windowsToHide.Add(w));
 				workspace.Initialize();
 			}
 
-			windowsToHide.ExceptWith(config.StartingWorkspaces.SelectMany(ws => ws.GetWindows()));
+			windowsToHide.ExceptWith(config.StartingWorkspaces.SelectMany(ws => ws.GetOwnerWindows()));
 			windowsToHide.ForEach(HideWindow);
 
 			// initialize monitors and switches to the default starting workspaces
 			monitors.ForEach(m => m.Initialize());
+			Monitor.ShowHideWindowsTaskbar(CurrentWorkspace.ShowWindowsTaskbar);
+			SetWorkspaceTopManagedWindowAsForeground(CurrentWorkspace);
+			CurrentWorkspace.IsCurrentWorkspace = true;
 		}
 
 		public void Quit()
@@ -277,7 +275,7 @@ namespace Windawesome
 			Quit();
 		}
 
-		private static bool IsAppWindow(IntPtr hWnd)
+		private bool IsAppWindow(IntPtr hWnd)
 		{
 			return NativeMethods.IsWindowVisible(hWnd) && NativeMethods.GetParent(hWnd) == IntPtr.Zero &&
 				!NativeMethods.GetWindowStyleLongPtr(hWnd).HasFlag(NativeMethods.WS.WS_CHILD);
@@ -327,7 +325,7 @@ namespace Windawesome
 					if (hasWorkspaceZeroRule || hasCurrentWorkspaceRule)
 					{
 						// this means that the window must be on the current workspace anyway
-						ActivateWindow(hWnd, hWnd, NativeMethods.IsIconic(hWnd)); // TODO: there should be an option for this
+						OnWindowCreatedOnCurrentWorkspace(hWnd, programRule);
 					}
 					else
 					{
@@ -343,13 +341,16 @@ namespace Windawesome
 								break;
 							case OnWindowShownAction.TemporarilyShowWindowOnCurrentWorkspace:
 								CurrentWorkspace.Monitor.temporarilyShownWindows.Add(hWnd);
-								ActivateWindow(hWnd, hWnd, NativeMethods.IsIconic(hWnd)); // TODO: there should be an option for this
+								OnWindowCreatedOnCurrentWorkspace(hWnd, programRule);
 								break;
 							case OnWindowShownAction.HideWindow:
 								System.Threading.Thread.Sleep(500); // TODO: is this enough? Is it too much?
-								CurrentWorkspace.SetTopManagedWindowAsForeground();
-								hiddenApplications.Add(hWnd);
-								NativeMethods.ShowWindow(hWnd, NativeMethods.SW.SW_HIDE);
+								SetWorkspaceTopManagedWindowAsForeground(CurrentWorkspace);
+								if (matchingRules.All(r => !workspaces[r.workspace].IsWorkspaceVisible))
+								{
+									hiddenApplications.Add(hWnd);
+									NativeMethods.ShowWindow(hWnd, NativeMethods.SW.SW_HIDE);
+								}
 								break;
 						}
 					}
@@ -451,7 +452,22 @@ namespace Windawesome
 			return false;
 		}
 
-		private static void OutputWarning(string warning)
+		private void OnWindowCreatedOnCurrentWorkspace(IntPtr hWnd, ProgramRule programRule)
+		{
+			switch (programRule.onWindowCreatedOnCurrentWorkspaceAction)
+			{
+				case OnWindowCreatedOnCurrentWorkspaceAction.ActivateWindow:
+					ActivateWindow(hWnd, hWnd, NativeMethods.IsIconic(hWnd));
+					break;
+				case OnWindowCreatedOnCurrentWorkspaceAction.ActivatePreviousActiveWindow:
+					// TODO: is there a better way?
+					System.Threading.Thread.Sleep(500);
+					SetWorkspaceTopManagedWindowAsForeground(CurrentWorkspace);
+					break;
+			}
+		}
+
+		private void OutputWarning(string warning)
 		{
 			System.IO.File.AppendAllLines("warnings.txt", new[]
 				{
@@ -480,7 +496,21 @@ namespace Windawesome
 			applications.Keys.Unless(set.Contains).ToArray().ForEach(RemoveApplicationFromAllWorkspaces);
 		}
 
-		internal static void ForceForegroundWindow(Window window)
+		private void SetWorkspaceTopManagedWindowAsForeground(Workspace workspace)
+		{
+			// TODO: perhaps switch to the last window that was foreground?
+			var topmost = workspace.GetTopmostWindow();
+			if (topmost != null)
+			{
+				ForceForegroundWindow(topmost);
+			}
+			else
+			{
+				ForceForegroundWindow(NativeMethods.GetShellWindow());
+			}
+		}
+
+		private void ForceForegroundWindow(Window window)
 		{
 			var hWnd = window.hWnd;
 			if (window.activateLastActivePopup)
@@ -490,7 +520,7 @@ namespace Windawesome
 			ForceForegroundWindow(hWnd);
 		}
 
-		internal static void ForceForegroundWindow(IntPtr hWnd)
+		private void ForceForegroundWindow(IntPtr hWnd)
 		{
 			if (WindowIsNotHung(hWnd))
 			{
@@ -521,7 +551,7 @@ namespace Windawesome
 			}
 		}
 
-		private static bool TrySetForegroundWindow(IntPtr hWnd)
+		private bool TrySetForegroundWindow(IntPtr hWnd)
 		{
 			const int tryCount = 5;
 			var count = 0;
@@ -544,37 +574,37 @@ namespace Windawesome
 
 		#region SendHotkey
 
-		private static readonly NativeMethods.INPUT[] input = new NativeMethods.INPUT[18];
+		private readonly NativeMethods.INPUT[] input = new NativeMethods.INPUT[18];
 
-		private static readonly NativeMethods.INPUT shiftKeyDown = new NativeMethods.INPUT(Keys.ShiftKey, 0);
-		private static readonly NativeMethods.INPUT shiftKeyUp = new NativeMethods.INPUT(Keys.ShiftKey, NativeMethods.KEYEVENTF_KEYUP);
-		private static readonly NativeMethods.INPUT leftShiftKeyDown = new NativeMethods.INPUT(Keys.LShiftKey, 0);
-		private static readonly NativeMethods.INPUT leftShiftKeyUp = new NativeMethods.INPUT(Keys.LShiftKey, NativeMethods.KEYEVENTF_KEYUP);
-		private static readonly NativeMethods.INPUT rightShiftKeyDown = new NativeMethods.INPUT(Keys.RShiftKey, 0);
-		private static readonly NativeMethods.INPUT rightShiftKeyUp = new NativeMethods.INPUT(Keys.RShiftKey, NativeMethods.KEYEVENTF_KEYUP);
+		private readonly NativeMethods.INPUT shiftKeyDown = new NativeMethods.INPUT(Keys.ShiftKey, 0);
+		private readonly NativeMethods.INPUT shiftKeyUp = new NativeMethods.INPUT(Keys.ShiftKey, NativeMethods.KEYEVENTF_KEYUP);
+		private readonly NativeMethods.INPUT leftShiftKeyDown = new NativeMethods.INPUT(Keys.LShiftKey, 0);
+		private readonly NativeMethods.INPUT leftShiftKeyUp = new NativeMethods.INPUT(Keys.LShiftKey, NativeMethods.KEYEVENTF_KEYUP);
+		private readonly NativeMethods.INPUT rightShiftKeyDown = new NativeMethods.INPUT(Keys.RShiftKey, 0);
+		private readonly NativeMethods.INPUT rightShiftKeyUp = new NativeMethods.INPUT(Keys.RShiftKey, NativeMethods.KEYEVENTF_KEYUP);
 
-		private static readonly NativeMethods.INPUT winKeyDown = new NativeMethods.INPUT(Keys.LWin, 0);
-		private static readonly NativeMethods.INPUT winKeyUp = new NativeMethods.INPUT(Keys.LWin, NativeMethods.KEYEVENTF_KEYUP);
-		private static readonly NativeMethods.INPUT leftWinKeyDown = new NativeMethods.INPUT(Keys.LWin, 0);
-		private static readonly NativeMethods.INPUT leftWinKeyUp = new NativeMethods.INPUT(Keys.LWin, NativeMethods.KEYEVENTF_KEYUP);
-		private static readonly NativeMethods.INPUT rightWinKeyDown = new NativeMethods.INPUT(Keys.RWin, 0);
-		private static readonly NativeMethods.INPUT rightWinKeyUp = new NativeMethods.INPUT(Keys.RWin, NativeMethods.KEYEVENTF_KEYUP);
+		private readonly NativeMethods.INPUT winKeyDown = new NativeMethods.INPUT(Keys.LWin, 0);
+		private readonly NativeMethods.INPUT winKeyUp = new NativeMethods.INPUT(Keys.LWin, NativeMethods.KEYEVENTF_KEYUP);
+		private readonly NativeMethods.INPUT leftWinKeyDown = new NativeMethods.INPUT(Keys.LWin, 0);
+		private readonly NativeMethods.INPUT leftWinKeyUp = new NativeMethods.INPUT(Keys.LWin, NativeMethods.KEYEVENTF_KEYUP);
+		private readonly NativeMethods.INPUT rightWinKeyDown = new NativeMethods.INPUT(Keys.RWin, 0);
+		private readonly NativeMethods.INPUT rightWinKeyUp = new NativeMethods.INPUT(Keys.RWin, NativeMethods.KEYEVENTF_KEYUP);
 
-		private static readonly NativeMethods.INPUT controlKeyDown = new NativeMethods.INPUT(Keys.ControlKey, 0);
-		private static readonly NativeMethods.INPUT controlKeyUp = new NativeMethods.INPUT(Keys.ControlKey, NativeMethods.KEYEVENTF_KEYUP);
-		private static readonly NativeMethods.INPUT leftControlKeyDown = new NativeMethods.INPUT(Keys.LControlKey, 0);
-		private static readonly NativeMethods.INPUT leftControlKeyUp = new NativeMethods.INPUT(Keys.LControlKey, NativeMethods.KEYEVENTF_KEYUP);
-		private static readonly NativeMethods.INPUT rightControlKeyDown = new NativeMethods.INPUT(Keys.RControlKey, 0);
-		private static readonly NativeMethods.INPUT rightControlKeyUp = new NativeMethods.INPUT(Keys.RControlKey, NativeMethods.KEYEVENTF_KEYUP);
+		private readonly NativeMethods.INPUT controlKeyDown = new NativeMethods.INPUT(Keys.ControlKey, 0);
+		private readonly NativeMethods.INPUT controlKeyUp = new NativeMethods.INPUT(Keys.ControlKey, NativeMethods.KEYEVENTF_KEYUP);
+		private readonly NativeMethods.INPUT leftControlKeyDown = new NativeMethods.INPUT(Keys.LControlKey, 0);
+		private readonly NativeMethods.INPUT leftControlKeyUp = new NativeMethods.INPUT(Keys.LControlKey, NativeMethods.KEYEVENTF_KEYUP);
+		private readonly NativeMethods.INPUT rightControlKeyDown = new NativeMethods.INPUT(Keys.RControlKey, 0);
+		private readonly NativeMethods.INPUT rightControlKeyUp = new NativeMethods.INPUT(Keys.RControlKey, NativeMethods.KEYEVENTF_KEYUP);
 
-		private static readonly NativeMethods.INPUT altKeyDown = new NativeMethods.INPUT(Keys.Menu, 0);
-		private static readonly NativeMethods.INPUT altKeyUp = new NativeMethods.INPUT(Keys.Menu, NativeMethods.KEYEVENTF_KEYUP);
-		private static readonly NativeMethods.INPUT leftAltKeyDown = new NativeMethods.INPUT(Keys.LMenu, 0);
-		private static readonly NativeMethods.INPUT leftAltKeyUp = new NativeMethods.INPUT(Keys.LMenu, NativeMethods.KEYEVENTF_KEYUP);
-		private static readonly NativeMethods.INPUT rightAltKeyDown = new NativeMethods.INPUT(Keys.RMenu, 0);
-		private static readonly NativeMethods.INPUT rightAltKeyUp = new NativeMethods.INPUT(Keys.RMenu, NativeMethods.KEYEVENTF_KEYUP);
+		private readonly NativeMethods.INPUT altKeyDown = new NativeMethods.INPUT(Keys.Menu, 0);
+		private readonly NativeMethods.INPUT altKeyUp = new NativeMethods.INPUT(Keys.Menu, NativeMethods.KEYEVENTF_KEYUP);
+		private readonly NativeMethods.INPUT leftAltKeyDown = new NativeMethods.INPUT(Keys.LMenu, 0);
+		private readonly NativeMethods.INPUT leftAltKeyUp = new NativeMethods.INPUT(Keys.LMenu, NativeMethods.KEYEVENTF_KEYUP);
+		private readonly NativeMethods.INPUT rightAltKeyDown = new NativeMethods.INPUT(Keys.RMenu, 0);
+		private readonly NativeMethods.INPUT rightAltKeyUp = new NativeMethods.INPUT(Keys.RMenu, NativeMethods.KEYEVENTF_KEYUP);
 		// sends the hotkey combination without disrupting the currently pressed modifiers
-		private static void SendHotkey(Tuple<NativeMethods.MOD, Keys> hotkey)
+		private void SendHotkey(Tuple<NativeMethods.MOD, Keys> hotkey)
 		{
 			uint i = 0;
 
@@ -619,7 +649,7 @@ namespace Windawesome
 			NativeMethods.SendInput(i, input, NativeMethods.INPUTSize);
 		}
 
-		private static void PressReleaseModifierKey(
+		private void PressReleaseModifierKey(
 			bool leftKeyPressed, bool rightKeyPressed, bool keyShouldBePressed,
 			NativeMethods.INPUT action, NativeMethods.INPUT leftAction, NativeMethods.INPUT rightAction, ref uint i)
 		{
@@ -645,7 +675,7 @@ namespace Windawesome
 
 		#endregion
 
-		private static Window GetOwnermostWindow(IntPtr hWnd, Workspace workspace)
+		private Window GetOwnermostWindow(IntPtr hWnd, Workspace workspace)
 		{
 			var window = workspace.GetOwnermostWindow(hWnd);
 			while (window == null)
@@ -676,7 +706,7 @@ namespace Windawesome
 				case OnWindowShownAction.HideWindow:
 					System.Threading.Thread.Sleep(1000); // TODO: is this enough? Is it too much?
 					HideWindow(tuple.Item2);
-					CurrentWorkspace.SetTopManagedWindowAsForeground();
+					SetWorkspaceTopManagedWindowAsForeground(CurrentWorkspace);
 					break;
 			}
 		}
@@ -692,7 +722,7 @@ namespace Windawesome
 			}
 			else
 			{
-				CurrentWorkspace.SetTopManagedWindowAsForeground();
+				SetWorkspaceTopManagedWindowAsForeground(CurrentWorkspace);
 			}
 		}
 
@@ -704,10 +734,10 @@ namespace Windawesome
 
 		private void ShowHideWindows(Workspace oldWorkspace, Workspace newWorkspace, bool setForeground)
 		{
-			var showWindows = newWorkspace.GetWindows();
-			var hideWindows = oldWorkspace.GetWindows().Except(showWindows);
+			var showWindows = newWorkspace.GetOwnerWindows();
+			var hideWindows = oldWorkspace.GetOwnerWindows().Except(showWindows);
 
-			var winPosInfo = NativeMethods.BeginDeferWindowPos(showWindows.Count + oldWorkspace.GetWindows().Count);
+			var winPosInfo = NativeMethods.BeginDeferWindowPos(showWindows.Count + oldWorkspace.GetOwnerWindows().Count);
 
 			var newTopmostWindow = newWorkspace.GetTopmostWindow();
 			foreach (var window in showWindows.Where(WindowIsNotHung))
@@ -739,7 +769,7 @@ namespace Windawesome
 			// activates the topmost non-minimized window
 			if (setForeground)
 			{
-				newWorkspace.SetTopManagedWindowAsForeground();
+				SetWorkspaceTopManagedWindowAsForeground(newWorkspace);
 			}
 		}
 
@@ -758,7 +788,7 @@ namespace Windawesome
 		}
 
 		// there is a dynamic here because this could be either a Window or an IntPtr
-		private static void ActivateWindow(IntPtr hWnd, dynamic window, bool isMinimized)
+		private void ActivateWindow(IntPtr hWnd, dynamic window, bool isMinimized)
 		{
 			if (isMinimized)
 			{
@@ -812,7 +842,7 @@ namespace Windawesome
 			monitors.ForEach(m => m.CurrentVisibleWorkspace.Reposition());
 
 			// redraw all windows in current workspace
-			monitors.ForEach(m => m.CurrentVisibleWorkspace.GetWindows().ForEach(w => w.Redraw()));
+			monitors.ForEach(m => m.CurrentVisibleWorkspace.GetOwnerWindows().ForEach(w => w.Redraw()));
 
 			// refresh bars
 			config.Bars.ForEach(b => b.Refresh());
@@ -829,7 +859,7 @@ namespace Windawesome
 
 				if (window != null && !newWorkspace.ContainsWindow(hWnd))
 				{
-					oldWorkspace.WindowDestroyed(window, false);
+					oldWorkspace.WindowDestroyed(window);
 					newWorkspace.WindowCreated(window);
 
 					var list = applications[window.hWnd];
@@ -891,7 +921,11 @@ namespace Windawesome
 					list.Remove(new Tuple<Workspace, Window>(workspaces[workspace], window));
 					list.Where(t => --t.Item2.WorkspacesCount == 1).ForEach(t => t.Item1.AddToRemovedSharedWindows(t.Item2));
 
-					workspaces[workspace].WindowDestroyed(window, setForeground);
+					workspaces[workspace].WindowDestroyed(window);
+					if (workspaces[workspace].IsCurrentWorkspace && setForeground)
+					{
+						SetWorkspaceTopManagedWindowAsForeground(workspaces[workspace]);
+					}
 				}
 			}
 		}
@@ -910,6 +944,11 @@ namespace Windawesome
 						}
 					});
 				list.ForEach(t => t.Item1.WindowDestroyed(t.Item2));
+				Workspace workspace;
+				if ((workspace = list.Select(t => t.Item1).FirstOrDefault(ws => ws.IsCurrentWorkspace)) != null)
+				{
+					SetWorkspaceTopManagedWindowAsForeground(workspace);
+				}
 				applications.Remove(hWnd);
 				monitors.ForEach(m => m.temporarilyShownWindows.Remove(hWnd));
 			}
@@ -928,7 +967,7 @@ namespace Windawesome
 
 					if (setForeground)
 					{
-						newWorkspace.SetTopManagedWindowAsForeground();
+						SetWorkspaceTopManagedWindowAsForeground(newWorkspace);
 					}
 
 					CurrentWorkspace.IsCurrentWorkspace = false;
@@ -1079,7 +1118,7 @@ namespace Windawesome
 			NativeMethods.SendNotifyMessage(hWnd, NativeMethods.WM_SYSCOMMAND, NativeMethods.SC_RESTORE, IntPtr.Zero);
 		}
 
-		public static void RegisterMessage(int message, HandleMessageDelegate targetHandler)
+		public void RegisterMessage(int message, HandleMessageDelegate targetHandler)
 		{
 			HandleMessageDelegate handlers;
 			if (messageHandlers.TryGetValue(message, out handlers))
@@ -1092,114 +1131,68 @@ namespace Windawesome
 			}
 		}
 
-		private static readonly HashSet<NativeMethods.SendMessageCallbackDelegate> delegatesSet = new HashSet<NativeMethods.SendMessageCallbackDelegate>();
-		public static void GetWindowSmallIconAsBitmap(IntPtr hWnd, Action<Bitmap> action)
+		public void GetWindowSmallIconAsBitmap(IntPtr hWnd, Action<Bitmap> action)
 		{
-			NativeMethods.SendMessageCallbackDelegate firstCallback = null;
-			firstCallback = (hWnd1, unused1, unused2, lResult) =>
-				{
-					delegatesSet.Remove(firstCallback);
+			IntPtr result;
+			NativeMethods.SendMessageTimeout(hWnd, NativeMethods.WM_GETICON, NativeMethods.ICON_SMALL,
+				IntPtr.Zero, NativeMethods.SMTO.SMTO_ABORTIFHUNG | NativeMethods.SMTO.SMTO_BLOCK, 500, out result);
 
-					if (lResult != IntPtr.Zero)
+			if (result == IntPtr.Zero)
+			{
+				NativeMethods.SendMessageTimeout(hWnd, NativeMethods.WM_QUERYDRAGICON, UIntPtr.Zero,
+					IntPtr.Zero, NativeMethods.SMTO.SMTO_ABORTIFHUNG | NativeMethods.SMTO.SMTO_BLOCK, 500, out result);
+			}
+
+			if (result == IntPtr.Zero)
+			{
+				result = NativeMethods.GetClassLongPtr(hWnd, NativeMethods.GCL_HICONSM);
+			}
+
+			if (result == IntPtr.Zero)
+			{
+				System.Threading.Tasks.Task.Factory.StartNew(hWnd2 =>
 					{
+						Bitmap bitmap = null;
 						try
 						{
-							action(new Bitmap(Bitmap.FromHicon(lResult), smallIconSize));
-							return ;
+							int processId;
+							NativeMethods.GetWindowThreadProcessId((IntPtr) hWnd2, out processId);
+							var processFileName = System.Diagnostics.Process.GetProcessById(processId).MainModule.FileName;
+
+							var info = new NativeMethods.SHFILEINFO();
+
+							NativeMethods.SHGetFileInfo(processFileName, 0, ref info,
+								Marshal.SizeOf(info), NativeMethods.SHGFI_ICON | NativeMethods.SHGFI_SMALLICON);
+
+							if (info.hIcon != IntPtr.Zero)
+							{
+								bitmap = new Bitmap(Bitmap.FromHicon(info.hIcon), smallIconSize);
+								NativeMethods.DestroyIcon(info.hIcon);
+							}
+							else
+							{
+								bitmap = Icon.ExtractAssociatedIcon(processFileName).ToBitmap();
+								if (bitmap != null)
+								{
+									bitmap = new Bitmap(bitmap, smallIconSize);
+								}
+							}
 						}
 						catch
 						{
 						}
-					}
 
-					NativeMethods.SendMessageCallbackDelegate secondCallback = null;
-					secondCallback = (hWnd2, unused3, unused4, hIcon) =>
-						{
-							delegatesSet.Remove(secondCallback);
-
-							if (hIcon != IntPtr.Zero)
-							{
-								try
-								{
-									action(new Bitmap(Bitmap.FromHicon(hIcon), smallIconSize));
-									return ;
-								}
-								catch
-								{
-								}
-							}
-
-							hIcon = NativeMethods.GetClassLongPtr(hWnd2, NativeMethods.GCL_HICONSM);
-
-							if (hIcon != IntPtr.Zero)
-							{
-								try
-								{
-									action(new Bitmap(Bitmap.FromHicon(hIcon), smallIconSize));
-									return ;
-								}
-								catch
-								{
-								}
-							}
-
-							if (!NativeMethods.IsWindow(hWnd2))
-							{
-								return ;
-							}
-
-							System.Threading.Tasks.Task.Factory.StartNew(() =>
-								{
-									Bitmap bitmap = null;
-									try
-									{
-										int processId;
-										NativeMethods.GetWindowThreadProcessId(hWnd2, out processId);
-										var process = System.Diagnostics.Process.GetProcessById(processId);
-
-										var info = new NativeMethods.SHFILEINFO();
-
-										NativeMethods.SHGetFileInfo(process.MainModule.FileName, 0, ref info,
-											Marshal.SizeOf(info), NativeMethods.SHGFI_ICON | NativeMethods.SHGFI_SMALLICON);
-
-										if (info.hIcon != IntPtr.Zero)
-										{
-											bitmap = new Bitmap(Bitmap.FromHicon(info.hIcon), smallIconSize);
-											NativeMethods.DestroyIcon(info.hIcon);
-										}
-										else
-										{
-											bitmap = Icon.ExtractAssociatedIcon(process.MainModule.FileName).ToBitmap();
-											if (bitmap != null)
-											{
-												bitmap = new Bitmap(bitmap, smallIconSize);
-											}
-										}
-									}
-									catch
-									{
-									}
-
-									return bitmap;
-								}).ContinueWith(t => action(t.Result), System.Threading.CancellationToken.None,
-									System.Threading.Tasks.TaskContinuationOptions.None, uiThreadTaskScheduler);
-						};
-
-					if (NativeMethods.SendMessageCallback(hWnd1, NativeMethods.WM_QUERYDRAGICON, UIntPtr.Zero,
-						IntPtr.Zero, secondCallback, UIntPtr.Zero))
-					{
-						delegatesSet.Add(secondCallback);
-					}
-				};
-
-			if (NativeMethods.SendMessageCallback(hWnd, NativeMethods.WM_GETICON, NativeMethods.ICON_SMALL,
-				IntPtr.Zero, firstCallback, UIntPtr.Zero))
+						return bitmap;
+					}, hWnd).ContinueWith(t => action(t.Result), System.Threading.CancellationToken.None,
+						System.Threading.Tasks.TaskContinuationOptions.None, System.Threading.Tasks.TaskScheduler.FromCurrentSynchronizationContext());
+			}
+			else
 			{
-				delegatesSet.Add(firstCallback);
+				action(new Bitmap(Bitmap.FromHicon(result), smallIconSize));
 			}
 		}
 
-		public static void PostAction(Action action)
+		public void PostAction(Action action)
 		{
 			postedActions.Enqueue(action);
 			NativeMethods.PostMessage(HandleStatic, postActionMessageNum, UIntPtr.Zero, IntPtr.Zero);
@@ -1213,7 +1206,7 @@ namespace Windawesome
 				HideWindow(applications[hWnd].First.Value.Item2);
 				if (monitor.CurrentVisibleWorkspace.IsCurrentWorkspace)
 				{
-					CurrentWorkspace.SetTopManagedWindowAsForeground();
+					SetWorkspaceTopManagedWindowAsForeground(CurrentWorkspace);
 				}
 			}
 		}

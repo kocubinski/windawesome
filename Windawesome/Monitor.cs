@@ -62,10 +62,7 @@ namespace Windawesome
 			public void Destroy()
 			{
 				// unregister as AppBar
-				var appBarData = new NativeMethods.APPBARDATA
-					{
-						hWnd = this.Handle
-					};
+				var appBarData = new NativeMethods.APPBARDATA {	hWnd = this.Handle };
 
 				NativeMethods.SHAppBarMessage(NativeMethods.ABM.ABM_REMOVE, ref appBarData);
 
@@ -288,13 +285,6 @@ namespace Windawesome
 			ShowHideBars(null, null, workspaceTuple.Item2, workspaceTuple.Item3, CurrentVisibleWorkspace, CurrentVisibleWorkspace);
 
 			CurrentVisibleWorkspace.SwitchTo();
-
-			if (screen.Primary)
-			{
-				Monitor.ShowHideWindowsTaskbar(CurrentVisibleWorkspace.ShowWindowsTaskbar);
-				CurrentVisibleWorkspace.SetTopManagedWindowAsForeground();
-				CurrentVisibleWorkspace.IsCurrentWorkspace = true;
-			}
 		}
 
 		public override bool Equals(object obj)

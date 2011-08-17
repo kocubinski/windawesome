@@ -169,6 +169,12 @@ namespace Windawesome
 		AS_IS  = 2
 	}
 
+	public enum OnWindowCreatedOnCurrentWorkspaceAction
+	{
+		ActivateWindow,
+		ActivatePreviousActiveWindow
+	}
+
 	public enum OnWindowShownAction
 	{
 		SwitchToWindowsWorkspace,
@@ -194,6 +200,7 @@ namespace Windawesome
 		internal readonly bool hideOwnedPopups;
 		internal readonly bool redrawDesktopOnWindowCreated;
 		internal readonly bool showMenu;
+		internal readonly OnWindowCreatedOnCurrentWorkspaceAction onWindowCreatedOnCurrentWorkspaceAction;
 		internal readonly OnWindowShownAction onWindowCreatedAction;
 		internal readonly OnWindowShownAction onHiddenWindowShownAction;
 		internal readonly Rule[] rules;
@@ -220,6 +227,7 @@ namespace Windawesome
 
 			bool isManaged = true, int tryAgainAfter = -1, int windowCreatedDelay = 0, bool handleOwnedWindows = false,
 			bool hideOwnedPopups = true, bool redrawDesktopOnWindowCreated = false, bool showMenu = true,
+			OnWindowCreatedOnCurrentWorkspaceAction onWindowCreatedOnCurrentWorkspaceAction = OnWindowCreatedOnCurrentWorkspaceAction.ActivateWindow,
 			OnWindowShownAction onWindowCreatedAction = OnWindowShownAction.SwitchToWindowsWorkspace,
 			OnWindowShownAction onHiddenWindowShownAction = OnWindowShownAction.SwitchToWindowsWorkspace,
 			int showOnWorkspacesCount = 0, IEnumerable<Rule> rules = null)
@@ -242,6 +250,7 @@ namespace Windawesome
 				this.hideOwnedPopups = hideOwnedPopups;
 				this.redrawDesktopOnWindowCreated = redrawDesktopOnWindowCreated;
 				this.showMenu = showMenu;
+				this.onWindowCreatedOnCurrentWorkspaceAction = onWindowCreatedOnCurrentWorkspaceAction;
 				this.onWindowCreatedAction = onWindowCreatedAction;
 				this.onHiddenWindowShownAction = onHiddenWindowShownAction;
 

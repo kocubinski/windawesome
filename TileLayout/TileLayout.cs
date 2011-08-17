@@ -16,6 +16,7 @@ namespace Windawesome
 			Monocle
 		}
 
+		private Workspace workspace;
 		private LayoutAxis layoutAxis;
 		private LayoutAxis masterAreaAxis;
 		private LayoutAxis stackAreaAxis;
@@ -280,16 +281,16 @@ namespace Windawesome
 
 		#region ILayout Members
 
-		string ILayout.LayoutSymbol(int windowsCount)
+		string ILayout.LayoutSymbol()
 		{
 			if (layoutAxis == LayoutAxis.Monocle)
 			{
-				return "[" + windowsCount + "]";
+				return "[" + workspace.GetWindowsCount() + "]";
 			}
 
 			var master = "[]";
 			var masterCount = windows.Take(masterAreaWindowsCount).Count(w => w.ShowInTabs);
-			var stackCount = windowsCount - masterCount;
+			var stackCount = workspace.GetWindowsCount() - masterCount;
 
 			if (masterAreaWindowsCount > 1)
 			{
@@ -320,8 +321,15 @@ namespace Windawesome
 			return false;
 		}
 
-		void ILayout.Reposition(IEnumerable<Window> windows, Rectangle workingArea)
+		void ILayout.Initialize(Workspace workspace)
 		{
+			this.workspace = workspace;
+			this.workingArea = workspace.Monitor.screen.WorkingArea;
+		}
+
+		void ILayout.Reposition()
+		{
+			var windows = workspace.GetWindows();
 			if (this.windows.Count != windows.Count() || !new HashSet<Window>(this.windows).Overlaps(windows))
 			{
 				// restore any maximized windows - should not use SW_RESTORE as it activates the window
@@ -331,30 +339,21 @@ namespace Windawesome
 				this.windows = new LinkedList<Window>(windows);
 			}
 
-			this.workingArea = workingArea;
+			this.workingArea = workspace.Monitor.screen.WorkingArea;
 			Reposition();
 		}
 
-		void ILayout.WindowTitlebarToggled(Window window, IEnumerable<Window> windows)
+		void ILayout.WindowMinimized(Window window)
 		{
+			(this as ILayout).WindowDestroyed(window);
 		}
 
-		void ILayout.WindowBorderToggled(Window window, IEnumerable<Window> windows)
+		void ILayout.WindowRestored(Window window)
 		{
+			(this as ILayout).WindowCreated(window);
 		}
 
-		void ILayout.WindowMinimized(Window window, IEnumerable<Window> windows)
-		{
-			this.windows.Remove(window);
-			Reposition();
-		}
-
-		void ILayout.WindowRestored(Window window, IEnumerable<Window> windows)
-		{
-			(this as ILayout).WindowCreated(window, windows, true);
-		}
-
-		void ILayout.WindowCreated(Window window, IEnumerable<Window> windows, bool reLayout)
+		void ILayout.WindowCreated(Window window)
 		{
 			if (NativeMethods.IsZoomed(window.hWnd))
 			{
@@ -363,16 +362,16 @@ namespace Windawesome
 				System.Threading.Thread.Sleep(Workspace.minimizeRestoreDelay);
 			}
 			this.windows.AddFirst(window);
-			if (reLayout)
+			if (workspace.IsWorkspaceVisible)
 			{
 				Reposition();
 			}
 		}
 
-		void ILayout.WindowDestroyed(Window window, IEnumerable<Window> windows, bool reLayout)
+		void ILayout.WindowDestroyed(Window window)
 		{
 			this.windows.Remove(window);
-			if (reLayout)
+			if (workspace.IsWorkspaceVisible)
 			{
 				Reposition();
 			}

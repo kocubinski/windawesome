@@ -309,7 +309,7 @@ namespace Windawesome
 			// system tray hook
 			if (NativeMethods.RegisterSystemTrayHook(windawesome.Handle))
 			{
-				Windawesome.RegisterMessage(NativeMethods.WM_COPYDATA, OnSystemTrayMessage);
+				windawesome.RegisterMessage(NativeMethods.WM_COPYDATA, OnSystemTrayMessage);
 			}
 		}
 

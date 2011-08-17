@@ -3,35 +3,49 @@ Windawesome
 
 http://windawesome.codeplex.com
 
-Windawesome (pronounced - contrary to what you would expect from the way it is written - Windows-om, not Wind-awesome) is a highly customizable dynamic window manager for Windows, which works on top of explorer.exe and NOT as a shell replacement. It is heavily inspired by Bug.n, but it goes much furthur. Windawesome is (mostly) written in C# and is scriptable and pluggable in IronRuby, IronPython and any .NET language that compiles down to an assembly. Requires .NET Framework 4 Client Profile, Visual C++ 2010 Redistributable and IronRuby/IronPython DLLs. The main bundle comes with 3 configuration files (2 in Python, 1 in Ruby), 3 layouts (2 built-in and one as a C# DLL), a couple of Plugins and some Widgets, one of which is written in Ruby. Works with 32- and 64-bit versions of Windows XP, Vista and 7. Goes under the GNU General Public License version 2.
+Windawesome (pronounced - contrary to what you would expect from the way it is written - Windows-om, not Wind-awesome) is a highly customizable dynamic window manager for Windows, which works on top of explorer.exe and NOT as a shell replacement. It is heavily inspired by Bug.n, but goes much furthur. Windawesome is (mostly) written in C# and is scriptable and pluggable in IronRuby, IronPython and any .NET language that compiles down to an assembly. Requires .NET Framework 4 Client Profile, Visual C++ 2010 Redistributable and IronRuby/IronPython DLLs. The main bundle comes with 3 configuration files (2 in Python, 1 in Ruby), 3 layouts (2 built-in and one as a C# DLL), a couple of Plugins and some Widgets, one of which is written in Ruby. Works with 32- and 64-bit versions of Windows XP, Vista and 7. Goes under the GNU General Public License version 2.
+
+====================================================================
 
 Installation:
-You can build from sources, which would require at least Visual Studio 2010 and the IronPython/IronRuby DLLs (see below). If you don't want, you could just use the binaries I have built, but you still need .NET 4, VC++ 2010 redist and the IronPython/IronRuby DLLs (IronPython.dll, IronPython.Modules.dll, IronRuby.dll, IronRuby.Libraries.dll, Microsoft.Dynamic.dll, Microsoft.Scripting.dll). All the configuration that comes with Windawesome is the one that I use on my machine - you probably won't like it so make sure to go through all config files and customize as you like.
+You can build from sources, which would require at least Visual Studio 2010 (C# and C++ Express work) and the IronPython/IronRuby DLLs (see below). If you don't want, you could just use the binaries I have built, but you still need .NET 4, VC++ 2010 redist and the IronPython/IronRuby DLLs (IronPython.dll, IronPython.Modules.dll, IronRuby.dll, IronRuby.Libraries.dll, Microsoft.Dynamic.dll, Microsoft.Scripting.dll). All the configuration that comes with Windawesome is the one that I use on my machine - you probably won't like it so make sure to go through all config files and customize as you like.
+
+====================================================================
 
 Usage:
-If you've run Windawesome, you'll probably notice that you don't know how to exit. You can do that by pressing ALT+SHIFT+Q - at least that's the default hotkey if you haven't changed it. For all others, take a look at the config files and modify them as per your taste.
+If you've run Windawesome, you'll probably notice that you don't know how to exit. You can do that by pressing ALT+SHIFT+Q - at least that's the default hotkey if you haven't changed it. Everything in Windawesome is controlled from the keyboard so there are many shortcuts for all kinds of things. Take a look at the config files and modify them as per your taste.
+
+====================================================================
 
 Terminology:
 Window - a window
 IBar - a vertical bar that is docked at the top or the bottom of the screen
 Bar - an implementation of IBar using Windows Forms
-Workspace - what you see at any point is exactly one workspace. Every workspace can have zero or more windows, and every window can be on zero or more workspaces. Every workspace can have zero or more IBars and every IBar can be on zero or more workspaces (but exactly once on each)
-IWidget - something that is shown in a Bar. Every IWidget instance should be on at most one Bar and every Bar can have zero or more widgets
+Monitor - a physical monitor. Every Monitor can have zero or more IBars and every IBar has exactly one Monitor. Every Monitor can have zero or more Workspaces and every Workspace has exactly one Monitor
+Workspace - what you see at any point is zero or one Workspaces per monitor. Every Workspace can have zero or more Windows, and every Window can be on zero or more Workspaces. Every Workspace can have zero or more IBars (chosen from the IBars that correspond to the Workspace's Monitor) and every IBar can be on zero or more Workspaces (but exactly once on each)
+Layout - a Layout is the way Windows are managed on a Workspace. Every Workspace has exactly one Layout
+Widget - something that is shown in a Bar. Every Widget instance should be on at most one Bar and every Bar can have zero or more Widgets
 Plugin - just something that is loaded in the beginning and can do various things
+
+====================================================================
 
 Configuration:
 Configuration files are read in order so if you use something in one file from another, make sure the other one is read first. There are 4 directories which are read in the following order: Layouts, Widgets, Plugins, Config
 
+====================================================================
+
 Config:
 This is the global configuration unit of Windawesome. These instance variables are set in the configuration files and should ALL be given values.
-Plugins - an array of IPlugin objects
+Plugins - an enumerable of IPlugin objects
 Bars - an array of IBar objects
 Workspaces - an array of Workspace objects
-StartingWorkspace - the ID of the workspace to be shown when the application is run (1-based)
-ProgramRules - an array of ProgramRule objects
+StartingWorkspaces - an enumerable of Workspaces that are going to be the starting ones on each Monitor. Each Monitor must have a StartingWorkspace
+ProgramRules - an enumerable of ProgramRule objects
 WindowBorderWidth - the thickness of the sizing border, in pixels. The default is 1 pixel
 WindowPaddedBorderWidth - the thickness of the padded border, in pixels. The default value is 4 pixels. Only in Vista or later
 UniqueHotkey - Windawesome uses this hotkey so it can switch to applications when you change workspaces (only if another method fails). Make sure you use a unique hotkey that is not in use by any other application. Windawesome will output a warning in a warnings.txt file if there is a problem registering this hotkey. The default one probably is fine (it is ALT+0)
+
+====================================================================
 
 ProgramRule:
 A program rule tells Windawesome how to treat any newly created window - this can be customized in a variety of ways:
@@ -52,13 +66,16 @@ handleOwnedWindows - if true, Windawesome will handle a window that is owned by 
 hideOwnedPopups - if true, Windawesome will hide all popups that are owned of the window being hidden
 redrawDesktopOnWindowCreated - if true, Windawesome will redraw the Desktop when this window is created. Useful if you have problems with that. I've seen it with mintty (the cygwin terminal emulator)
 showMenu - if true, the menu bar (if any) of a window is shown, otherwise - not. Note that actually this doesn't work for a lot of windows, because they don't have a menu in Window's sense
+onWindowCreatedOnCurrentWorkspaceAction - specifies what to do when a window is created on the current workspace. Can be one of the enum values:
+	ActivateWindow - activates the window (default)
+	ActivatePreviousActiveWindow - ignores the new window and activates the one that was active up to now
 onWindowCreatedAction - specifies what to do when a window is created. Can be one of the enum values:
-	SwitchToWindowsWorkspace - switches to that window's workspace. The default value
+	SwitchToWindowsWorkspace - switches to that window's workspace (default)
 	MoveWindowToCurrentWorkspace - moves the window to the current workspace
 	TemporarilyShowWindowOnCurrentWorkspace - shows the window but doesn't move it to the current workspace. Can be dismissed by calling DismissTemporarilyShownWindow
 	HideWindow - hides the window (this option doesn't always work - try putting a bigger number for windowCreatedDelay)
 onHiddenWindowShownAction - specifies what to do when a hidden window suddenly shows itself. Can be one of the enum values:
-	SwitchToWindowsWorkspace - switches to that window's workspace. The default value
+	SwitchToWindowsWorkspace - switches to that window's workspace (default)
 	MoveWindowToCurrentWorkspace - moves the window to the current workspace
 	TemporarilyShowWindowOnCurrentWorkspace - shows the window but doesn't move it to the current workspace. Can be dismissed by calling DismissTemporarilyShownWindow
 	HideWindow - hides the window
@@ -67,10 +84,12 @@ rules - a list of Rule objects
 
 Whenever a new window is created, Windawesome tries to match it with any program rule in config.programRules. "className" through "customMatchingFunction", including, must all match. The FIRST matching rule is used, that is why an "all-catch" rule should be at the end. After that, if a window is not managed, Windawesome does nothing more - which means you will see the window on every workspace and as a normal, floating window.
 
-Rule:
-Each rule governs the specific settings for a window on a particular workspace
+====================================================================
 
-workspace - the workspace ID to put the window on
+Rule:
+Each rule governs the specific settings for a Window on a particular Workspace
+
+workspace - the Workspace ID to put the window on (starting from 1)
 isFloating - whether the window is floating, i.e. the layout shouldn't manage it
 showInTabs - whether the window will show in Windawesome's Application Tabs Widget
 titlebar - whether the window's titlebar is SHOWN, HIDDEN or AS_IS (the last one means that Windawesome will not do anything to the titlebar - do NOT use that if the window is shared, i.e. visible on two or more workspaces, if on any of the others it is not AS_IS)
@@ -79,9 +98,12 @@ windowBorders - whether the window's border is SHOWN, HIDDEN or AS_IS (the last 
 redrawOnShow - whether the window should be redrawed when shown. Some windows (e.g. Excel) have a problem when hidden and then shown again
 activateLastActivePopup - whether Windawesome should activate the last active popup of the window, instead of the window itself. This is normally what you want as most windows that a top-level window creates are popups and they should be above the main window
 
+====================================================================
+
 Bar:
 An IBar is a horizontal... well, bar, that is docked to the top or the bottom of the screen. The Bar implementation contains IWidgets which can be left, right or middle aligned. The following customizations can be done:
 
+monitor - the Monitor that the Bar belongs to
 leftAlignedWidgets - a list of IFixedWidthWidget objects which are going to be left-aligned on the bar. They will show from left to right, i.e. the leftmost edge of the first object in the list is going to be at the leftmost position on the screen
 rightAlignedWidgets - a list of IFixedWidthWidget objects which are going to be right-aligned on the bar. They will show from left to right, i.e. the rightmost edge of the last object in the list is going to be at the rightmost position on the screen
 middleAlignedWidgets - a list of IFSpanWidget objects which are going to span all the available space in the middle of the bar
@@ -91,19 +113,29 @@ backgroundColor - the default background color of the Bar
 
 Left and right aligned widgets SHOULD be of type IFixedWidthWidget (which means they are not spanning all the available space, not that they cannot change their width), while middle aligned widgets SHOULD be of type ISpanWidget.
 
-Workspace:
-A workspace contains windows and bars and is displaying the windows in a particular layout.
+====================================================================
 
+Workspace:
+A workspace contains Windows and Bars and is displaying the windows in a particular Layout.
+
+monitor - the Monitor that the Workspace initially belongs to
 layout - the layout to be used to position windows (make sure to use a new instance for each workspace)
-barsAtTop - a list of IBar objects to be visible at the top of this workspace
-barsAtBottom - a list of IBar objects to be visible at the bottom of this workspace
+barsAtTop - a list of IBar objects to be visible at the top of this workspace (Bars can be shared between Workspaces on the same monitor)
+barsAtBottom - a list of IBar objects to be visible at the bottom of this workspace (Bars can be shared between Workspaces on the same monitor)
 name - a short, descriptive name that is going to be shown next to the workspace ID in the Workspaces Widget
 showWindowsTaskbar - a boolean to indicate whether to show the Windows taskbar initially on this workspace
 repositionOnSwitchedTo - a boolean indicating whether to reposition all windows when this workspace has been switched to
 
+====================================================================
 
 Layouts:
-Full screen - nothing to be customized there
+The Layout is the way Windawesome manages Windows in Workspaces. There are a couple of Layouts that come by default:
+Full Screen - every Window is made to take the maximum possible area
+Floating - the same behaviour as Windows - applications can be moved around and resized
+Tile - a tiling layout - means that Windows are made to take whole area of the Workspace while trying to display as much as possible of every one of them.
+
+Customizations:
+Full Screen - nothing to be customized there
 Floating - nothing to be customized there
 Tile:
 Contains a master area and a stack area.
@@ -126,6 +158,7 @@ ShiftWindowToPreviousPosition - accepts a Window and shifts it to the previous p
 ShiftWindowToMainPosition - accepts a Window and shifts it to the main position (top of master area)
 AddToMasterAreaFactor - a double to add to the master area factor. Can be negative
 
+====================================================================
 
 IWidgets:
 Things you put on a Bar to display various info.
@@ -148,6 +181,7 @@ Application Tabs Widget - accepts a boolean indicating whether to show a single 
 
 CpuMonitorWidget - accepts the time in milliseconds to wait before updating the value (should be at least 500) and a prefix and a suffix to display
 
+====================================================================
 
 Plugins:
 WindowSubclassing - I tried to make a plugin which would subclass all windows and then catch movement, maximization, restoration and stuff like that on workspaces that shouldn't allow actions like that (e.g. full-screen). It works but Windows seems to have problems with that kind of things, so I would suggest you don't use it. You can try, however.
@@ -156,7 +190,7 @@ LoggerPlugin - a plugin which logs in a file what windows are created/destroyed/
 
 ShortcutsManager - allows you to use keyboard shortcuts. If you use only non-left or right modifier keys (Control, Alt, etc), it uses RegisterHotKey function which will fail if there is already a global shortcut with this key and these modifiers. If, however, you have one or more shortcuts that have a left or right-only modifier (LControl, RAlt, etc), then it registers a low-level keyboard hook which will work fine with colliding mappings if you return false from your handler. I do suggest, however, that you use only non-left/right shortcuts (Control, Shift, etc) and use non-colliding mappings.
 
-
+====================================================================
 
 Usage tips:
 - Windawesome will change the so called "working area" of Windows to take the maximum available space - this means, for example, that if the Windows Taskbar is not shown when you maximize a window, it will take the area of the Taskbar too. Whenever changing between workspaces, Windawesome will set the new workspace's working area according to its settings (how many bars are shown, where they are located, whether the Taskbar is shown). This is very useful, however changing the working area in Windows takes, for some reason, a *very* long time - like a second - which is *very* annoying. This means that having two or more workspaces with different settings for bar heights and Taskbar visibility will lead to constant changing of the working area when you switch between them. I would suggest that you have some bars (not necessarily the same) for each workspace, but with the same height, and hiding or showing the Windows Taskbar on all of them. This will make switching between workspaces instantaneous. Take a look at my configuration to see what I mean.
@@ -166,6 +200,8 @@ http://maximumpcguides.com/windows-vista/run-a-program-with-administrative-privi
 ~LAlt Up::return
 ~RAlt Up::return
 This will remove the Windows standard behaviour of the Alt key which focuses keyboard input on the menu of the current application. This is VERY useful because sometimes when switching workspaces the focus is on the menu of the newly shown application and not on the app itself.
+
+====================================================================
 
 Known bugs/limitations:
 - Whenever a label's text is longer than the width, ellipsis show. However, then the text alignment changes to Top or something. This is a bug in the .NET Framework since version 2.0 and hasn't been fixed even in 4.0. Should be relatively easy to fix that by drawing one's own text, but I won't bother.

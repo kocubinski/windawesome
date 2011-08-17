@@ -6,6 +6,7 @@ namespace Windawesome
 {
 	public class FullScreenLayout : ILayout
 	{
+		private Workspace workspace;
 		private Rectangle workingArea;
 
 		private void MaximizeWindow(Window window)
@@ -54,9 +55,9 @@ namespace Windawesome
 
 		#region ILayout Members
 
-		string ILayout.LayoutSymbol(int windowsCount)
+		string ILayout.LayoutSymbol()
 		{
-			return windowsCount == 0 ? "[M]" : "[" + windowsCount + "]";
+			return workspace.GetWindowsCount() == 0 ? "[M]" : "[" + workspace.GetWindowsCount() + "]";
 		}
 
 		public string LayoutName()
@@ -64,50 +65,51 @@ namespace Windawesome
 			return "Full Screen";
 		}
 
+		void ILayout.Initialize(Workspace workspace)
+		{
+			this.workspace = workspace;
+			this.workingArea = workspace.Monitor.screen.WorkingArea;
+
+			workspace.WindowTitlebarToggled += MaximizeWindow;
+			workspace.WindowBorderToggled += MaximizeWindow;
+		}
+
 		bool ILayout.ShouldSaveAndRestoreSharedWindowsPosition()
 		{
 			return false;
 		}
 
-		void ILayout.Reposition(IEnumerable<Window> windows, Rectangle workingArea)
+		void ILayout.Reposition()
 		{
-			this.workingArea = workingArea;
-			windows.ForEach(MaximizeWindow);
+			this.workingArea = workspace.Monitor.screen.WorkingArea;
+			workspace.GetWindows().ForEach(MaximizeWindow);
 			Windawesome.DoLayoutUpdated();
 		}
 
-		void ILayout.WindowTitlebarToggled(Window window, IEnumerable<Window> windows)
+		void ILayout.WindowMinimized(Window window)
+		{
+		}
+
+		void ILayout.WindowRestored(Window window)
 		{
 			MaximizeWindow(window);
 		}
 
-		void ILayout.WindowBorderToggled(Window window, IEnumerable<Window> windows)
+		void ILayout.WindowCreated(Window window)
 		{
-			MaximizeWindow(window);
-		}
-
-		void ILayout.WindowMinimized(Window window, IEnumerable<Window> windows)
-		{
-		}
-
-		void ILayout.WindowRestored(Window window, IEnumerable<Window> windows)
-		{
-			MaximizeWindow(window);
-			Windawesome.DoLayoutUpdated();
-		}
-
-		void ILayout.WindowCreated(Window window, IEnumerable<Window> windows, bool reLayout)
-		{
-			if (reLayout)
+			if (workspace.IsWorkspaceVisible)
 			{
 				MaximizeWindow(window);
 				Windawesome.DoLayoutUpdated();
 			}
 		}
 
-		void ILayout.WindowDestroyed(Window window, IEnumerable<Window> windows, bool reLayout)
+		void ILayout.WindowDestroyed(Window window)
 		{
-			Windawesome.DoLayoutUpdated();
+			if (workspace.IsWorkspaceVisible)
+			{
+				Windawesome.DoLayoutUpdated();
+			}
 		}
 
 		#endregion

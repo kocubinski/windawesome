@@ -15,7 +15,9 @@ namespace Windawesome
 		public readonly string name;
 		public readonly bool repositionOnSwitchedTo;
 		public bool ShowWindowsTaskbar { get; private set; }
+		public bool IsWorkspaceVisible { get; private set; }
 
+		private bool isCurrentWorkspace;
 		public bool IsCurrentWorkspace
 		{
 			get	{ return isCurrentWorkspace; }
@@ -34,30 +36,8 @@ namespace Windawesome
 			}
 		}
 
-		public bool IsWorkspaceVisible
-		{
-			get { return isWorkspaceVisible; }
-
-			private set
-			{
-				isWorkspaceVisible = value;
-				if (isWorkspaceVisible)
-				{
-					DoWorkspaceShown(this);
-				}
-				else
-				{
-					DoWorkspaceHidden(this);
-				}
-			}
-		}
-
-		public string LayoutSymbol { get { return Layout.LayoutSymbol(windowsShownInTabsCount); } }
-
 		internal bool hasChanges;
 
-		private bool isCurrentWorkspace;
-		private bool isWorkspaceVisible;
 		private int floatingWindowsCount;
 		private int windowsShownInTabsCount;
 
@@ -97,11 +77,18 @@ namespace Windawesome
 		public delegate void WorkspaceMonitorChangedEventHandler(Workspace workspace, Monitor oldMonitor, Monitor newMonitor);
 		public static event WorkspaceMonitorChangedEventHandler WorkspaceMonitorChanged;
 
+		// TODO: must all these be static?
 		public delegate void WorkspaceLayoutChangedEventHandler(Workspace workspace, ILayout oldLayout);
 		public static event WorkspaceLayoutChangedEventHandler WorkspaceLayoutChanged;
 
 		public delegate void WindowActivatedEventHandler(IntPtr hWnd);
 		public static event WindowActivatedEventHandler WindowActivatedEvent;
+
+		public delegate void WindowTitlebarToggledEventHandler(Window window);
+		public event WindowTitlebarToggledEventHandler WindowTitlebarToggled;
+
+		public delegate void WindowBorderToggledEventHandler(Window window);
+		public event WindowBorderToggledEventHandler WindowBorderToggled;
 
 		private static void DoWorkspaceApplicationAdded(Workspace workspace, Window window)
 		{
@@ -191,6 +178,22 @@ namespace Windawesome
 			}
 		}
 
+		private void DoWindowTitlebarToggled(Window window)
+		{
+			if (WindowTitlebarToggled != null)
+			{
+				WindowTitlebarToggled(window);
+			}
+		}
+
+		private void DoWindowBorderToggled(Window window)
+		{
+			if (WindowBorderToggled != null)
+			{
+				WindowBorderToggled(window);
+			}
+		}
+
 		#endregion
 
 		public Workspace(Monitor monitor, ILayout layout, IEnumerable<IBar> barsAtTop = null, IEnumerable<IBar> barsAtBottom = null, string name = "", bool showWindowsTaskbar = false,
@@ -217,7 +220,7 @@ namespace Windawesome
 			this.name = name;
 			this.ShowWindowsTaskbar = showWindowsTaskbar;
 			this.repositionOnSwitchedTo = repositionOnSwitchedTo;
-			this.hasChanges = true;
+			layout.Initialize(this);
 		}
 
 		public override int GetHashCode()
@@ -250,6 +253,7 @@ namespace Windawesome
 			}
 
 			IsWorkspaceVisible = true;
+			DoWorkspaceShown(this);
 		}
 
 		internal void Unswitch()
@@ -257,6 +261,7 @@ namespace Windawesome
 			sharedWindows.Where(w => !repositionOnSwitchedTo || w.IsFloating || Layout.ShouldSaveAndRestoreSharedWindowsPosition()).ForEach(w => w.SavePosition());
 
 			IsWorkspaceVisible = false;
+			DoWorkspaceHidden(this);
 		}
 
 		private void RestoreSharedWindowState(Window window)
@@ -275,7 +280,7 @@ namespace Windawesome
 
 		public void Reposition()
 		{
-			Layout.Reposition(managedWindows, Monitor.screen.WorkingArea);
+			Layout.Reposition();
 			hasChanges = false;
 		}
 
@@ -343,20 +348,6 @@ namespace Windawesome
 		//    return false;
 		//}
 
-		internal void SetTopManagedWindowAsForeground()
-		{
-			// TODO: perhaps switch to the last window that was foreground?
-			var topmost = GetTopmostWindow();
-			if (topmost != null)
-			{
-				Windawesome.ForceForegroundWindow(topmost);
-			}
-			else
-			{
-				Windawesome.ForceForegroundWindow(NativeMethods.GetShellWindow());
-			}
-		}
-
 		internal void WindowMinimized(IntPtr hWnd)
 		{
 			var window = MoveWindowToBottom(hWnd);
@@ -369,7 +360,7 @@ namespace Windawesome
 							w.IsMinimized = true;
 							if (managedWindows.Remove(w))
 							{
-								Layout.WindowMinimized(w, managedWindows);
+								Layout.WindowMinimized(w);
 							}
 						}
 					});
@@ -393,7 +384,7 @@ namespace Windawesome
 							if (!w.IsFloating)
 							{
 								managedWindows.AddFirst(w);
-								Layout.WindowRestored(w, managedWindows);
+								Layout.WindowRestored(w);
 							}
 						}
 					});
@@ -476,7 +467,7 @@ namespace Windawesome
 					else if (!w.IsMinimized)
 					{
 						managedWindows.AddFirst(w);
-						Layout.WindowCreated(w, managedWindows, IsWorkspaceVisible);
+						Layout.WindowCreated(w);
 
 						hasChanges |= !IsWorkspaceVisible;
 					}
@@ -485,7 +476,7 @@ namespace Windawesome
 			DoWorkspaceApplicationAdded(this, window);
 		}
 
-		internal void WindowDestroyed(Window window, bool setForeground = true)
+		internal void WindowDestroyed(Window window)
 		{
 			windows.Remove(window);
 			if (window.WorkspacesCount > 1)
@@ -506,16 +497,11 @@ namespace Windawesome
 					else if (!w.IsMinimized)
 					{
 						managedWindows.Remove(w);
-						Layout.WindowDestroyed(w, managedWindows, IsWorkspaceVisible);
+						Layout.WindowDestroyed(w);
 
 						hasChanges |= !IsWorkspaceVisible;
 					}
 				});
-
-			if (IsCurrentWorkspace && setForeground)
-			{
-				SetTopManagedWindowAsForeground();
-			}
 
 			DoWorkspaceApplicationRemoved(this, window);
 		}
@@ -551,13 +537,13 @@ namespace Windawesome
 						{
 							floatingWindowsCount++;
 							managedWindows.Remove(w);
-							Layout.WindowDestroyed(w, managedWindows, IsWorkspaceVisible);
+							Layout.WindowDestroyed(w);
 						}
 						else
 						{
 							floatingWindowsCount--;
 							managedWindows.AddFirst(w);
-							Layout.WindowCreated(w, managedWindows, IsWorkspaceVisible);
+							Layout.WindowCreated(w);
 						}
 					});
 			}
@@ -577,7 +563,7 @@ namespace Windawesome
 			if (window != null)
 			{
 				window.ToggleShowHideTitlebar();
-				Layout.WindowTitlebarToggled(window, managedWindows); // TODO: maybe this should be an event?
+				DoWindowTitlebarToggled(window);
 			}
 		}
 
@@ -587,7 +573,7 @@ namespace Windawesome
 			if (window != null)
 			{
 				window.ToggleShowHideWindowBorder();
-				Layout.WindowBorderToggled(window, managedWindows); // TODO: maybe this should be an event?
+				DoWindowBorderToggled(window);
 			}
 		}
 
@@ -679,9 +665,14 @@ namespace Windawesome
 			window.DoForSelfOrOwned(w => removedSharedWindows.AddFirst(w));
 		}
 
-		internal LinkedList<Window> GetWindows()
+		internal LinkedList<Window> GetOwnerWindows()
 		{
 			return windows;
+		}
+
+		public IEnumerable<Window> GetWindows()
+		{
+			return managedWindows;
 		}
 	}	
 }
