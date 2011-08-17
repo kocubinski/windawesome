@@ -217,6 +217,7 @@ namespace Windawesome
 			this.name = name;
 			this.ShowWindowsTaskbar = showWindowsTaskbar;
 			this.repositionOnSwitchedTo = repositionOnSwitchedTo;
+			this.hasChanges = true;
 		}
 
 		public override int GetHashCode()
@@ -255,7 +256,6 @@ namespace Windawesome
 		{
 			sharedWindows.Where(w => !repositionOnSwitchedTo || w.IsFloating || Layout.ShouldSaveAndRestoreSharedWindowsPosition()).ForEach(w => w.SavePosition());
 
-			IsCurrentWorkspace = false;
 			IsWorkspaceVisible = false;
 		}
 

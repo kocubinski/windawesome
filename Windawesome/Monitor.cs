@@ -134,7 +134,7 @@ namespace Windawesome
 				this.visible = false;
 			}
 
-			// show and move the bars to their respective positions
+			// move the bars to their respective positions
 			public IntPtr PositionBars(IntPtr winPosInfo, IEnumerable<IBar> bars)
 			{
 				this.bars = bars;
@@ -253,7 +253,7 @@ namespace Windawesome
 
 		public Monitor(int monitorIndex)
 		{
-			this.workspaces = new Dictionary<Workspace, Tuple<int, AppBarNativeWindow, AppBarNativeWindow>>(3);
+			this.workspaces = new Dictionary<Workspace, Tuple<int, AppBarNativeWindow, AppBarNativeWindow>>(2);
 			this.temporarilyShownWindows = new HashSet<IntPtr>();
 
 			this.monitorIndex = monitorIndex;
@@ -338,10 +338,9 @@ namespace Windawesome
 					CurrentVisibleWorkspace, workspace);
 			}
 
-			workspace.SwitchTo();
-			workspace.IsCurrentWorkspace = true;
-
 			CurrentVisibleWorkspace = workspace;
+
+			workspace.SwitchTo();
 		}
 
 		internal static void ShowHideWindowsTaskbar(bool showWindowsTaskbar)

@@ -142,6 +142,8 @@ namespace Windawesome
 
 			// TODO: must check if each monitor has at least one workspace (or maybe not?) and fix if not (what happens if more monitors than workspaces?)
 
+			// TODO: ALT+TAB works accross monitors, which is annoying
+
 			workspaces = config.Workspaces.Resize(config.Workspaces.Length + 1);
 			workspaces[0] = config.StartingWorkspaces.First(w => w.Monitor.screen.Primary);
 			PreviousWorkspace = CurrentWorkspace.id;
@@ -313,6 +315,7 @@ namespace Windawesome
 				var hasCurrentWorkspaceRule = matchingRules.Any(r => r.workspace == CurrentWorkspace.id);
 				// matchingRules.workspaces could be { 0, 1 } and you could be at workspace 1.
 				// Then, "hWnd" would be added twice if it were not for this check
+				// TODO: it could be added twice on two different workspaces which are shown at the same time
 				if (hasWorkspaceZeroRule && hasCurrentWorkspaceRule)
 				{
 					matchingRules = matchingRules.Where(r => r.workspace != 0);
@@ -805,11 +808,11 @@ namespace Windawesome
 			RefreshApplicationsHash();
 
 			// repositions all windows in all workspaces
-			config.Workspaces.Where(ws => !ws.IsCurrentWorkspace).ForEach(ws => ws.hasChanges = true);
-			CurrentWorkspace.Reposition();
+			config.Workspaces.ForEach(ws => ws.hasChanges = true);
+			monitors.ForEach(m => m.CurrentVisibleWorkspace.Reposition());
 
 			// redraw all windows in current workspace
-			CurrentWorkspace.GetWindows().ForEach(w => w.Redraw());
+			monitors.ForEach(m => m.CurrentVisibleWorkspace.GetWindows().ForEach(w => w.Redraw()));
 
 			// refresh bars
 			config.Bars.ForEach(b => b.Refresh());
@@ -893,6 +896,7 @@ namespace Windawesome
 			}
 		}
 
+		// TODO: when the last application on a monitor is removed, an application from another monitor is activated
 		public void RemoveApplicationFromAllWorkspaces(IntPtr hWnd) // sort of UnmanageWindow
 		{
 			LinkedList<Tuple<Workspace, Window>> list;
@@ -950,7 +954,9 @@ namespace Windawesome
 						newWorkspace.Monitor.temporarilyShownWindows.Clear();
 					}
 
+					CurrentWorkspace.IsCurrentWorkspace = false;
 					newWorkspace.Monitor.SwitchToWorkspace(newWorkspace);
+					newWorkspace.IsCurrentWorkspace = true;
 
 					if (needsToReposition)
 					{

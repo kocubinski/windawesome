@@ -87,6 +87,7 @@ namespace Windawesome
 			return panel;
 		}
 
+		// TODO: when changing an application to a workspace which needs to be repositioned, the panels are not highlighted correctly
 		private void OnWindowActivated(IntPtr hWnd)
 		{
 			if (isShown)
@@ -158,8 +159,6 @@ namespace Windawesome
 			}
 		}
 
-		// TODO: when changing an application from one monitor to another and to a workspace which is not shown on the other,
-		// the app's panel is not highlighted
 		private void OnWorkspaceApplicationAdded(Workspace workspace, Window window)
 		{
 			if (workspace.Monitor == bar.Monitor && window.ShowInTabs)
