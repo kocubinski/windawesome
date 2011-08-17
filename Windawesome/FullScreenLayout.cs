@@ -43,6 +43,7 @@ namespace Windawesome
 			if (windowIsMaximized)
 			{
 				NativeMethods.ShowWindowAsync(window.hWnd, NativeMethods.SW.SW_SHOWNOACTIVATE); // should not use SW_RESTORE as it activates the window
+				System.Threading.Thread.Sleep(Workspace.minimizeRestoreDelay);
 			}
 			NativeMethods.SetWindowPos(window.hWnd, IntPtr.Zero,
 				workingArea.X, workingArea.Y, workingArea.Width, workingArea.Height,
@@ -72,6 +73,7 @@ namespace Windawesome
 		{
 			this.workingArea = workingArea;
 			windows.ForEach(MaximizeWindow);
+			Windawesome.DoLayoutUpdated();
 		}
 
 		void ILayout.WindowTitlebarToggled(Window window, IEnumerable<Window> windows)
@@ -91,6 +93,7 @@ namespace Windawesome
 		void ILayout.WindowRestored(Window window, IEnumerable<Window> windows)
 		{
 			MaximizeWindow(window);
+			Windawesome.DoLayoutUpdated();
 		}
 
 		void ILayout.WindowCreated(Window window, IEnumerable<Window> windows, bool reLayout)
@@ -98,11 +101,13 @@ namespace Windawesome
 			if (reLayout)
 			{
 				MaximizeWindow(window);
+				Windawesome.DoLayoutUpdated();
 			}
 		}
 
 		void ILayout.WindowDestroyed(Window window, IEnumerable<Window> windows, bool reLayout)
 		{
+			Windawesome.DoLayoutUpdated();
 		}
 
 		#endregion

@@ -48,7 +48,7 @@ namespace Windawesome
 		#region Events
 
 		public delegate void LayoutUpdatedEventHandler();
-		public static event LayoutUpdatedEventHandler LayoutUpdated;
+		public static event LayoutUpdatedEventHandler LayoutUpdated; // TODO: this should be for a specific workspace. But how to call from Widgets then?
 
 		public delegate void WindowTitleOrIconChangedEventHandler(Workspace workspace, Window window, string newText);
 		public static event WindowTitleOrIconChangedEventHandler WindowTitleOrIconChanged;
@@ -123,8 +123,10 @@ namespace Windawesome
 		internal Windawesome()
 		{
 			this.CreateHandle(new CreateParams { Parent = NativeMethods.HWND_MESSAGE });
-
 			HandleStatic = this.Handle;
+
+			applications = new Dictionary<IntPtr, LinkedList<Tuple<Workspace, Window>>>(20);
+			hiddenApplications = new HashMultiSet<IntPtr>();
 
 			monitors = Screen.AllScreens.Select((_, i) => new Monitor(i)).ToArray();
 
@@ -144,18 +146,20 @@ namespace Windawesome
 			workspaces[0] = config.StartingWorkspaces.First(w => w.Monitor.screen.Primary);
 			PreviousWorkspace = CurrentWorkspace.id;
 
+			monitors.ForEach(m => m.AddManyWorkspaces(config.Workspaces.Where(w => w.Monitor == m))); // n ^ 2 but hopefully fast enough
+
+			// set monitor starting workspaces as this is needed in some Widgets
+			config.StartingWorkspaces.ForEach(w => w.Monitor.SetStartingWorkspace(w));
+
+			// initialize bars and plugins
 			config.Bars.ForEach(b => b.InitializeBar(this, config));
 			config.Plugins.ForEach(p => p.InitializePlugin(this, config));
 
-			monitors.ForEach(m => m.AddManyWorkspaces(config.Workspaces.Where(w => w.Monitor == m))); // n ^ 2 but hopefully fast enough
+			// set UI thread task scheduler
+			uiThreadTaskScheduler = System.Threading.Tasks.TaskScheduler.FromCurrentSynchronizationContext();
 
-			applications = new Dictionary<IntPtr, LinkedList<Tuple<Workspace, Window>>>(20);
-			hiddenApplications = new HashMultiSet<IntPtr>();
-
-			// add all windows to their respective workspace
+			// add all windows to their respective workspaces
 			NativeMethods.EnumDesktopWindows(IntPtr.Zero, (hWnd, _) => AddWindowToWorkspace(hWnd, finishedInitializing: false) || true, IntPtr.Zero);
-
-			WindawesomeExiting += OnWindawesomeExiting;
 
 			// add a handler for when the screen resolution changes as well as
 			// a handler for the system shutting down/restarting
@@ -197,39 +201,22 @@ namespace Windawesome
 			NativeMethods.RegisterShellHookWindow(this.Handle);
 			shellMessageNum = NativeMethods.RegisterWindowMessage("SHELLHOOK");
 
-			// set UI thread task scheduler
-			uiThreadTaskScheduler = System.Threading.Tasks.TaskScheduler.FromCurrentSynchronizationContext();
-
 			// initialize all workspaces and hide windows not on StartingWorkspaces
 			var windowsToHide = new HashSet<Window>();
-			var windowsNotToHide = new LinkedList<Window>();
 			foreach (var workspace in config.Workspaces)
 			{
-				if (config.StartingWorkspaces.Contains(workspace))
-				{
-					workspace.GetWindows().ForEach(w => windowsNotToHide.AddLast(w));
-				}
-				else
-				{
-					workspace.GetWindows().ForEach(w => windowsToHide.Add(w));
-				}
+				workspace.GetWindows().ForEach(w => windowsToHide.Add(w));
 				workspace.Initialize();
 			}
 
-			windowsToHide.ExceptWith(windowsNotToHide);
+			windowsToHide.ExceptWith(config.StartingWorkspaces.SelectMany(ws => ws.GetWindows()));
 			windowsToHide.ForEach(HideWindow);
 
-			// initialize monitors
-			config.StartingWorkspaces.ForEach(w => w.Monitor.Initialize(w));
-
-			// switches to the default starting workspaces
-			Monitor.ShowHideWindowsTaskbar(CurrentWorkspace.ShowWindowsTaskbar);
-
-			CurrentWorkspace.SetTopManagedWindowAsForeground();
-			CurrentWorkspace.IsCurrentWorkspace = true;
+			// initialize monitors and switches to the default starting workspaces
+			monitors.ForEach(m => m.Initialize());
 		}
 
-		private void OnWindawesomeExiting()
+		public void Quit()
 		{
 			SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
 			SystemEvents.SessionEnded -= OnSessionEnded;
@@ -268,10 +255,7 @@ namespace Windawesome
 					ref metrics, NativeMethods.SPIF_SENDCHANGE);
 			}
 #endif
-		}
 
-		public void Quit()
-		{
 			WindawesomeExiting();
 			this.DestroyHandle();
 		}

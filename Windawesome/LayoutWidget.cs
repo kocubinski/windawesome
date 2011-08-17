@@ -25,15 +25,18 @@ namespace Windawesome
 			this.onClick = onClick;
 		}
 
-		private void OnUpdateLayoutLabel()
+		private void OnWorkspaceLayoutChanged(Workspace workspace)
 		{
-			var oldWidth = layoutLabel.Width;
-			layoutLabel.Text = windawesome.CurrentWorkspace.LayoutSymbol;
-			layoutLabel.Width = TextRenderer.MeasureText(layoutLabel.Text, layoutLabel.Font).Width;
-			if (layoutLabel.Width != oldWidth)
+			if (workspace.Monitor == bar.Monitor)
 			{
-				this.RepositionControls(left, right);
-				bar.DoFixedWidthWidgetWidthChanged(this);
+				var oldWidth = layoutLabel.Width;
+				layoutLabel.Text = workspace.LayoutSymbol;
+				layoutLabel.Width = TextRenderer.MeasureText(layoutLabel.Text, layoutLabel.Font).Width;
+				if (layoutLabel.Width != oldWidth)
+				{
+					this.RepositionControls(left, right);
+					bar.DoFixedWidthWidgetWidthChanged(this);
+				}
 			}
 		}
 
@@ -48,9 +51,11 @@ namespace Windawesome
 		{
 			this.bar = bar;
 
-			bar.BarShown += () => OnUpdateLayoutLabel();
+			bar.BarShown += () => OnWorkspaceLayoutChanged(bar.Monitor.CurrentVisibleWorkspace);
 
-			Windawesome.LayoutUpdated += OnUpdateLayoutLabel;
+			Windawesome.LayoutUpdated += () => OnWorkspaceLayoutChanged(bar.Monitor.CurrentVisibleWorkspace);
+			Workspace.WorkspaceShown += OnWorkspaceLayoutChanged;
+			Workspace.WorkspaceLayoutChanged += (ws, _) => OnWorkspaceLayoutChanged(ws);
 
 			layoutLabel = bar.CreateLabel("", 0);
 			layoutLabel.TextAlign = ContentAlignment.MiddleCenter;

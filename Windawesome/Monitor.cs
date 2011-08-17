@@ -277,14 +277,24 @@ namespace Windawesome
 			}
 		}
 
-		internal void Initialize(Workspace startingWorkspace)
+		internal void SetStartingWorkspace(Workspace startingWorkspace)
 		{
 			CurrentVisibleWorkspace = startingWorkspace;
+		}
 
-			var workspaceTuple = workspaces[startingWorkspace];
-			ShowHideBars(null, null, workspaceTuple.Item2, workspaceTuple.Item3, startingWorkspace, startingWorkspace);
+		internal void Initialize()
+		{
+			var workspaceTuple = workspaces[CurrentVisibleWorkspace];
+			ShowHideBars(null, null, workspaceTuple.Item2, workspaceTuple.Item3, CurrentVisibleWorkspace, CurrentVisibleWorkspace);
 
-			startingWorkspace.SwitchTo();
+			CurrentVisibleWorkspace.SwitchTo();
+
+			if (screen.Primary)
+			{
+				Monitor.ShowHideWindowsTaskbar(CurrentVisibleWorkspace.ShowWindowsTaskbar);
+				CurrentVisibleWorkspace.SetTopManagedWindowAsForeground();
+				CurrentVisibleWorkspace.IsCurrentWorkspace = true;
+			}
 		}
 
 		public override bool Equals(object obj)
@@ -388,9 +398,6 @@ namespace Windawesome
 				var workspaceBarsAtBottom = workspace.barsAtBottom[monitorIndex];
 
 				int workspaceBarsEquivalentClass;
-				AppBarNativeWindow appBarTopWindow;
-				AppBarNativeWindow appBarBottomWindow;
-
 				var matchingBar = listOfUniqueBars.FirstOrDefault(uniqueBar =>
 					workspaceBarsAtTop.SequenceEqual(uniqueBar.Item1) && workspaceBarsAtBottom.SequenceEqual(uniqueBar.Item2));
 				if (matchingBar != null)
@@ -403,6 +410,7 @@ namespace Windawesome
 					listOfUniqueBars.AddLast(new Tuple<IEnumerable<IBar>, IEnumerable<IBar>, int>(workspaceBarsAtTop, workspaceBarsAtBottom, last));
 				}
 
+				AppBarNativeWindow appBarTopWindow;
 				var topBarsHeight = workspaceBarsAtTop.Sum(bar => bar.GetBarHeight());
 				var matchingAppBar = listOfUniqueTopAppBars.FirstOrDefault(uniqueAppBar =>
 					(uniqueAppBar == null && workspaceBarsAtTop.Count == 0) || (uniqueAppBar != null && topBarsHeight == uniqueAppBar.Height));
@@ -416,6 +424,7 @@ namespace Windawesome
 					listOfUniqueTopAppBars.AddLast(appBarTopWindow);
 				}
 
+				AppBarNativeWindow appBarBottomWindow;
 				var bottomBarsHeight = workspaceBarsAtBottom.Sum(bar => bar.GetBarHeight());
 				matchingAppBar = listOfUniqueBottomAppBars.FirstOrDefault(uniqueAppBar =>
 					(uniqueAppBar == null && workspaceBarsAtBottom.Count == 0) || (uniqueAppBar != null && bottomBarsHeight == uniqueAppBar.Height));

@@ -92,7 +92,7 @@ namespace Windawesome
 			if (isShown)
 			{
 				Panel panel;
-				var workspaceId = windawesome.CurrentWorkspace.id - 1;
+				var workspaceId = bar.Monitor.CurrentVisibleWorkspace.id - 1;
 				var applications = applicationPanels[workspaceId];
 
 				if (applications.TryGetValue(hWnd, out panel))
@@ -143,7 +143,7 @@ namespace Windawesome
 		private void OnApplicationTabClick(object sender, EventArgs e)
 		{
 			windawesome.SwitchToApplication(
-				applicationPanels[windawesome.CurrentWorkspace.id - 1].
+				applicationPanels[bar.Monitor.CurrentVisibleWorkspace.id - 1].
 					First(item => item.Value == (((Control) sender).Parent as Panel)).
 					Key);
 		}
@@ -158,6 +158,8 @@ namespace Windawesome
 			}
 		}
 
+		// TODO: when changing an application from one monitor to another and to a workspace which is not shown on the other,
+		// the app's panel is not highlighted
 		private void OnWorkspaceApplicationAdded(Workspace workspace, Window window)
 		{
 			if (workspace.Monitor == bar.Monitor && window.ShowInTabs)
@@ -297,7 +299,7 @@ namespace Windawesome
 			this.left = left;
 			this.right = right;
 
-			return applicationPanels[windawesome.CurrentWorkspace.id - 1].Values;
+			return applicationPanels[bar.Monitor.CurrentVisibleWorkspace.id - 1].Values;
 		}
 
 		void IWidget.RepositionControls(int left, int right)
@@ -310,7 +312,7 @@ namespace Windawesome
 				mustResize[i] = true;
 			}
 
-			ResizeApplicationPanels(left, right, windawesome.CurrentWorkspace.id - 1);
+			ResizeApplicationPanels(left, right, bar.Monitor.CurrentVisibleWorkspace.id - 1);
 		}
 
 		int IWidget.GetLeft()

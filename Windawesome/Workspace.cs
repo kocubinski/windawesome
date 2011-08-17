@@ -109,7 +109,6 @@ namespace Windawesome
 			{
 				WorkspaceApplicationAdded(workspace, window);
 			}
-			Windawesome.DoLayoutUpdated();
 		}
 
 		private static void DoWorkspaceApplicationRemoved(Workspace workspace, Window window)
@@ -118,7 +117,6 @@ namespace Windawesome
 			{
 				WorkspaceApplicationRemoved(workspace, window);
 			}
-			Windawesome.DoLayoutUpdated();
 		}
 
 		private static void DoWorkspaceApplicationMinimized(Workspace workspace, Window window)
@@ -151,8 +149,6 @@ namespace Windawesome
 			{
 				WorkspaceShown(workspace);
 			}
-
-			//Windawesome.DoLayoutUpdated(); // TODO: ? All of them?
 		}
 
 		private static void DoWorkspaceActivated(Workspace workspace)
@@ -185,7 +181,6 @@ namespace Windawesome
 			{
 				WorkspaceLayoutChanged(workspace, oldLayout);
 			}
-			Windawesome.DoLayoutUpdated();
 		}
 
 		private static void DoWindowActivated(IntPtr hWnd)
@@ -582,7 +577,7 @@ namespace Windawesome
 			if (window != null)
 			{
 				window.ToggleShowHideTitlebar();
-				Layout.WindowTitlebarToggled(window, managedWindows);
+				Layout.WindowTitlebarToggled(window, managedWindows); // TODO: maybe this should be an event?
 			}
 		}
 
@@ -592,7 +587,7 @@ namespace Windawesome
 			if (window != null)
 			{
 				window.ToggleShowHideWindowBorder();
-				Layout.WindowBorderToggled(window, managedWindows);
+				Layout.WindowBorderToggled(window, managedWindows); // TODO: maybe this should be an event?
 			}
 		}
 

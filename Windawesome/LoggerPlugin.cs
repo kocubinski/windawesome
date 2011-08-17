@@ -83,6 +83,7 @@ namespace Windawesome
 
 		private void OnWindowActivatedEvent(IntPtr hWnd)
 		{
+			// TODO: fix all windawesome.CurrentWorkspace
 			var window = windawesome.CurrentWorkspace.GetWindow(hWnd);
 			if (window != null)
 			{
