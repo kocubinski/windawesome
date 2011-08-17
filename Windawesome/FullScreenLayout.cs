@@ -19,7 +19,8 @@ namespace Windawesome
 				var screen = System.Windows.Forms.Screen.FromHandle(window.hWnd);
 				if (!screen.Bounds.IntersectsWith(workingArea))
 				{
-					windowIsMaximized = RestoreAndMaximizeArea(window, windowIsMaximized);
+					RestoreAndMaximizeArea(window, windowIsMaximized);
+					windowIsMaximized = false;
 				}
 
 				if (!windowIsMaximized)
@@ -37,19 +38,17 @@ namespace Windawesome
 			}
 		}
 
-		private bool RestoreAndMaximizeArea(Window window, bool windowIsMaximized)
+		private void RestoreAndMaximizeArea(Window window, bool windowIsMaximized)
 		{
 			if (windowIsMaximized)
 			{
 				NativeMethods.ShowWindowAsync(window.hWnd, NativeMethods.SW.SW_SHOWNOACTIVATE); // should not use SW_RESTORE as it activates the window
-				windowIsMaximized = false;
 			}
 			NativeMethods.SetWindowPos(window.hWnd, IntPtr.Zero,
 				workingArea.X, workingArea.Y, workingArea.Width, workingArea.Height,
 				NativeMethods.SWP.SWP_ASYNCWINDOWPOS | NativeMethods.SWP.SWP_NOACTIVATE |
 				NativeMethods.SWP.SWP_NOZORDER | NativeMethods.SWP.SWP_NOOWNERZORDER |
 				NativeMethods.SWP.SWP_FRAMECHANGED | NativeMethods.SWP.SWP_NOCOPYBITS);
-			return windowIsMaximized;
 		}
 
 		#region ILayout Members

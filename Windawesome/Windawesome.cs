@@ -10,10 +10,7 @@ namespace Windawesome
 {
 	public sealed class Windawesome : NativeWindow
 	{
-		public Workspace CurrentWorkspace
-		{
-			get { return workspaces[0]; }
-		}
+		public Workspace CurrentWorkspace {	get { return workspaces[0]; } }
 
 		public readonly Monitor[] monitors;
 
@@ -163,7 +160,7 @@ namespace Windawesome
 			// add a handler for when the screen resolution changes as well as
 			// a handler for the system shutting down/restarting
 			SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
-			SystemEvents.SessionEnding += OnSessionEnding;
+			SystemEvents.SessionEnded += OnSessionEnded;
 
 #if !DEBUG
 			// set the global border and padded border widths
@@ -235,7 +232,7 @@ namespace Windawesome
 		private void OnWindawesomeExiting()
 		{
 			SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
-			SystemEvents.SessionEnding -= OnSessionEnding;
+			SystemEvents.SessionEnded -= OnSessionEnded;
 
 			// unregister shell hook
 			NativeMethods.DeregisterShellHookWindow(this.Handle);
@@ -285,12 +282,11 @@ namespace Windawesome
 
 		private void OnDisplaySettingsChanged(object sender, EventArgs e)
 		{
-			// TODO: this should be fixed for a multi-monitor solution
-			CurrentWorkspace.Reposition();
-			config.Workspaces.Where(ws => !ws.IsCurrentWorkspace).ForEach(ws => ws.hasChanges = true);
+			config.Workspaces.ForEach(ws => ws.hasChanges = true);
+			monitors.ForEach(m => m.CurrentVisibleWorkspace.Reposition());
 		}
 
-		private void OnSessionEnding(object sender, SessionEndingEventArgs e)
+		private void OnSessionEnded(object sender, SessionEndedEventArgs e)
 		{
 			Quit();
 		}

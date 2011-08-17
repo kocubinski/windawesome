@@ -77,16 +77,7 @@ namespace Windawesome
 			pictureBox.Click += this.OnApplicationTabClick;
 			panel.Controls.Add(pictureBox);
 
-			Windawesome.GetWindowSmallIconAsBitmap(window.hWnd, bitmap =>
-				{
-					try
-					{
-						pictureBox.Image = bitmap;
-					}
-					catch
-					{
-					}
-				});
+			Windawesome.GetWindowSmallIconAsBitmap(window.hWnd, bitmap => pictureBox.Image = bitmap);
 
 			var label = bar.CreateLabel(window.DisplayName, bar.GetBarHeight(), 0);
 			label.Click += this.OnApplicationTabClick;
@@ -169,7 +160,7 @@ namespace Windawesome
 
 		private void OnWorkspaceApplicationAdded(Workspace workspace, Window window)
 		{
-			if (workspace.Monitor == bar.monitor && window.ShowInTabs)
+			if (workspace.Monitor == bar.Monitor && window.ShowInTabs)
 			{
 				var workspaceId = workspace.id - 1;
 				var newPanel = CreatePanel(window);
@@ -194,7 +185,7 @@ namespace Windawesome
 		{
 			var workspaceId = workspace.id - 1;
 			Panel removedPanel;
-			if (workspace.Monitor == bar.monitor && applicationPanels[workspaceId].TryGetValue(window.hWnd, out removedPanel))
+			if (workspace.Monitor == bar.Monitor && applicationPanels[workspaceId].TryGetValue(window.hWnd, out removedPanel))
 			{
 				applicationPanels[workspaceId].Remove(window.hWnd);
 				if (isShown && workspace.IsWorkspaceVisible)
@@ -212,7 +203,7 @@ namespace Windawesome
 
 		private void OnWorkspaceShown(Workspace workspace)
 		{
-			if (isShown && workspace.Monitor == bar.monitor)
+			if (isShown && workspace.Monitor == bar.Monitor)
 			{
 				var workspaceId = workspace.id - 1;
 				if (applicationPanels[workspaceId].Count > 0)
@@ -233,7 +224,7 @@ namespace Windawesome
 
 		private void OnWorkspaceHidden(Workspace workspace)
 		{
-			if (isShown && workspace.Monitor == bar.monitor)
+			if (isShown && workspace.Monitor == bar.Monitor)
 			{
 				var workspaceId = workspace.id - 1;
 				if (applicationPanels[workspaceId].Count > 0)
@@ -259,12 +250,12 @@ namespace Windawesome
 		private void OnBarShown()
 		{
 			isShown = true;
-			OnWorkspaceShown(bar.monitor.CurrentVisibleWorkspace);
+			OnWorkspaceShown(bar.Monitor.CurrentVisibleWorkspace);
 		}
 
 		private void OnBarHidden()
 		{
-			OnWorkspaceHidden(bar.monitor.CurrentVisibleWorkspace);
+			OnWorkspaceHidden(bar.Monitor.CurrentVisibleWorkspace);
 			isShown = false;
 		}
 

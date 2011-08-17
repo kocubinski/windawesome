@@ -8,7 +8,7 @@ namespace Windawesome
 {
 	public sealed class Bar : IBar
 	{
-		public readonly Monitor monitor;
+		private readonly Monitor monitor;
 
 		private readonly int barHeight;
 		private readonly NonActivatableForm form;
@@ -21,6 +21,34 @@ namespace Windawesome
 		private int leftmostRightAlign;
 
 		private static readonly HashSet<Type> widgetTypes = new HashSet<Type>();
+
+		public class NonActivatableForm : Form
+		{
+			protected override CreateParams CreateParams
+			{
+				get
+				{
+					var createParams = base.CreateParams;
+					// make the form not activatable
+					createParams.ExStyle |= (int) NativeMethods.WS_EX.WS_EX_NOACTIVATE;
+					return createParams;
+				}
+			}
+
+			protected override bool ShowWithoutActivation { get { return true; } }
+
+			protected override void WndProc(ref Message m)
+			{
+				if (m.Msg == NativeMethods.WM_MOUSEACTIVATE)
+				{
+					m.Result = NativeMethods.MA_NOACTIVATE;
+				}
+				else
+				{
+					base.WndProc(ref m);
+				}
+			}
+		}
 
 		#region Events
 
@@ -80,81 +108,6 @@ namespace Windawesome
 
 		#endregion
 
-		public class NonActivatableForm : Form
-		{
-			protected override CreateParams CreateParams
-			{
-				get
-				{
-					var createParams = base.CreateParams;
-					// make the form not activatable
-					createParams.ExStyle |= (int) NativeMethods.WS_EX.WS_EX_NOACTIVATE;
-					return createParams;
-				}
-			}
-
-			protected override bool ShowWithoutActivation
-			{
-				get
-				{
-					return true;
-				}
-			}
-
-			protected override void WndProc(ref Message m)
-			{
-				if (m.Msg == NativeMethods.WM_MOUSEACTIVATE)
-				{
-					m.Result = NativeMethods.MA_NOACTIVATE;
-				}
-				else
-				{
-					base.WndProc(ref m);
-				}
-			}
-		}
-
-		private NonActivatableForm CreateForm()
-		{
-			var newForm = new NonActivatableForm
-				{
-					StartPosition = FormStartPosition.Manual,
-					FormBorderStyle = FormBorderStyle.FixedToolWindow,
-					AutoValidate = AutoValidate.Disable,
-					CausesValidation = false,
-					ControlBox = false,
-					MaximizeBox = false,
-					MinimizeBox = false,
-					ShowIcon = false,
-					ShowInTaskbar = false,
-					SizeGripStyle = SizeGripStyle.Hide,
-					AutoScaleMode = AutoScaleMode.Font,
-					AutoScroll = false,
-					AutoSize = false,
-					HelpButton = false,
-					TopLevel = true,
-					WindowState = FormWindowState.Normal,
-					TopMost = true
-				};
-
-			newForm.VisibleChanged += this.OnFormVisibleChanged;
-
-			return newForm;
-		}
-
-		public override int GetHashCode()
-		{
-			return this.form.Handle.GetHashCode();
-		}
-
-		public override bool Equals(object obj)
-		{
-			var bar = obj as Bar;
-			return bar != null && this.form.Handle == bar.form.Handle;
-		}
-
-		#region Construction and Destruction
-
 		public Bar(Monitor monitor, IEnumerable<IFixedWidthWidget> leftAlignedWidgets, IEnumerable<IFixedWidthWidget> rightAlignedWidgets,
 			IEnumerable<ISpanWidget> middleAlignedWidgets, int barHeight = 20, Font font = null, Color? backgroundColor = null)
 		{
@@ -170,6 +123,17 @@ namespace Windawesome
 			{
 				this.form.BackColor = backgroundColor.Value;
 			}
+		}
+
+		public override int GetHashCode()
+		{
+			return this.form.Handle.GetHashCode();
+		}
+
+		public override bool Equals(object obj)
+		{
+			var bar = obj as Bar;
+			return bar != null && this.form.Handle == bar.form.Handle;
 		}
 
 		#region IBar Members
@@ -214,21 +178,9 @@ namespace Windawesome
 			return barHeight;
 		}
 
-		IntPtr IBar.Handle
-		{
-			get
-			{
-				return this.form.Handle;
-			}
-		}
+		IntPtr IBar.Handle { get { return this.form.Handle; } }
 
-		Monitor IBar.Monitor
-		{
-			get
-			{
-				return this.monitor;
-			}
-		}
+		public Monitor Monitor { get { return this.monitor; } }
 
 		void IBar.OnSizeChanging(Size newSize)
 		{
@@ -253,8 +205,6 @@ namespace Windawesome
 			this.leftAlignedWidgets.Cast<IWidget>().Concat(this.rightAlignedWidgets).Concat(this.middleAlignedWidgets).
 				ForEach(w => w.Refresh());
 		}
-
-		#endregion
 
 		#endregion
 
@@ -315,6 +265,34 @@ namespace Windawesome
 		}
 
 		#endregion
+
+		private NonActivatableForm CreateForm()
+		{
+			var newForm = new NonActivatableForm
+				{
+					StartPosition = FormStartPosition.Manual,
+					FormBorderStyle = FormBorderStyle.FixedToolWindow,
+					AutoValidate = AutoValidate.Disable,
+					CausesValidation = false,
+					ControlBox = false,
+					MaximizeBox = false,
+					MinimizeBox = false,
+					ShowIcon = false,
+					ShowInTaskbar = false,
+					SizeGripStyle = SizeGripStyle.Hide,
+					AutoScaleMode = AutoScaleMode.Font,
+					AutoScroll = false,
+					AutoSize = false,
+					HelpButton = false,
+					TopLevel = true,
+					WindowState = FormWindowState.Normal,
+					TopMost = true
+				};
+
+			newForm.VisibleChanged += this.OnFormVisibleChanged;
+
+			return newForm;
+		}
 
 		private void ResizeWidgets(Size newSize)
 		{

@@ -21,6 +21,9 @@ namespace Windawesome
 
 		private static bool isWindowsTaskbarShown;
 
+		private static readonly NativeMethods.WinEventDelegate taskbarShownWinEventDelegate = TaskbarShownWinEventDelegate;
+		private static readonly IntPtr taskbarShownWinEventHook;
+
 		private sealed class AppBarNativeWindow : NativeWindow
 		{
 			public readonly int Height;
@@ -132,7 +135,7 @@ namespace Windawesome
 			}
 
 			// show and move the bars to their respective positions
-			public IntPtr PositionAndShowBars(IntPtr winPosInfo, IEnumerable<IBar> bars)
+			public IntPtr PositionBars(IntPtr winPosInfo, IEnumerable<IBar> bars)
 			{
 				this.bars = bars;
 
@@ -145,12 +148,12 @@ namespace Windawesome
 						currentY -= bar.GetBarHeight();
 					}
 					var barRect = new NativeMethods.RECT
-					{
-						left = rect.left,
-						top = currentY,
-						right = rect.right,
-						bottom = currentY + bar.GetBarHeight()
-					};
+						{
+							left = rect.left,
+							top = currentY,
+							right = rect.right,
+							bottom = currentY + bar.GetBarHeight()
+						};
 					if (topBar)
 					{
 						currentY += bar.GetBarHeight();
@@ -164,8 +167,6 @@ namespace Windawesome
 						newSize.Width, newSize.Height, NativeMethods.SWP.SWP_NOACTIVATE);
 
 					bar.OnSizeChanging(newSize);
-
-					bar.Show();
 				}
 
 				isTopMost = true;
@@ -222,7 +223,7 @@ namespace Windawesome
 								if (SetPosition(screen))
 								{
 									var winPosInfo = NativeMethods.BeginDeferWindowPos(bars.Count());
-									NativeMethods.EndDeferWindowPos(PositionAndShowBars(winPosInfo, bars));
+									NativeMethods.EndDeferWindowPos(PositionBars(winPosInfo, bars));
 								}
 								break;
 						}
@@ -232,18 +233,6 @@ namespace Windawesome
 				{
 					base.WndProc(ref m);
 				}
-			}
-		}
-
-		private static readonly NativeMethods.WinEventDelegate taskbarShownWinEventDelegate = TaskbarShownWinEventDelegate;
-		private static readonly IntPtr taskbarShownWinEventHook;
-
-		private static void TaskbarShownWinEventDelegate(IntPtr hWinEventHook, uint eventType,
-			IntPtr hwnd, int idObject, int idChild, uint dwEventThread, uint dwmsEventTime)
-		{
-			if (NativeMethods.IsWindowVisible(taskbarHandle) != isWindowsTaskbarShown)
-			{
-				ShowHideWindowsTaskbar(isWindowsTaskbarShown);
 			}
 		}
 
@@ -296,18 +285,26 @@ namespace Windawesome
 			ShowHideBars(null, null, workspaceTuple.Item2, workspaceTuple.Item3, startingWorkspace, startingWorkspace);
 
 			startingWorkspace.SwitchTo();
-			startingWorkspace.IsCurrentWorkspace = false;
 		}
 
 		public override bool Equals(object obj)
 		{
 			var other = obj as Monitor;
-			return other != null && other.screen == this.screen;
+			return other != null && other.monitorIndex == this.monitorIndex;
 		}
 
 		public override int GetHashCode()
 		{
-			return this.screen.GetHashCode();
+			return this.monitorIndex;
+		}
+
+		private static void TaskbarShownWinEventDelegate(IntPtr hWinEventHook, uint eventType,
+			IntPtr hwnd, int idObject, int idChild, uint dwEventThread, uint dwmsEventTime)
+		{
+			if (NativeMethods.IsWindowVisible(taskbarHandle) != isWindowsTaskbarShown)
+			{
+				ShowHideWindowsTaskbar(isWindowsTaskbarShown);
+			}
 		}
 
 		internal void SwitchToWorkspace(Workspace workspace)
@@ -332,6 +329,7 @@ namespace Windawesome
 			}
 
 			workspace.SwitchTo();
+			workspace.IsCurrentWorkspace = true;
 
 			CurrentVisibleWorkspace = workspace;
 		}
@@ -453,13 +451,15 @@ namespace Windawesome
 			var winPosInfo = NativeMethods.BeginDeferWindowPos(newBarsAtTop.Count + newBarsAtBottom.Count);
 			if (newAppBarTopWindow != null)
 			{
-				winPosInfo = newAppBarTopWindow.PositionAndShowBars(winPosInfo, newBarsAtTop);
+				winPosInfo = newAppBarTopWindow.PositionBars(winPosInfo, newBarsAtTop);
 			}
 			if (newAppBarBottomWindow != null)
 			{
-				winPosInfo = newAppBarBottomWindow.PositionAndShowBars(winPosInfo, newBarsAtBottom);
+				winPosInfo = newAppBarBottomWindow.PositionBars(winPosInfo, newBarsAtBottom);
 			}
 			NativeMethods.EndDeferWindowPos(winPosInfo);
+
+			newBarsAtTop.Concat(newBarsAtBottom).ForEach(b => b.Show());
 
 			// and only after that hide the old ones to avoid flickering
 			oldBarsAtTop.Concat(oldBarsAtBottom).Except(newBarsAtTop.Concat(newBarsAtBottom)).ForEach(b => b.Hide());

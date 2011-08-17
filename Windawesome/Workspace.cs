@@ -13,7 +13,9 @@ namespace Windawesome
 		public readonly LinkedList<IBar>[] barsAtTop;
 		public readonly LinkedList<IBar>[] barsAtBottom;
 		public readonly string name;
+		public readonly bool repositionOnSwitchedTo;
 		public bool ShowWindowsTaskbar { get; private set; }
+
 		public bool IsCurrentWorkspace
 		{
 			get	{ return isCurrentWorkspace; }
@@ -31,6 +33,7 @@ namespace Windawesome
 				}
 			}
 		}
+
 		public bool IsWorkspaceVisible
 		{
 			get { return isWorkspaceVisible; }
@@ -48,7 +51,10 @@ namespace Windawesome
 				}
 			}
 		}
-		public readonly bool repositionOnSwitchedTo;
+
+		public string LayoutSymbol { get { return Layout.LayoutSymbol(windowsShownInTabsCount); } }
+
+		internal bool hasChanges;
 
 		private bool isCurrentWorkspace;
 		private bool isWorkspaceVisible;
@@ -59,7 +65,6 @@ namespace Windawesome
 		private readonly LinkedList<Window> managedWindows; // windows.Where(w => !w.isFloating && !w.isMinimized), owned windows, not sorted
 		private readonly LinkedList<Window> sharedWindows; // windows.Where(w => w.shared), not sorted
 		private readonly LinkedList<Window> removedSharedWindows; // windows that need to be Initialized but then removed from shared
-		internal bool hasChanges;
 
 		private static int count;
 
@@ -193,14 +198,6 @@ namespace Windawesome
 
 		#endregion
 
-		public string LayoutSymbol
-		{
-			get
-			{
-				return Layout.LayoutSymbol(windowsShownInTabsCount);
-			}
-		}
-
 		public Workspace(Monitor monitor, ILayout layout, IEnumerable<IBar> barsAtTop = null, IEnumerable<IBar> barsAtBottom = null, string name = "", bool showWindowsTaskbar = false,
 			bool repositionOnSwitchedTo = false)
 		{
@@ -254,11 +251,9 @@ namespace Windawesome
 			{
 				// Repositions if there is/are new/deleted windows
 				Reposition();
-				hasChanges = false;
 			}
 
 			IsWorkspaceVisible = true;
-			IsCurrentWorkspace = true;
 		}
 
 		internal void Unswitch()
@@ -286,6 +281,7 @@ namespace Windawesome
 		public void Reposition()
 		{
 			Layout.Reposition(managedWindows, Monitor.screen.WorkingArea);
+			hasChanges = false;
 		}
 
 		public void ChangeLayout(ILayout layout)
