@@ -20,7 +20,7 @@ namespace Windawesome
 		private bool isCurrentWorkspace;
 		public bool IsCurrentWorkspace
 		{
-			get	{ return isCurrentWorkspace; }
+			get { return isCurrentWorkspace; }
 
 			internal set
 			{
@@ -674,5 +674,5 @@ namespace Windawesome
 		{
 			return managedWindows;
 		}
-	}	
+	}
 }

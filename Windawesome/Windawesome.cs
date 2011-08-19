@@ -10,7 +10,7 @@ namespace Windawesome
 {
 	public sealed class Windawesome : NativeWindow
 	{
-		public Workspace CurrentWorkspace {	get { return workspaces[0]; } }
+		public Workspace CurrentWorkspace { get { return workspaces[0]; } }
 
 		public readonly Monitor[] monitors;
 
@@ -45,6 +45,7 @@ namespace Windawesome
 #if !DEBUG
 		private static readonly NativeMethods.NONCLIENTMETRICS originalNonClientMetrics;
 #endif
+		private static readonly NativeMethods.ANIMATIONINFO originalAnimationInfo;
 
 		#region Events
 
@@ -108,9 +109,13 @@ namespace Windawesome
 
 #if !DEBUG
 			originalNonClientMetrics = NativeMethods.NONCLIENTMETRICS.GetNONCLIENTMETRICS();
-			NativeMethods.SystemParametersInfo(NativeMethods.SPI_GETNONCLIENTMETRICS, originalNonClientMetrics.cbSize,
+			NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_GETNONCLIENTMETRICS, originalNonClientMetrics.cbSize,
 				ref originalNonClientMetrics, 0);
 #endif
+
+			originalAnimationInfo = NativeMethods.ANIMATIONINFO.GetANIMATIONINFO();
+			NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_GETANIMATION, originalAnimationInfo.cbSize,
+				ref originalAnimationInfo, 0);
 
 			smallIconSize = SystemInformation.SmallIconSize;
 		}
@@ -179,10 +184,19 @@ namespace Windawesome
 			if (changedNonClientMetrics)
 			{
 				System.Threading.Tasks.Task.Factory.StartNew(() =>
-					NativeMethods.SystemParametersInfo(NativeMethods.SPI_SETNONCLIENTMETRICS, metrics.cbSize,
-						ref metrics, NativeMethods.SPIF_SENDCHANGE));
+					NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_SETNONCLIENTMETRICS, metrics.cbSize,
+						ref metrics, NativeMethods.SPIF.SPIF_SENDCHANGE));
 			}
 #endif
+
+			if (!config.ShowMinimizeRestoreAnimations)
+			{
+				var animationInfo = originalAnimationInfo;
+				animationInfo.iMinAnimate = 0;
+				System.Threading.Tasks.Task.Factory.StartNew(() =>
+					NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_SETANIMATION, animationInfo.cbSize,
+						ref animationInfo, NativeMethods.SPIF.SPIF_SENDCHANGE));
+			}
 
 			// register hotkey for forcing a foreground window
 			uniqueHotkey = config.UniqueHotkey;
@@ -251,10 +265,18 @@ namespace Windawesome
 			if (changedNonClientMetrics)
 			{
 				var metrics = originalNonClientMetrics;
-				NativeMethods.SystemParametersInfo(NativeMethods.SPI_SETNONCLIENTMETRICS, metrics.cbSize,
-					ref metrics, NativeMethods.SPIF_SENDCHANGE);
+				NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_SETNONCLIENTMETRICS, metrics.cbSize,
+					ref metrics, NativeMethods.SPIF.SPIF_SENDCHANGE);
 			}
 #endif
+
+			if (!config.ShowMinimizeRestoreAnimations)
+			{
+				var animationInfo = originalAnimationInfo;
+				System.Threading.Tasks.Task.Factory.StartNew(() =>
+					NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_SETANIMATION, animationInfo.cbSize,
+						ref animationInfo, NativeMethods.SPIF.SPIF_SENDCHANGE));
+			}
 
 			WindawesomeExiting();
 			this.DestroyHandle();
@@ -291,7 +313,8 @@ namespace Windawesome
 				var exStyle = NativeMethods.GetWindowExStyleLongPtr(hWnd);
 				int processId;
 				NativeMethods.GetWindowThreadProcessId(hWnd, out processId);
-				var processName = System.Diagnostics.Process.GetProcessById(processId).ProcessName;
+				var process = System.Diagnostics.Process.GetProcessById(processId);
+				var processName = process.ProcessName;
 
 				var programRule = config.ProgramRules.FirstOrDefault(r => r.IsMatch(hWnd, className, displayName, processName, style, exStyle));
 				DoProgramRuleMatched(programRule, hWnd, className, displayName, processName, style, exStyle);
@@ -338,24 +361,29 @@ namespace Windawesome
 								var workspaceId = CurrentWorkspace.id;
 								var matchingRuleWorkspace = matchingRules.First().workspace;
 								PostAction(() => ChangeApplicationToWorkspace(hWnd, workspaceId, matchingRuleWorkspace));
+								OnWindowCreatedOnCurrentWorkspace(hWnd, programRule);
 								break;
 							case OnWindowShownAction.TemporarilyShowWindowOnCurrentWorkspace:
 								CurrentWorkspace.Monitor.temporarilyShownWindows.Add(hWnd);
 								OnWindowCreatedOnCurrentWorkspace(hWnd, programRule);
 								break;
 							case OnWindowShownAction.HideWindow:
-								System.Threading.Thread.Sleep(500); // TODO: is this enough? Is it too much?
-								SetWorkspaceTopManagedWindowAsForeground(CurrentWorkspace);
+								var currentWorkspace = CurrentWorkspace;
+								PostAction(() => SetWorkspaceTopManagedWindowAsForeground(currentWorkspace));
 								if (matchingRules.All(r => !workspaces[r.workspace].IsWorkspaceVisible))
 								{
 									hiddenApplications.Add(hWnd);
-									NativeMethods.ShowWindow(hWnd, NativeMethods.SW.SW_HIDE);
+									NativeMethods.ShowWindowAsync(hWnd, NativeMethods.SW.SW_HIDE);
 								}
 								break;
 						}
 					}
 
-					if (programRule.windowCreatedDelay > 0)
+					if (programRule.windowCreatedDelay == -1)
+					{
+						process.WaitForInputIdle(10000);
+					}
+					else if (programRule.windowCreatedDelay > 0)
 					{
 						System.Threading.Thread.Sleep(programRule.windowCreatedDelay);
 					}
@@ -457,12 +485,11 @@ namespace Windawesome
 			switch (programRule.onWindowCreatedOnCurrentWorkspaceAction)
 			{
 				case OnWindowCreatedOnCurrentWorkspaceAction.ActivateWindow:
-					ActivateWindow(hWnd, hWnd, NativeMethods.IsIconic(hWnd));
+					PostAction(() => ActivateWindow(hWnd, hWnd, NativeMethods.IsIconic(hWnd)));
 					break;
 				case OnWindowCreatedOnCurrentWorkspaceAction.ActivatePreviousActiveWindow:
-					// TODO: is there a better way?
-					System.Threading.Thread.Sleep(500);
-					SetWorkspaceTopManagedWindowAsForeground(CurrentWorkspace);
+					var topmostWindow = CurrentWorkspace.GetTopmostWindow();
+					PostAction(() => ForceForegroundWindow(topmostWindow));
 					break;
 			}
 		}
@@ -842,7 +869,7 @@ namespace Windawesome
 			monitors.ForEach(m => m.CurrentVisibleWorkspace.Reposition());
 
 			// redraw all windows in current workspace
-			monitors.ForEach(m => m.CurrentVisibleWorkspace.GetOwnerWindows().ForEach(w => w.Redraw()));
+			monitors.ForEach(m => m.CurrentVisibleWorkspace.GetWindows().ForEach(w => w.Redraw()));
 
 			// refresh bars
 			config.Bars.ForEach(b => b.Refresh());
@@ -976,7 +1003,7 @@ namespace Windawesome
 				else
 				{
 					// TODO: must check if there are shared windows on two different monitors
-					
+
 					var currentVisibleWorkspace = newWorkspace.Monitor.CurrentVisibleWorkspace;
 
 					var needsToReposition = newWorkspace.NeedsToReposition();

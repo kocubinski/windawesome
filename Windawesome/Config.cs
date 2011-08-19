@@ -17,14 +17,17 @@ namespace Windawesome
 		public Workspace[] Workspaces { get; set; }
 		public IEnumerable<Workspace> StartingWorkspaces { get; set; }
 		public IEnumerable<ProgramRule> ProgramRules { get; set; }
+
 		public int WindowBorderWidth { get; set; }
 		public int WindowPaddedBorderWidth { get; set; }
+		public bool ShowMinimizeRestoreAnimations { get; set; }
 		public Tuple<NativeMethods.MOD, System.Windows.Forms.Keys> UniqueHotkey { get; set; }
 
 		internal Config()
 		{
 			this.WindowBorderWidth = -1;
 			this.WindowPaddedBorderWidth = -1;
+			this.ShowMinimizeRestoreAnimations = false;
 		}
 
 		internal void LoadConfiguration(Windawesome windawesome)
@@ -148,7 +151,7 @@ namespace Windawesome
 							scope = engine.CreateScope();
 							oldScope.GetItems().
 								Where(variable => variable.Value != null).
-								ForEach(variable =>	scope.SetVariable(variable.Key, variable.Value));
+								ForEach(variable => scope.SetVariable(variable.Key, variable.Value));
 							previousLanguage.Runtime.Globals.GetItems().
 								Where(variable => variable.Value != null).
 								ForEach(variable => scope.SetVariable(variable.Key, variable.Value));
@@ -225,7 +228,7 @@ namespace Windawesome
 			NativeMethods.WS_EX exStyleContains = (NativeMethods.WS_EX) 0, NativeMethods.WS_EX exStyleNotContains = (NativeMethods.WS_EX) 0,
 			CustomMatchingFunction customMatchingFunction = null,
 
-			bool isManaged = true, int tryAgainAfter = -1, int windowCreatedDelay = 0, bool handleOwnedWindows = false,
+			bool isManaged = true, int tryAgainAfter = -1, int windowCreatedDelay = -1, bool handleOwnedWindows = false,
 			bool hideOwnedPopups = true, bool redrawDesktopOnWindowCreated = false, bool showMenu = true,
 			OnWindowCreatedOnCurrentWorkspaceAction onWindowCreatedOnCurrentWorkspaceAction = OnWindowCreatedOnCurrentWorkspaceAction.ActivateWindow,
 			OnWindowShownAction onWindowCreatedAction = OnWindowShownAction.SwitchToWindowsWorkspace,

@@ -62,7 +62,7 @@ namespace Windawesome
 			public void Destroy()
 			{
 				// unregister as AppBar
-				var appBarData = new NativeMethods.APPBARDATA {	hWnd = this.Handle };
+				var appBarData = new NativeMethods.APPBARDATA { hWnd = this.Handle };
 
 				NativeMethods.SHAppBarMessage(NativeMethods.ABM.ABM_REMOVE, ref appBarData);
 
@@ -335,6 +335,8 @@ namespace Windawesome
 
 		internal static void ShowHideWindowsTaskbar(bool showWindowsTaskbar)
 		{
+			// TODO: the first time the Taskbar is toggled, the working area doesn't change?
+
 			var appBarData = new NativeMethods.APPBARDATA();
 			var state = (NativeMethods.ABS) (uint) NativeMethods.SHAppBarMessage(NativeMethods.ABM.ABM_GETSTATE, ref appBarData);
 

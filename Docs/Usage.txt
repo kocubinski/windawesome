@@ -3,7 +3,7 @@ Windawesome
 
 http://windawesome.codeplex.com
 
-Windawesome (pronounced - contrary to what you would expect from the way it is written - Windows-om, not Wind-awesome) is a highly customizable dynamic window manager for Windows, which works on top of explorer.exe and NOT as a shell replacement. It is heavily inspired by Bug.n, but goes much furthur. Windawesome is (mostly) written in C# and is scriptable and pluggable in IronRuby, IronPython and any .NET language that compiles down to an assembly. Requires .NET Framework 4 Client Profile, Visual C++ 2010 Redistributable and IronRuby/IronPython DLLs. The main bundle comes with 3 configuration files (2 in Python, 1 in Ruby), 3 layouts (2 built-in and one as a C# DLL), a couple of Plugins and some Widgets, one of which is written in Ruby. Works with 32- and 64-bit versions of Windows XP, Vista and 7. Goes under the GNU General Public License version 2.
+Windawesome (pronounced - contrary to what you would expect from the way it is written - Windows-om, not Wind-awesome) is a highly customizable dynamic window manager with multi-monitor support for Windows, which works on top of explorer.exe and NOT as a shell replacement. It is heavily inspired by Bug.n, but goes much furthur. Windawesome is (mostly) written in C# and is scriptable and pluggable in IronRuby, IronPython and any .NET language that compiles down to an assembly. Requires .NET Framework 4 Client Profile, Visual C++ 2010 Redistributable and IronRuby/IronPython DLLs. The main bundle comes with 3 configuration files (2 in Python, 1 in Ruby), 3 layouts (2 built-in and one as a C# DLL), a couple of Plugins and some Widgets, one of which is written in Ruby. Works with 32- and 64-bit versions of Windows XP, Vista and 7. Goes under the GNU General Public License version 2.
 
 ====================================================================
 
@@ -66,10 +66,10 @@ handleOwnedWindows - if true, Windawesome will handle a window that is owned by 
 hideOwnedPopups - if true, Windawesome will hide all popups that are owned of the window being hidden
 redrawDesktopOnWindowCreated - if true, Windawesome will redraw the Desktop when this window is created. Useful if you have problems with that. I've seen it with mintty (the cygwin terminal emulator)
 showMenu - if true, the menu bar (if any) of a window is shown, otherwise - not. Note that actually this doesn't work for a lot of windows, because they don't have a menu in Window's sense
-onWindowCreatedOnCurrentWorkspaceAction - specifies what to do when a window is created on the current workspace. Can be one of the enum values:
+onWindowCreatedOnCurrentWorkspaceAction - specifies what to do when a window is created on the current workspace or MoveWindowToCurrentWorkspace/TemporarilyShowWindowOnCurrentWorkspace is used in the onWindowCreatedAction. Can be one of the enum values:
 	ActivateWindow - activates the window (default)
 	ActivatePreviousActiveWindow - ignores the new window and activates the one that was active up to now
-onWindowCreatedAction - specifies what to do when a window is created. Can be one of the enum values:
+onWindowCreatedAction - specifies what to do when a window is created and the rules are to place it on different workspace(s) than the current one. Can be one of the enum values:
 	SwitchToWindowsWorkspace - switches to that window's workspace (default)
 	MoveWindowToCurrentWorkspace - moves the window to the current workspace
 	TemporarilyShowWindowOnCurrentWorkspace - shows the window but doesn't move it to the current workspace. Can be dismissed by calling DismissTemporarilyShownWindow
@@ -200,13 +200,13 @@ http://maximumpcguides.com/windows-vista/run-a-program-with-administrative-privi
 ~LAlt Up::return
 ~RAlt Up::return
 This will remove the Windows standard behaviour of the Alt key which focuses keyboard input on the menu of the current application. This is VERY useful because sometimes when switching workspaces the focus is on the menu of the newly shown application and not on the app itself.
+- I haven't included an Application Launcher in Windawesome (like dmenu for example in Linux WMs) because there are already plenty available for Windows. My personal favourite (only because it is vastly customizable) after trying many others is Find and Run Robot.
 
 ====================================================================
 
 Known bugs/limitations:
 - Whenever a label's text is longer than the width, ellipsis show. However, then the text alignment changes to Top or something. This is a bug in the .NET Framework since version 2.0 and hasn't been fixed even in 4.0. Should be relatively easy to fix that by drawing one's own text, but I won't bother.
 - There is a minor chance that the System Tray Widget is not going to work properly in some case. Let me know if that happens with the exact scenario.
-- Currently only one monitor is supported. Unfortunatelly I have only one and I cannot test it even if I wrote something for multimonitor support. Feel free to let me know if you know exactly how it should be done or if you want to do it. :)
 - Do not dock an application that is managed - when you change the workspace Windawesome will hide it but the working area will not reset. If you want to dock a window - make sure it is not managed.
 
 For any suggestions, complaints or the likes, feel free to write to boris underscore petrov at live dot com or use the discussions/issues tabs on the website.

@@ -1170,7 +1170,7 @@ namespace Windawesome
 			/// <summary>
 			/// Windows XP (Shell32.dll version 6.0) and later.<br/>
 			/// - Windows 7 and later: A registered GUID that identifies the icon.
-			///		This value overrides uID and is the recommended method of identifying the icon.<br/>
+			/// 	This value overrides uID and is the recommended method of identifying the icon.<br/>
 			/// - Windows XP through Windows Vista: Reserved.
 			/// </summary>
 			public Guid guidItem;
@@ -1611,13 +1611,40 @@ namespace Windawesome
 
 		#region SystemParametersInfo
 
-		public const uint SPIF_SENDCHANGE = 0x02;
-		public const uint SPI_GETNONCLIENTMETRICS = 0x0029;
-		public const uint SPI_SETNONCLIENTMETRICS = 0x002A;
+		public enum SPIF : uint
+		{
+			SPIF_SENDCHANGE = 0x02
+		}
+
+		public enum SPI : uint
+		{
+			SPI_SETANIMATION = 0x0049,
+			SPI_GETANIMATION = 0x0048,
+			SPI_GETNONCLIENTMETRICS = 0x0029,
+			SPI_SETNONCLIENTMETRICS = 0x002A
+		}
 
 		[DllImport("user32.dll", CharSet = CharSet.Auto)]
 		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool SystemParametersInfo(uint uiAction, int uiParam, ref NONCLIENTMETRICS pvParam, uint fWinIni);
+		public static extern bool SystemParametersInfo(SPI uiAction, int uiParam, ref NONCLIENTMETRICS pvParam, SPIF fWinIni);
+
+		[DllImport("user32.dll")]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		public static extern bool SystemParametersInfo(SPI uiAction, int uiParam, ref ANIMATIONINFO pvParam, SPIF fWinIni);
+
+		private static readonly int ANIMATIONINFOSize = Marshal.SizeOf(typeof(ANIMATIONINFO));
+
+		[StructLayout(LayoutKind.Sequential)]
+		public struct ANIMATIONINFO
+		{
+			public int cbSize;
+			public int iMinAnimate;
+
+			public static ANIMATIONINFO GetANIMATIONINFO()
+			{
+				return new ANIMATIONINFO { cbSize = ANIMATIONINFOSize };
+			}
+		}
 
 		[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
 		public struct LOGFONT
