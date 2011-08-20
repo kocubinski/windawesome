@@ -71,19 +71,28 @@ namespace Windawesome
 				window.className, window.DisplayName, workspace.id);
 		}
 
-		private void OnWorkspaceHidden(Workspace workspace)
-		{
-			writer.WriteLine("Changed from workspace '{0}'", workspace.id);
-		}
-
 		private void OnWorkspaceShown(Workspace workspace)
 		{
-			writer.WriteLine("Changed to workspace '{0}'", workspace.id);
+			writer.WriteLine("Workspace '{0}' shown", workspace.id);
+		}
+
+		private void OnWorkspaceHidden(Workspace workspace)
+		{
+			writer.WriteLine("Workspace '{0}' hidden", workspace.id);
+		}
+
+		private void OnWorkspaceActivated(Workspace workspace)
+		{
+			writer.WriteLine("Workspace '{0}' activated", workspace.id);
+		}
+
+		private void OnWorkspaceDeactivated(Workspace workspace)
+		{
+			writer.WriteLine("Workspace '{0}' deactivated", workspace.id);
 		}
 
 		private void OnWindowActivatedEvent(IntPtr hWnd)
 		{
-			// TODO: fix all windawesome.CurrentWorkspace
 			var window = windawesome.CurrentWorkspace.GetWindow(hWnd);
 			if (window != null)
 			{
@@ -117,9 +126,10 @@ namespace Windawesome
 			}
 			if (logWorkspaceSwitching)
 			{
-				// TODO: add others
-				Workspace.WorkspaceHidden += OnWorkspaceHidden;
 				Workspace.WorkspaceShown += OnWorkspaceShown;
+				Workspace.WorkspaceHidden += OnWorkspaceHidden;
+				Workspace.WorkspaceActivated += OnWorkspaceActivated;
+				Workspace.WorkspaceDeactivated += OnWorkspaceDeactivated;
 			}
 			if (logWindowMinimization)
 			{

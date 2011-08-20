@@ -20,18 +20,20 @@ namespace Windawesome
 
 		public int WindowBorderWidth { get; set; }
 		public int WindowPaddedBorderWidth { get; set; }
-		public bool ShowMinimizeRestoreAnimations { get; set; }
+		public bool ShowMinimizeMaximizeRestoreAnimations { get; set; }
 		public bool HideMouseWhenTyping { get; set; }
 		public bool FocusFollowsMouse { get; set; }
+		public bool FocusFollowsMouseSetOnTop { get; set; }
 		public Tuple<NativeMethods.MOD, System.Windows.Forms.Keys> UniqueHotkey { get; set; }
 
 		internal Config()
 		{
 			this.WindowBorderWidth = -1;
 			this.WindowPaddedBorderWidth = -1;
-			this.ShowMinimizeRestoreAnimations = false;
+			this.ShowMinimizeMaximizeRestoreAnimations = false;
 			this.HideMouseWhenTyping = false;
 			this.FocusFollowsMouse = false;
+			this.FocusFollowsMouseSetOnTop = false;
 		}
 
 		internal void LoadConfiguration(Windawesome windawesome)

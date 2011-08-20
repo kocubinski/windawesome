@@ -77,7 +77,6 @@ namespace Windawesome
 		public delegate void WorkspaceMonitorChangedEventHandler(Workspace workspace, Monitor oldMonitor, Monitor newMonitor);
 		public static event WorkspaceMonitorChangedEventHandler WorkspaceMonitorChanged;
 
-		// TODO: must all these be static?
 		public delegate void WorkspaceLayoutChangedEventHandler(Workspace workspace, ILayout oldLayout);
 		public static event WorkspaceLayoutChangedEventHandler WorkspaceLayoutChanged;
 

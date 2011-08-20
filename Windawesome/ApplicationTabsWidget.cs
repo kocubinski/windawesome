@@ -87,7 +87,6 @@ namespace Windawesome
 			return panel;
 		}
 
-		// TODO: when changing an application to a workspace which needs to be repositioned, the panels are not highlighted correctly
 		private void OnWindowActivated(IntPtr hWnd)
 		{
 			if (isShown)

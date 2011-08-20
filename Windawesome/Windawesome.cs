@@ -29,9 +29,6 @@ namespace Windawesome
 		private readonly Dictionary<IntPtr, LinkedList<Tuple<Workspace, Window>>> applications; // hWnd to a list of workspaces and windows
 		private readonly HashMultiSet<IntPtr> hiddenApplications;
 		private readonly uint shellMessageNum;
-#if !DEBUG
-		private readonly bool changedNonClientMetrics;
-#endif
 		private readonly IntPtr getForegroundPrivilageAtom;
 		private const uint postActionMessageNum = NativeMethods.WM_USER;
 
@@ -43,12 +40,18 @@ namespace Windawesome
 
 		private IntPtr forceForegroundWindow;
 
+		#region System Changes
+
 #if !DEBUG
+		private readonly bool changedNonClientMetrics;
 		private static readonly NativeMethods.NONCLIENTMETRICS originalNonClientMetrics;
 #endif
 		private static readonly NativeMethods.ANIMATIONINFO originalAnimationInfo;
 		private static readonly bool originalHideMouseWhenTyping;
 		private static readonly bool originalFocusFollowsMouse;
+		private static readonly bool originalFocusFollowsMouseSetOnTop;
+
+		#endregion
 
 		#region Events
 
@@ -110,6 +113,8 @@ namespace Windawesome
 
 			isRunningElevated = isAtLeastVista && NativeMethods.IsUserAnAdmin();
 
+			#region System Changes
+
 #if !DEBUG
 			originalNonClientMetrics = NativeMethods.NONCLIENTMETRICS.GetNONCLIENTMETRICS();
 			NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_GETNONCLIENTMETRICS, originalNonClientMetrics.cbSize,
@@ -125,6 +130,11 @@ namespace Windawesome
 
 			NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_GETACTIVEWINDOWTRACKING, 0,
 				ref originalFocusFollowsMouse, 0);
+
+			NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_GETACTIVEWNDTRKZORDER, 0,
+				ref originalFocusFollowsMouseSetOnTop, 0);
+
+			#endregion
 
 			smallIconSize = SystemInformation.SmallIconSize;
 		}
@@ -145,14 +155,14 @@ namespace Windawesome
 			config = new Config();
 			config.LoadConfiguration(this);
 
-			//if (config.StartingWorkspaces.Length == 0 ||
-			//    new HashSet<Monitor>(config.StartingWorkspaces.Select(w => w.Monitor)).Count != config.StartingWorkspaces.Length)
-			//{
-			//    throw new Exception("StartingWorkspaces either contains no elements or contains two or more workspaces " +
-			//        "which are on the same monitor!");
-			//}
-
-			// TODO: must check if each monitor has at least one workspace (or maybe not?) and fix if not (what happens if more monitors than workspaces?)
+			var startingWorkspacesCount = config.StartingWorkspaces.Count();
+			var distinctStartingWorkspaceMonitorsCount = config.StartingWorkspaces.Select(w => w.Monitor).Distinct().Count();
+			if (distinctStartingWorkspaceMonitorsCount != monitors.Length ||
+				distinctStartingWorkspaceMonitorsCount != startingWorkspacesCount)
+			{
+				throw new Exception("Each Monitor should have exactly one corresponding Workspace in StartingWorkspaces, i.e. " +
+					"you should have as many Workspaces in StartingWorkspaces as you have Monitors!");
+			}
 
 			// TODO: ALT+TAB works accross monitors, which is annoying
 
@@ -201,11 +211,11 @@ namespace Windawesome
 #endif
 
 			// set the minimize/maximize/restore animations
-			if ((originalAnimationInfo.iMinAnimate == 1 && !config.ShowMinimizeRestoreAnimations) ||
-				(originalAnimationInfo.iMinAnimate == 0 &&  config.ShowMinimizeRestoreAnimations))
+			if ((originalAnimationInfo.iMinAnimate == 1 && !config.ShowMinimizeMaximizeRestoreAnimations) ||
+				(originalAnimationInfo.iMinAnimate == 0 &&  config.ShowMinimizeMaximizeRestoreAnimations))
 			{
 				var animationInfo = originalAnimationInfo;
-				animationInfo.iMinAnimate = config.ShowMinimizeRestoreAnimations ? 1 : 0;
+				animationInfo.iMinAnimate = config.ShowMinimizeMaximizeRestoreAnimations ? 1 : 0;
 				NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_SETANIMATION, animationInfo.cbSize,
 					ref animationInfo, NativeMethods.SPIF.SPIF_SENDCHANGE);
 			}
@@ -224,6 +234,14 @@ namespace Windawesome
 				var focusFollowsMouse = config.FocusFollowsMouse;
 				NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_SETACTIVEWINDOWTRACKING, 0,
 					ref focusFollowsMouse, NativeMethods.SPIF.SPIF_SENDCHANGE);
+			}
+
+			// set the "set window on top on focus follows mouse"
+			if (config.FocusFollowsMouseSetOnTop != originalFocusFollowsMouseSetOnTop)
+			{
+				var focusFollowsMouseSetOnTop = config.FocusFollowsMouseSetOnTop;
+				NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_SETACTIVEWNDTRKZORDER, 0,
+					ref focusFollowsMouseSetOnTop, NativeMethods.SPIF.SPIF_SENDCHANGE);
 			}
 
 			#endregion
@@ -303,12 +321,12 @@ namespace Windawesome
 #endif
 
 			// revert the minimize/maximize/restore animations
-			if ((originalAnimationInfo.iMinAnimate == 1 && !config.ShowMinimizeRestoreAnimations) ||
-				(originalAnimationInfo.iMinAnimate == 0 &&  config.ShowMinimizeRestoreAnimations))
+			if ((originalAnimationInfo.iMinAnimate == 1 && !config.ShowMinimizeMaximizeRestoreAnimations) ||
+				(originalAnimationInfo.iMinAnimate == 0 &&  config.ShowMinimizeMaximizeRestoreAnimations))
 			{
 				var animationInfo = originalAnimationInfo;
 				NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_SETANIMATION, animationInfo.cbSize,
-					ref animationInfo, NativeMethods.SPIF.SPIF_SENDCHANGE);
+					ref animationInfo, NativeMethods.SPIF.SPIF_UPDATEINIFILE | NativeMethods.SPIF.SPIF_SENDCHANGE);
 			}
 
 			// revert the hiding of the mouse when typing
@@ -316,7 +334,7 @@ namespace Windawesome
 			{
 				var hideMouseWhenTyping = originalHideMouseWhenTyping;
 				NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_SETMOUSEVANISH, 0,
-					ref hideMouseWhenTyping, NativeMethods.SPIF.SPIF_SENDCHANGE);
+					ref hideMouseWhenTyping, NativeMethods.SPIF.SPIF_UPDATEINIFILE | NativeMethods.SPIF.SPIF_SENDCHANGE);
 			}
 
 			// revert the "focus follows mouse"
@@ -324,7 +342,15 @@ namespace Windawesome
 			{
 				var focusFollowsMouse = originalFocusFollowsMouse;
 				NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_SETACTIVEWINDOWTRACKING, 0,
-					ref focusFollowsMouse, NativeMethods.SPIF.SPIF_SENDCHANGE);
+					ref focusFollowsMouse, NativeMethods.SPIF.SPIF_UPDATEINIFILE | NativeMethods.SPIF.SPIF_SENDCHANGE);
+			}
+
+			// revert the "set window on top on focus follows mouse"
+			if (config.FocusFollowsMouseSetOnTop != originalFocusFollowsMouseSetOnTop)
+			{
+				var focusFollowsMouseSetOnTop = originalFocusFollowsMouseSetOnTop;
+				NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_SETACTIVEWNDTRKZORDER, 0,
+					ref focusFollowsMouseSetOnTop, NativeMethods.SPIF.SPIF_UPDATEINIFILE | NativeMethods.SPIF.SPIF_SENDCHANGE);
 			}
 
 			#endregion
@@ -431,7 +457,13 @@ namespace Windawesome
 
 					if (programRule.windowCreatedDelay == -1)
 					{
-						process.WaitForInputIdle(10000);
+						try
+						{
+							process.WaitForInputIdle(10000);
+						}
+						catch (InvalidOperationException)
+						{
+						}
 					}
 					else if (programRule.windowCreatedDelay > 0)
 					{
@@ -544,7 +576,7 @@ namespace Windawesome
 						NativeMethods.SetWindowPos(hWnd, NativeMethods.HWND_BOTTOM, 0, 0, 0, 0,
 							NativeMethods.SWP.SWP_ASYNCWINDOWPOS | NativeMethods.SWP.SWP_NOACTIVATE |
 							NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
-						SetWorkspaceTopManagedWindowAsForeground(CurrentWorkspace);
+						ForceForegroundWindow(topmost);
 						PostAction(() => CurrentWorkspace.WindowActivated(topmost.hWnd));
 					}
 					else
@@ -792,7 +824,6 @@ namespace Windawesome
 					CurrentWorkspace.Monitor.temporarilyShownWindows.Add(hWnd);
 					break;
 				case OnWindowShownAction.HideWindow:
-					System.Threading.Thread.Sleep(1000); // TODO: is this enough? Is it too much?
 					HideWindow(tuple.Item2);
 					SetWorkspaceTopManagedWindowAsForeground(CurrentWorkspace);
 					break;
@@ -827,14 +858,13 @@ namespace Windawesome
 
 			var winPosInfo = NativeMethods.BeginDeferWindowPos(showWindows.Count + oldWorkspace.GetOwnerWindows().Count);
 
-			var previousHWnd = NativeMethods.HWND_TOP;
 			var newTopmostWindow = newWorkspace.GetTopmostWindow();
 			foreach (var window in showWindows.Where(WindowIsNotHung))
 			{
-				winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, window.hWnd, previousHWnd, 0, 0, 0, 0,
+				winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, window.hWnd, IntPtr.Zero, 0, 0, 0, 0,
 					(window == newTopmostWindow ? 0 : NativeMethods.SWP.SWP_NOACTIVATE) | NativeMethods.SWP.SWP_NOMOVE |
-					NativeMethods.SWP.SWP_NOSIZE | NativeMethods.SWP.SWP_SHOWWINDOW);
-				previousHWnd = window.hWnd;
+					NativeMethods.SWP.SWP_NOZORDER | NativeMethods.SWP.SWP_NOOWNERZORDER | NativeMethods.SWP.SWP_NOSIZE |
+					NativeMethods.SWP.SWP_SHOWWINDOW);
 				window.ShowPopupsAndRedraw();
 			}
 
@@ -885,12 +915,9 @@ namespace Windawesome
 				// OpenIcon does not restore the window to its previous size (e.g. maximized)
 				NativeMethods.ShowWindowAsync(hWnd, NativeMethods.SW.SW_RESTORE);
 				System.Threading.Thread.Sleep(Workspace.minimizeRestoreDelay);
-				PostAction(() => ForceForegroundWindow(window));
 			}
-			else
-			{
-				ForceForegroundWindow(window);
-			}
+
+			ForceForegroundWindow(window);
 		}
 
 		#endregion
@@ -1060,21 +1087,6 @@ namespace Windawesome
 						SetWorkspaceTopManagedWindowAsForeground(newWorkspace);
 					}
 
-					// restore the Z-order of the new workspace
-					var showWindows = newWorkspace.GetOwnerWindows();
-					var winPosInfo = NativeMethods.BeginDeferWindowPos(showWindows.Count);
-
-					var previousHWnd = NativeMethods.HWND_TOP;
-					foreach (var window in showWindows.Where(WindowIsNotHung))
-					{
-						winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, window.hWnd, previousHWnd, 0, 0, 0, 0,
-							NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
-						previousHWnd = window.hWnd;
-					}
-
-					NativeMethods.EndDeferWindowPos(winPosInfo);
-
-					// set current workspace
 					CurrentWorkspace.IsCurrentWorkspace = false;
 					newWorkspace.IsCurrentWorkspace = true;
 				}
@@ -1107,6 +1119,23 @@ namespace Windawesome
 						// show and hide only after Reposition has been called if there are changes
 						ShowHideWindows(currentVisibleWorkspace, newWorkspace, setForeground);
 					}
+				}
+
+				var showWindows = newWorkspace.GetOwnerWindows();
+				if (monitors.Length > 1 && showWindows.Count > 1)
+				{
+					// restore the Z-order of the new workspace
+					var winPosInfo = NativeMethods.BeginDeferWindowPos(showWindows.Count);
+
+					var previousHWnd = NativeMethods.HWND_TOP;
+					foreach (var window in showWindows.Where(WindowIsNotHung))
+					{
+						winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, window.hWnd, previousHWnd, 0, 0, 0, 0,
+							NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
+						previousHWnd = window.hWnd;
+					}
+
+					NativeMethods.EndDeferWindowPos(winPosInfo);
 				}
 
 				PreviousWorkspace = CurrentWorkspace.id;
