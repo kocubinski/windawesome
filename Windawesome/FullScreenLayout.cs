@@ -21,7 +21,7 @@ namespace Windawesome
 			var workingArea = workspace.Monitor.screen.WorkingArea;
 			var winPlacement = NativeMethods.WINDOWPLACEMENT.Default;
 
-			winPlacement.Flags = NativeMethods.WindowPlacementFlags.WPF_ASYNCWINDOWPLACEMENT;
+			winPlacement.Flags = NativeMethods.WPF.WPF_ASYNCWINDOWPLACEMENT;
 			winPlacement.NormalPosition.left = bounds.Left; // these are in working area coordinates
 			winPlacement.NormalPosition.right = bounds.Left + workingArea.Width;
 			winPlacement.NormalPosition.top = bounds.Top;

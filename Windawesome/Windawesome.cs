@@ -36,6 +36,7 @@ namespace Windawesome
 		private const uint postActionMessageNum = NativeMethods.WM_USER;
 
 		private readonly Tuple<NativeMethods.MOD, Keys> uniqueHotkey;
+		private readonly Tuple<NativeMethods.MOD, Keys> altTabHotkey = new Tuple<NativeMethods.MOD, Keys>(NativeMethods.MOD.MOD_ALT, Keys.Tab);
 		private readonly Queue<Action> postedActions;
 		private readonly Dictionary<int, HandleMessageDelegate> messageHandlers;
 		private readonly uint windawesomeThreadId;
@@ -46,6 +47,8 @@ namespace Windawesome
 		private static readonly NativeMethods.NONCLIENTMETRICS originalNonClientMetrics;
 #endif
 		private static readonly NativeMethods.ANIMATIONINFO originalAnimationInfo;
+		private static readonly bool originalHideMouseWhenTyping;
+		private static readonly bool originalFocusFollowsMouse;
 
 		#region Events
 
@@ -113,9 +116,15 @@ namespace Windawesome
 				ref originalNonClientMetrics, 0);
 #endif
 
-			originalAnimationInfo = NativeMethods.ANIMATIONINFO.GetANIMATIONINFO();
+			originalAnimationInfo = NativeMethods.ANIMATIONINFO.Default;
 			NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_GETANIMATION, originalAnimationInfo.cbSize,
 				ref originalAnimationInfo, 0);
+
+			NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_GETMOUSEVANISH, 0,
+				ref originalHideMouseWhenTyping, 0);
+
+			NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_GETACTIVEWINDOWTRACKING, 0,
+				ref originalFocusFollowsMouse, 0);
 
 			smallIconSize = SystemInformation.SmallIconSize;
 		}
@@ -168,6 +177,8 @@ namespace Windawesome
 			SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
 			SystemEvents.SessionEnded += OnSessionEnded;
 
+			#region System Changes
+
 #if !DEBUG
 			// set the global border and padded border widths
 			var metrics = originalNonClientMetrics;
@@ -189,14 +200,33 @@ namespace Windawesome
 			}
 #endif
 
-			if (!config.ShowMinimizeRestoreAnimations)
+			// set the minimize/maximize/restore animations
+			if ((originalAnimationInfo.iMinAnimate == 1 && !config.ShowMinimizeRestoreAnimations) ||
+				(originalAnimationInfo.iMinAnimate == 0 &&  config.ShowMinimizeRestoreAnimations))
 			{
 				var animationInfo = originalAnimationInfo;
-				animationInfo.iMinAnimate = 0;
-				System.Threading.Tasks.Task.Factory.StartNew(() =>
-					NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_SETANIMATION, animationInfo.cbSize,
-						ref animationInfo, NativeMethods.SPIF.SPIF_SENDCHANGE));
+				animationInfo.iMinAnimate = config.ShowMinimizeRestoreAnimations ? 1 : 0;
+				NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_SETANIMATION, animationInfo.cbSize,
+					ref animationInfo, NativeMethods.SPIF.SPIF_SENDCHANGE);
 			}
+
+			// set the "hide mouse when typing"
+			if (config.HideMouseWhenTyping != originalHideMouseWhenTyping)
+			{
+				var hideMouseWhenTyping = config.HideMouseWhenTyping;
+				NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_SETMOUSEVANISH, 0,
+					ref hideMouseWhenTyping, NativeMethods.SPIF.SPIF_SENDCHANGE);
+			}
+
+			// set the "focus follows mouse"
+			if (config.FocusFollowsMouse != originalFocusFollowsMouse)
+			{
+				var focusFollowsMouse = config.FocusFollowsMouse;
+				NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_SETACTIVEWINDOWTRACKING, 0,
+					ref focusFollowsMouse, NativeMethods.SPIF.SPIF_SENDCHANGE);
+			}
+
+			#endregion
 
 			// register hotkey for forcing a foreground window
 			uniqueHotkey = config.UniqueHotkey;
@@ -260,6 +290,8 @@ namespace Windawesome
 			config.Plugins.ForEach(p => p.Dispose());
 			config.Bars.ForEach(b => b.Dispose());
 
+			#region System Changes
+
 #if !DEBUG
 			// revert the size of non-client area of windows
 			if (changedNonClientMetrics)
@@ -270,13 +302,32 @@ namespace Windawesome
 			}
 #endif
 
-			if (!config.ShowMinimizeRestoreAnimations)
+			// revert the minimize/maximize/restore animations
+			if ((originalAnimationInfo.iMinAnimate == 1 && !config.ShowMinimizeRestoreAnimations) ||
+				(originalAnimationInfo.iMinAnimate == 0 &&  config.ShowMinimizeRestoreAnimations))
 			{
 				var animationInfo = originalAnimationInfo;
-				System.Threading.Tasks.Task.Factory.StartNew(() =>
-					NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_SETANIMATION, animationInfo.cbSize,
-						ref animationInfo, NativeMethods.SPIF.SPIF_SENDCHANGE));
+				NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_SETANIMATION, animationInfo.cbSize,
+					ref animationInfo, NativeMethods.SPIF.SPIF_SENDCHANGE);
 			}
+
+			// revert the hiding of the mouse when typing
+			if (config.HideMouseWhenTyping != originalHideMouseWhenTyping)
+			{
+				var hideMouseWhenTyping = originalHideMouseWhenTyping;
+				NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_SETMOUSEVANISH, 0,
+					ref hideMouseWhenTyping, NativeMethods.SPIF.SPIF_SENDCHANGE);
+			}
+
+			// revert the "focus follows mouse"
+			if (config.FocusFollowsMouse != originalFocusFollowsMouse)
+			{
+				var focusFollowsMouse = originalFocusFollowsMouse;
+				NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_SETACTIVEWINDOWTRACKING, 0,
+					ref focusFollowsMouse, NativeMethods.SPIF.SPIF_SENDCHANGE);
+			}
+
+			#endregion
 
 			WindawesomeExiting();
 			this.DestroyHandle();
@@ -368,13 +419,12 @@ namespace Windawesome
 								OnWindowCreatedOnCurrentWorkspace(hWnd, programRule);
 								break;
 							case OnWindowShownAction.HideWindow:
-								var currentWorkspace = CurrentWorkspace;
-								PostAction(() => SetWorkspaceTopManagedWindowAsForeground(currentWorkspace));
 								if (matchingRules.All(r => !workspaces[r.workspace].IsWorkspaceVisible))
 								{
 									hiddenApplications.Add(hWnd);
-									NativeMethods.ShowWindowAsync(hWnd, NativeMethods.SW.SW_HIDE);
+									NativeMethods.ShowWindow(hWnd, NativeMethods.SW.SW_HIDE);
 								}
+								SetWorkspaceTopManagedWindowAsForeground(CurrentWorkspace);
 								break;
 						}
 					}
@@ -485,11 +535,22 @@ namespace Windawesome
 			switch (programRule.onWindowCreatedOnCurrentWorkspaceAction)
 			{
 				case OnWindowCreatedOnCurrentWorkspaceAction.ActivateWindow:
-					PostAction(() => ActivateWindow(hWnd, hWnd, NativeMethods.IsIconic(hWnd)));
+					ActivateWindow(hWnd, hWnd, NativeMethods.IsIconic(hWnd));
 					break;
-				case OnWindowCreatedOnCurrentWorkspaceAction.ActivatePreviousActiveWindow:
-					var topmostWindow = CurrentWorkspace.GetTopmostWindow();
-					PostAction(() => ForceForegroundWindow(topmostWindow));
+				case OnWindowCreatedOnCurrentWorkspaceAction.MoveToBottom:
+					var topmost = CurrentWorkspace.GetTopmostWindow();
+					if (topmost != null)
+					{
+						NativeMethods.SetWindowPos(hWnd, NativeMethods.HWND_BOTTOM, 0, 0, 0, 0,
+							NativeMethods.SWP.SWP_ASYNCWINDOWPOS | NativeMethods.SWP.SWP_NOACTIVATE |
+							NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
+						SetWorkspaceTopManagedWindowAsForeground(CurrentWorkspace);
+						PostAction(() => CurrentWorkspace.WindowActivated(topmost.hWnd));
+					}
+					else
+					{
+						ActivateWindow(hWnd, hWnd, NativeMethods.IsIconic(hWnd));
+					}
 					break;
 			}
 		}
@@ -766,12 +827,14 @@ namespace Windawesome
 
 			var winPosInfo = NativeMethods.BeginDeferWindowPos(showWindows.Count + oldWorkspace.GetOwnerWindows().Count);
 
+			var previousHWnd = NativeMethods.HWND_TOP;
 			var newTopmostWindow = newWorkspace.GetTopmostWindow();
 			foreach (var window in showWindows.Where(WindowIsNotHung))
 			{
-				winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, window.hWnd, IntPtr.Zero, 0, 0, 0, 0,
-					(window == newTopmostWindow ? 0 : NativeMethods.SWP.SWP_NOACTIVATE) | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE |
-					NativeMethods.SWP.SWP_NOZORDER | NativeMethods.SWP.SWP_NOOWNERZORDER | NativeMethods.SWP.SWP_SHOWWINDOW);
+				winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, window.hWnd, previousHWnd, 0, 0, 0, 0,
+					(window == newTopmostWindow ? 0 : NativeMethods.SWP.SWP_NOACTIVATE) | NativeMethods.SWP.SWP_NOMOVE |
+					NativeMethods.SWP.SWP_NOSIZE | NativeMethods.SWP.SWP_SHOWWINDOW);
+				previousHWnd = window.hWnd;
 				window.ShowPopupsAndRedraw();
 			}
 
@@ -997,6 +1060,21 @@ namespace Windawesome
 						SetWorkspaceTopManagedWindowAsForeground(newWorkspace);
 					}
 
+					// restore the Z-order of the new workspace
+					var showWindows = newWorkspace.GetOwnerWindows();
+					var winPosInfo = NativeMethods.BeginDeferWindowPos(showWindows.Count);
+
+					var previousHWnd = NativeMethods.HWND_TOP;
+					foreach (var window in showWindows.Where(WindowIsNotHung))
+					{
+						winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, window.hWnd, previousHWnd, 0, 0, 0, 0,
+							NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
+						previousHWnd = window.hWnd;
+					}
+
+					NativeMethods.EndDeferWindowPos(winPosInfo);
+
+					// set current workspace
 					CurrentWorkspace.IsCurrentWorkspace = false;
 					newWorkspace.IsCurrentWorkspace = true;
 				}
@@ -1359,7 +1437,10 @@ namespace Windawesome
 			}
 			else if (m.Msg == NativeMethods.WM_HOTKEY && m.WParam == this.getForegroundPrivilageAtom)
 			{
-				TrySetForegroundWindow(forceForegroundWindow);
+				if (!TrySetForegroundWindow(forceForegroundWindow))
+				{
+					SendHotkey(altTabHotkey);
+				}
 				forceForegroundWindow = IntPtr.Zero;
 			}
 			else if (messageHandlers.TryGetValue(m.Msg, out messageDelegate))

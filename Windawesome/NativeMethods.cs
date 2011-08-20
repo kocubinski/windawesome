@@ -45,7 +45,7 @@ namespace Windawesome
 				}
 			}
 
-			NONCLIENTMETRICSSize = Marshal.SizeOf(typeof(NONCLIENTMETRICS)) - (Windawesome.isAtLeastVista ? 0 : 4);
+			NONCLIENTMETRICSSize = Marshal.SizeOf(typeof (NONCLIENTMETRICS)) - (Windawesome.isAtLeastVista ? 0 : 4);
 		}
 
 		// hooks stuff
@@ -546,7 +546,7 @@ namespace Windawesome
 		}
 
 		[Flags]
-		public enum WindowPlacementFlags : uint
+		public enum WPF : uint
 		{
 			WPF_ASYNCWINDOWPLACEMENT = 0x0004,
 			WPF_RESTORETOMAXIMIZED = 0x0002,
@@ -570,7 +570,7 @@ namespace Windawesome
 			/// <summary>
 			/// Specifies flags that control the position of the minimized window and the method by which the window is restored.
 			/// </summary>
-			public WindowPlacementFlags Flags;
+			public WPF Flags;
 
 			/// <summary>
 			/// The current show state of the window.
@@ -1618,21 +1618,29 @@ namespace Windawesome
 
 		public enum SPI : uint
 		{
-			SPI_SETANIMATION = 0x0049,
 			SPI_GETANIMATION = 0x0048,
+			SPI_SETANIMATION = 0x0049,
 			SPI_GETNONCLIENTMETRICS = 0x0029,
-			SPI_SETNONCLIENTMETRICS = 0x002A
+			SPI_SETNONCLIENTMETRICS = 0x002A,
+			SPI_GETMOUSEVANISH = 0x1020,
+			SPI_SETMOUSEVANISH = 0x1021,
+			SPI_GETACTIVEWINDOWTRACKING = 0x1000,
+			SPI_SETACTIVEWINDOWTRACKING = 0x1001
 		}
 
 		[DllImport("user32.dll", CharSet = CharSet.Auto)]
 		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool SystemParametersInfo(SPI uiAction, int uiParam, ref NONCLIENTMETRICS pvParam, SPIF fWinIni);
+		public static extern bool SystemParametersInfo(SPI uiAction, int uiParam, [In, Out] ref NONCLIENTMETRICS pvParam, SPIF fWinIni);
 
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool SystemParametersInfo(SPI uiAction, int uiParam, ref ANIMATIONINFO pvParam, SPIF fWinIni);
+		public static extern bool SystemParametersInfo(SPI uiAction, int uiParam, [In, Out] ref ANIMATIONINFO pvParam, SPIF fWinIni);
 
-		private static readonly int ANIMATIONINFOSize = Marshal.SizeOf(typeof(ANIMATIONINFO));
+		[DllImport("user32.dll")]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		public static extern bool SystemParametersInfo(SPI uiAction, int uiParam, [In, Out, MarshalAs(UnmanagedType.Bool)] ref bool pvParam, SPIF fWinIni);
+
+		private static readonly int ANIMATIONINFOSize = Marshal.SizeOf(typeof (ANIMATIONINFO));
 
 		[StructLayout(LayoutKind.Sequential)]
 		public struct ANIMATIONINFO
@@ -1640,10 +1648,7 @@ namespace Windawesome
 			public int cbSize;
 			public int iMinAnimate;
 
-			public static ANIMATIONINFO GetANIMATIONINFO()
-			{
-				return new ANIMATIONINFO { cbSize = ANIMATIONINFOSize };
-			}
+			public static ANIMATIONINFO Default { get { return new ANIMATIONINFO { cbSize = ANIMATIONINFOSize }; } }
 		}
 
 		[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
@@ -1689,10 +1694,7 @@ namespace Windawesome
 			public LOGFONT lfMessageFont;
 			public int iPaddedBorderWidth;
 
-			public static NONCLIENTMETRICS GetNONCLIENTMETRICS()
-			{
-				return new NONCLIENTMETRICS { cbSize = NONCLIENTMETRICSSize };
-			}
+			public static NONCLIENTMETRICS Default { get { return new NONCLIENTMETRICS { cbSize = NONCLIENTMETRICSSize }; } }
 		}
 
 		#endregion

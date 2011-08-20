@@ -242,7 +242,7 @@ namespace Windawesome
 					windowPlacement.ShowCmd = NativeMethods.SW.SW_SHOWMINNOACTIVE;
 					break;
 			}
-			windowPlacement.Flags |= NativeMethods.WindowPlacementFlags.WPF_ASYNCWINDOWPLACEMENT;
+			windowPlacement.Flags |= NativeMethods.WPF.WPF_ASYNCWINDOWPLACEMENT;
 			NativeMethods.SetWindowPlacement(hWnd, ref windowPlacement);
 		}
 
