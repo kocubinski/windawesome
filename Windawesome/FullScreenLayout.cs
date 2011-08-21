@@ -66,7 +66,7 @@ namespace Windawesome
 		void ILayout.Reposition()
 		{
 			workspace.GetWindows().ForEach(MaximizeWindow);
-			Windawesome.DoLayoutUpdated();
+			Workspace.DoLayoutUpdated();
 		}
 
 		void ILayout.WindowMinimized(Window window)
@@ -83,7 +83,7 @@ namespace Windawesome
 			if (workspace.IsWorkspaceVisible)
 			{
 				MaximizeWindow(window);
-				Windawesome.DoLayoutUpdated();
+				Workspace.DoLayoutUpdated();
 			}
 		}
 
@@ -91,7 +91,7 @@ namespace Windawesome
 		{
 			if (workspace.IsWorkspaceVisible)
 			{
-				Windawesome.DoLayoutUpdated();
+				Workspace.DoLayoutUpdated();
 			}
 		}
 

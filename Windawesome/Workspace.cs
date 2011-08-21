@@ -8,7 +8,7 @@ namespace Windawesome
 	public sealed class Workspace
 	{
 		public readonly int id;
-		public Monitor Monitor { get; private set; }
+		public Monitor Monitor { get; internal set; }
 		public ILayout Layout { get; private set; }
 		public readonly LinkedList<IBar>[] barsAtTop;
 		public readonly LinkedList<IBar>[] barsAtBottom;
@@ -88,6 +88,9 @@ namespace Windawesome
 
 		public delegate void WindowBorderToggledEventHandler(Window window);
 		public event WindowBorderToggledEventHandler WindowBorderToggled;
+
+		public delegate void LayoutUpdatedEventHandler();
+		public static event LayoutUpdatedEventHandler LayoutUpdated; // TODO: this should be for a specific workspace. But how to call from Widgets then?
 
 		private static void DoWorkspaceApplicationAdded(Workspace workspace, Window window)
 		{
@@ -193,10 +196,18 @@ namespace Windawesome
 			}
 		}
 
+		public static void DoLayoutUpdated()
+		{
+			if (LayoutUpdated != null)
+			{
+				LayoutUpdated();
+			}
+		}
+
 		#endregion
 
-		public Workspace(Monitor monitor, ILayout layout, IEnumerable<IBar> barsAtTop = null, IEnumerable<IBar> barsAtBottom = null, string name = "", bool showWindowsTaskbar = false,
-			bool repositionOnSwitchedTo = false)
+		public Workspace(Monitor monitor, ILayout layout, IEnumerable<IBar> barsAtTop = null, IEnumerable<IBar> barsAtBottom = null,
+			string name = "", bool showWindowsTaskbar = false, bool repositionOnSwitchedTo = false)
 		{
 			windows = new LinkedList<Window>();
 			managedWindows = new LinkedList<Window>();
@@ -232,8 +243,6 @@ namespace Windawesome
 			var workspace = obj as Workspace;
 			return workspace != null && workspace.id == this.id;
 		}
-
-		// TODO: should call Reposition on the layout when changing the monitor of the workspace
 
 		internal void SwitchTo()
 		{

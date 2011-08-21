@@ -1723,18 +1723,6 @@ namespace Windawesome
 			}
 		}
 
-		public static T[] Resize<T>(this T[] array, int newSize)
-		{
-			var result = new T[newSize];
-
-			for (var i = array.Length - 1; i >= 0; i--)
-			{
-				result[--newSize] = array[i];
-			}
-
-			return result;
-		}
-
 		#endregion
 	}
 }

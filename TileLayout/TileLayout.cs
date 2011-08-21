@@ -82,8 +82,6 @@ namespace Windawesome
 				this.layoutAxis = layoutAxis;
 
 				this.Reposition();
-
-				Windawesome.DoLayoutUpdated();
 			}
 		}
 
@@ -94,8 +92,6 @@ namespace Windawesome
 				this.masterAreaAxis = masterAreaAxis;
 
 				this.Reposition();
-
-				Windawesome.DoLayoutUpdated();
 			}
 		}
 
@@ -106,8 +102,6 @@ namespace Windawesome
 				this.stackAreaAxis = stackAreaAxis;
 
 				this.Reposition();
-
-				Windawesome.DoLayoutUpdated();
 			}
 		}
 
@@ -277,6 +271,8 @@ namespace Windawesome
 			winPosInfo = PositionAreaWindows(winPosInfo, workingArea, true);
 			winPosInfo = PositionAreaWindows(winPosInfo, workingArea, false);
 			NativeMethods.EndDeferWindowPos(winPosInfo);
+
+			Workspace.DoLayoutUpdated();
 		}
 
 		#region ILayout Members

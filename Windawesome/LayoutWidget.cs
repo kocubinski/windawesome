@@ -53,7 +53,7 @@ namespace Windawesome
 
 			bar.BarShown += () => OnWorkspaceLayoutChanged(bar.Monitor.CurrentVisibleWorkspace);
 
-			Windawesome.LayoutUpdated += () => OnWorkspaceLayoutChanged(bar.Monitor.CurrentVisibleWorkspace);
+			Workspace.LayoutUpdated += () => OnWorkspaceLayoutChanged(bar.Monitor.CurrentVisibleWorkspace);
 			Workspace.WorkspaceShown += OnWorkspaceLayoutChanged;
 			Workspace.WorkspaceLayoutChanged += (ws, _) => OnWorkspaceLayoutChanged(ws);
 

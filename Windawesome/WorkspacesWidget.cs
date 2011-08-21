@@ -248,9 +248,8 @@ namespace Windawesome
 			if (isLeft)
 			{
 				this.left = left;
-				for (var i = 1; i <= config.Workspaces.Length; i++)
+				foreach (var label in workspaceLabels)
 				{
-					var label = workspaceLabels[i - 1];
 					label.Location = new Point(left, 0);
 					left += label.Width;
 				}
@@ -259,9 +258,8 @@ namespace Windawesome
 			else
 			{
 				this.right = right;
-				for (var i = config.Workspaces.Length; i > 0; i--)
+				foreach (var label in workspaceLabels.Reverse())
 				{
-					var label = workspaceLabels[i - 1];
 					right -= label.Width;
 					label.Location = new Point(right, 0);
 				}

@@ -10,11 +10,10 @@ namespace Windawesome
 {
 	public sealed class Windawesome : NativeWindow
 	{
-		public Workspace CurrentWorkspace { get { return workspaces[0]; } }
+		public Workspace CurrentWorkspace { get; private set; }
+		public Workspace PreviousWorkspace { get; private set; }
 
 		public readonly Monitor[] monitors;
-
-		public int PreviousWorkspace { get; private set; }
 
 		public delegate bool HandleMessageDelegate(ref Message m);
 
@@ -25,7 +24,6 @@ namespace Windawesome
 		public static readonly Size smallIconSize;
 
 		private readonly Config config;
-		private readonly Workspace[] workspaces;
 		private readonly Dictionary<IntPtr, LinkedList<Tuple<Workspace, Window>>> applications; // hWnd to a list of workspaces and windows
 		private readonly HashMultiSet<IntPtr> hiddenApplications;
 		private readonly uint shellMessageNum;
@@ -55,9 +53,6 @@ namespace Windawesome
 
 		#region Events
 
-		public delegate void LayoutUpdatedEventHandler();
-		public static event LayoutUpdatedEventHandler LayoutUpdated; // TODO: this should be for a specific workspace. But how to call from Widgets then?
-
 		public delegate void WindowTitleOrIconChangedEventHandler(Workspace workspace, Window window, string newText);
 		public static event WindowTitleOrIconChangedEventHandler WindowTitleOrIconChanged;
 
@@ -67,16 +62,8 @@ namespace Windawesome
 		public delegate void ProgramRuleMatchedEventHandler(ProgramRule programRule, IntPtr hWnd, string cName, string dName, string pName, NativeMethods.WS style, NativeMethods.WS_EX exStyle);
 		public static event ProgramRuleMatchedEventHandler ProgramRuleMatched;
 
-		internal delegate void WindawesomeExitingEventHandler();
-		internal static event WindawesomeExitingEventHandler WindawesomeExiting;
-
-		public static void DoLayoutUpdated()
-		{
-			if (LayoutUpdated != null)
-			{
-				LayoutUpdated();
-			}
-		}
+		public delegate void WindawesomeExitingEventHandler();
+		public static event WindawesomeExitingEventHandler WindawesomeExiting;
 
 		private static void DoWindowTitleOrIconChanged(Workspace workspace, Window window, string newText)
 		{
@@ -166,9 +153,8 @@ namespace Windawesome
 
 			// TODO: ALT+TAB works accross monitors, which is annoying
 
-			workspaces = config.Workspaces.Resize(config.Workspaces.Length + 1);
-			workspaces[0] = config.StartingWorkspaces.First(w => w.Monitor.screen.Primary);
-			PreviousWorkspace = CurrentWorkspace.id;
+			CurrentWorkspace = config.StartingWorkspaces.First(w => w.Monitor.screen.Primary);
+			PreviousWorkspace = CurrentWorkspace;
 
 			monitors.ForEach(m => m.AddManyWorkspaces(config.Workspaces.Where(w => w.Monitor == m))); // n ^ 2 but hopefully fast enough
 
@@ -445,7 +431,7 @@ namespace Windawesome
 								OnWindowCreatedOnCurrentWorkspace(hWnd, programRule);
 								break;
 							case OnWindowShownAction.HideWindow:
-								if (matchingRules.All(r => !workspaces[r.workspace].IsWorkspaceVisible))
+								if (matchingRules.All(r => r.workspace == 0 ? !CurrentWorkspace.IsWorkspaceVisible : !config.Workspaces[r.workspace - 1].IsWorkspaceVisible))
 								{
 									hiddenApplications.Add(hWnd);
 									NativeMethods.ShowWindow(hWnd, NativeMethods.SW.SW_HIDE);
@@ -546,9 +532,10 @@ namespace Windawesome
 					var window = new Window(hWnd, className, displayName, processName, workspacesCount,
 						is64BitProcess, style, exStyle, ownedLists == null ? null : ownedLists[i++], rule, programRule, menu);
 
-					list.AddLast(new Tuple<Workspace, Window>(workspaces[rule.workspace], window));
+					var workspace = rule.workspace == 0 ? CurrentWorkspace : config.Workspaces[rule.workspace - 1];
+					list.AddLast(new Tuple<Workspace, Window>(workspace, window));
 
-					workspaces[rule.workspace].WindowCreated(window);
+					workspace.WindowCreated(window);
 				}
 
 				if (!programRule.showMenu)
@@ -965,10 +952,10 @@ namespace Windawesome
 			config.Bars.ForEach(b => b.Refresh());
 		}
 
-		public void ChangeApplicationToWorkspace(IntPtr hWnd, int toWorkspace = 0, int fromWorkspace = 0, bool follow = true)
+		public void ChangeApplicationToWorkspace(IntPtr hWnd, int toWorkspaceId = 0, int fromWorkspaceId = 0, bool follow = true)
 		{
-			var oldWorkspace = workspaces[fromWorkspace];
-			var newWorkspace = workspaces[toWorkspace];
+			var oldWorkspace = fromWorkspaceId == 0 ? CurrentWorkspace : config.Workspaces[fromWorkspaceId - 1];
+			var newWorkspace = toWorkspaceId == 0 ? CurrentWorkspace : config.Workspaces[toWorkspaceId - 1];
 
 			if (newWorkspace.id != oldWorkspace.id)
 			{
@@ -983,15 +970,15 @@ namespace Windawesome
 					list.Remove(new Tuple<Workspace, Window>(oldWorkspace, window));
 					list.AddFirst(new Tuple<Workspace, Window>(newWorkspace, window));
 
-					FollowWindow(toWorkspace, follow, window);
+					FollowWindow(toWorkspaceId, follow, window);
 				}
 			}
 		}
 
-		public void AddApplicationToWorkspace(IntPtr hWnd, int toWorkspace = 0, int fromWorkspace = 0, bool follow = true)
+		public void AddApplicationToWorkspace(IntPtr hWnd, int toWorkspaceId = 0, int fromWorkspaceId = 0, bool follow = true)
 		{
-			var oldWorkspace = workspaces[fromWorkspace];
-			var newWorkspace = workspaces[toWorkspace];
+			var oldWorkspace = fromWorkspaceId == 0 ? CurrentWorkspace : config.Workspaces[fromWorkspaceId - 1];
+			var newWorkspace = toWorkspaceId == 0 ? CurrentWorkspace : config.Workspaces[toWorkspaceId - 1];
 
 			if (newWorkspace.id != oldWorkspace.id)
 			{
@@ -1007,7 +994,7 @@ namespace Windawesome
 					list.AddFirst(new Tuple<Workspace, Window>(newWorkspace, newWindow));
 					list.Where(t => ++t.Item2.WorkspacesCount == 2).ForEach(t => t.Item1.AddToSharedWindows(t.Item2));
 
-					FollowWindow(toWorkspace, follow, window);
+					FollowWindow(toWorkspaceId, follow, window);
 				}
 			}
 		}
@@ -1021,9 +1008,10 @@ namespace Windawesome
 			}
 		}
 
-		public void RemoveApplicationFromWorkspace(IntPtr hWnd, int workspace = 0, bool setForeground = true)
+		public void RemoveApplicationFromWorkspace(IntPtr hWnd, int workspaceId = 0, bool setForeground = true)
 		{
-			var window = GetOwnermostWindow(hWnd, workspaces[workspace]);
+			var workspace = workspaceId == 0 ? CurrentWorkspace : config.Workspaces[workspaceId - 1];
+			var window = GetOwnermostWindow(hWnd, workspace);
 			if (window != null)
 			{
 				if (window.WorkspacesCount == 1)
@@ -1035,13 +1023,13 @@ namespace Windawesome
 					HideWindow(window);
 
 					var list = applications[window.hWnd];
-					list.Remove(new Tuple<Workspace, Window>(workspaces[workspace], window));
+					list.Remove(new Tuple<Workspace, Window>(workspace, window));
 					list.Where(t => --t.Item2.WorkspacesCount == 1).ForEach(t => t.Item1.AddToRemovedSharedWindows(t.Item2));
 
-					workspaces[workspace].WindowDestroyed(window);
-					if (workspaces[workspace].IsCurrentWorkspace && setForeground)
+					workspace.WindowDestroyed(window);
+					if (workspace.IsCurrentWorkspace && setForeground)
 					{
-						SetWorkspaceTopManagedWindowAsForeground(workspaces[workspace]);
+						SetWorkspaceTopManagedWindowAsForeground(workspace);
 					}
 				}
 			}
@@ -1071,10 +1059,10 @@ namespace Windawesome
 			}
 		}
 
-		public bool SwitchToWorkspace(int workspace, bool setForeground = true)
+		public bool SwitchToWorkspace(int workspaceId, bool setForeground = true)
 		{
-			var newWorkspace = workspaces[workspace];
-			if (workspace != CurrentWorkspace.id)
+			var newWorkspace = workspaceId == 0 ? CurrentWorkspace : config.Workspaces[workspaceId - 1];
+			if (workspaceId != CurrentWorkspace.id)
 			{
 				// TODO: perhaps move mouse over monitors? an option?
 
@@ -1138,13 +1126,48 @@ namespace Windawesome
 					NativeMethods.EndDeferWindowPos(winPosInfo);
 				}
 
-				PreviousWorkspace = CurrentWorkspace.id;
-				workspaces[0] = newWorkspace;
+				PreviousWorkspace = CurrentWorkspace;
+				CurrentWorkspace = newWorkspace;
 
 				return true;
 			}
 
 			return false;
+		}
+
+		// TODO: check if working
+		public void MoveWorkspaceToMonitor(Workspace workspace, Monitor monitor)
+		{
+			var oldMonitor = workspace.Monitor;
+			if (oldMonitor != monitor && oldMonitor.Workspaces.Count() > 1)
+			{
+				if (oldMonitor.CurrentVisibleWorkspace == workspace)
+				{
+					var oldMonitorNewWorkspace = oldMonitor.Workspaces.First(ws => !ws.IsWorkspaceVisible);
+					oldMonitor.SwitchToWorkspace(oldMonitorNewWorkspace);
+					ShowHideWindows(workspace, oldMonitorNewWorkspace, false);
+				}
+
+				oldMonitor.RemoveWorkspace(workspace);
+				workspace.Monitor = monitor;
+				monitor.AddWorkspace(workspace);
+
+				var newMonitorOldWorkspace = monitor.CurrentVisibleWorkspace;
+				if (CurrentWorkspace != workspace)
+				{
+					CurrentWorkspace.IsCurrentWorkspace = false;
+				}
+				monitor.SwitchToWorkspace(workspace);
+				if (CurrentWorkspace != workspace)
+				{
+					workspace.IsCurrentWorkspace = true;
+
+					PreviousWorkspace = CurrentWorkspace;
+					CurrentWorkspace = workspace;
+				}
+				workspace.Reposition();
+				ShowHideWindows(newMonitorOldWorkspace, workspace, true);
+			}
 		}
 
 		public bool HideBar(IBar bar)
