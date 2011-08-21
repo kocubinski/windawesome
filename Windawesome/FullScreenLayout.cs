@@ -22,18 +22,24 @@ namespace Windawesome
 			var winPlacement = NativeMethods.WINDOWPLACEMENT.Default;
 
 			winPlacement.Flags = NativeMethods.WPF.WPF_ASYNCWINDOWPLACEMENT;
-			winPlacement.NormalPosition.left = bounds.Left; // these are in working area coordinates
-			winPlacement.NormalPosition.right = bounds.Left + workingArea.Width;
-			winPlacement.NormalPosition.top = bounds.Top;
-			winPlacement.NormalPosition.bottom = bounds.Top + workingArea.Height;
-
-			winPlacement.MaxPosition.X = bounds.X;
-			winPlacement.MaxPosition.Y = bounds.Y;
 
 			var ws = NativeMethods.GetWindowStyleLongPtr(window.hWnd);
-			winPlacement.ShowCmd = ws.HasFlag(NativeMethods.WS.WS_CAPTION | NativeMethods.WS.WS_MAXIMIZEBOX) ?
-				NativeMethods.SW.SW_SHOWMAXIMIZED :
-				NativeMethods.SW.SW_SHOWNOACTIVATE;
+			if (ws.HasFlag(NativeMethods.WS.WS_CAPTION | NativeMethods.WS.WS_MAXIMIZEBOX))
+			{
+				winPlacement.MaxPosition.X = bounds.X;
+				winPlacement.MaxPosition.Y = bounds.Y;
+
+				winPlacement.ShowCmd = NativeMethods.SW.SW_SHOWMAXIMIZED;
+			}
+			else
+			{
+				winPlacement.NormalPosition.left = bounds.Left; // these are in working area coordinates
+				winPlacement.NormalPosition.right = bounds.Left + workingArea.Width;
+				winPlacement.NormalPosition.top = bounds.Top;
+				winPlacement.NormalPosition.bottom = bounds.Top + workingArea.Height;
+
+				winPlacement.ShowCmd = NativeMethods.SW.SW_SHOWNOACTIVATE;
+			}
 
 			NativeMethods.SetWindowPlacement(window.hWnd, ref winPlacement);
 		}
