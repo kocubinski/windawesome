@@ -561,8 +561,7 @@ namespace Windawesome
 					if (topmost != null)
 					{
 						NativeMethods.SetWindowPos(hWnd, NativeMethods.HWND_BOTTOM, 0, 0, 0, 0,
-							NativeMethods.SWP.SWP_ASYNCWINDOWPOS | NativeMethods.SWP.SWP_NOACTIVATE |
-							NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
+							NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
 						ForceForegroundWindow(topmost);
 						PostAction(() => CurrentWorkspace.WindowActivated(topmost.hWnd));
 					}
@@ -672,8 +671,7 @@ namespace Windawesome
 			}
 			else
 			{
-				NativeMethods.SetWindowPos(hWnd, NativeMethods.HWND_TOP, 0, 0, 0, 0,
-					NativeMethods.SWP.SWP_ASYNCWINDOWPOS | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
+				NativeMethods.SetWindowPos(hWnd, NativeMethods.HWND_TOP, 0, 0, 0, 0, NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
 
 				return true;
 			}
@@ -784,15 +782,10 @@ namespace Windawesome
 
 		private Window GetOwnermostWindow(IntPtr hWnd, Workspace workspace)
 		{
-			var window = workspace.GetOwnermostWindow(hWnd);
-			while (window == null)
+			Window window = null;
+			while (hWnd != IntPtr.Zero && (window = workspace.GetOwnermostWindow(hWnd)) == null)
 			{
 				hWnd = NativeMethods.GetWindow(hWnd, NativeMethods.GW.GW_OWNER);
-				if (hWnd == IntPtr.Zero)
-				{
-					return null;
-				}
-				window = workspace.GetOwnermostWindow(hWnd);
 			}
 			return window;
 		}

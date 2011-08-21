@@ -10,38 +10,50 @@ namespace Windawesome
 
 		private void MaximizeWindow(Window window)
 		{
-			var bounds = workspace.Monitor.screen.Bounds;
-			if (NativeMethods.IsZoomed(window.hWnd) && System.Windows.Forms.Screen.FromHandle(window.hWnd).Bounds != bounds)
+			if (Windawesome.WindowIsNotHung(window))
 			{
-				// restore if program is maximized and should be on a different monitor
-				NativeMethods.ShowWindowAsync(window.hWnd, NativeMethods.SW.SW_SHOWNOACTIVATE); // should not use SW_RESTORE as it activates the window
-				System.Threading.Thread.Sleep(Workspace.minimizeRestoreDelay);
+				var newBounds = workspace.Monitor.screen.Bounds;
+				var currentBounds = System.Windows.Forms.Screen.FromHandle(window.hWnd).Bounds;
+				//if (NativeMethods.IsZoomed(window.hWnd) && currentBounds != newBounds)
+				//{
+				//    // restore if program is maximized and should be on a different monitor
+				//    NativeMethods.ShowWindowAsync(window.hWnd, NativeMethods.SW.SW_SHOWNOACTIVATE); // should not use SW_RESTORE as it activates the window
+				//    System.Threading.Thread.Sleep(Workspace.minimizeRestoreDelay);
+				//}
+
+				var winPlacement = NativeMethods.WINDOWPLACEMENT.Default;
+				NativeMethods.GetWindowPlacement(window.hWnd, ref winPlacement);
+
+				winPlacement.MaxPosition.X = newBounds.X;
+				winPlacement.MaxPosition.Y = newBounds.Y;
+
+				var ws = NativeMethods.GetWindowStyleLongPtr(window.hWnd);
+				if (ws.HasFlag(NativeMethods.WS.WS_CAPTION | NativeMethods.WS.WS_MAXIMIZEBOX))
+				{
+					if (currentBounds != newBounds)
+					{
+						winPlacement.NormalPosition.left += newBounds.Left - currentBounds.Left; // these are in working area coordinates
+						winPlacement.NormalPosition.right += newBounds.Right - currentBounds.Right;
+						winPlacement.NormalPosition.top += newBounds.Top - currentBounds.Top;
+						winPlacement.NormalPosition.bottom += newBounds.Bottom - currentBounds.Bottom;
+					}
+
+					winPlacement.ShowCmd = NativeMethods.SW.SW_SHOWMAXIMIZED;
+				}
+				else
+				{
+					var workingArea = workspace.Monitor.screen.WorkingArea;
+
+					winPlacement.NormalPosition.left = newBounds.Left; // these are in working area coordinates
+					winPlacement.NormalPosition.right = newBounds.Left + workingArea.Width;
+					winPlacement.NormalPosition.top = newBounds.Top;
+					winPlacement.NormalPosition.bottom = newBounds.Top + workingArea.Height;
+
+					winPlacement.ShowCmd = NativeMethods.SW.SW_SHOWNOACTIVATE;
+				}
+
+				NativeMethods.SetWindowPlacement(window.hWnd, ref winPlacement);
 			}
-
-			var workingArea = workspace.Monitor.screen.WorkingArea;
-			var winPlacement = NativeMethods.WINDOWPLACEMENT.Default;
-
-			winPlacement.Flags = NativeMethods.WPF.WPF_ASYNCWINDOWPLACEMENT;
-
-			var ws = NativeMethods.GetWindowStyleLongPtr(window.hWnd);
-			if (ws.HasFlag(NativeMethods.WS.WS_CAPTION | NativeMethods.WS.WS_MAXIMIZEBOX))
-			{
-				winPlacement.MaxPosition.X = bounds.X;
-				winPlacement.MaxPosition.Y = bounds.Y;
-
-				winPlacement.ShowCmd = NativeMethods.SW.SW_SHOWMAXIMIZED;
-			}
-			else
-			{
-				winPlacement.NormalPosition.left = bounds.Left; // these are in working area coordinates
-				winPlacement.NormalPosition.right = bounds.Left + workingArea.Width;
-				winPlacement.NormalPosition.top = bounds.Top;
-				winPlacement.NormalPosition.bottom = bounds.Top + workingArea.Height;
-
-				winPlacement.ShowCmd = NativeMethods.SW.SW_SHOWNOACTIVATE;
-			}
-
-			NativeMethods.SetWindowPlacement(window.hWnd, ref winPlacement);
 		}
 
 		#region ILayout Members
