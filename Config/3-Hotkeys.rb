@@ -54,7 +54,7 @@ end
 
 # switch to previous workspace
 subscribe modifiers.Alt, key.Oemtilde do
-	windawesome.switch_to_workspace windawesome.previous_workspace
+	windawesome.switch_to_workspace windawesome.previous_workspace.id
 end
 
 # start Firefox
@@ -127,8 +127,12 @@ subscribe modifiers.Alt | modifiers.Shift, key.F do
 	windawesome.current_workspace.change_layout Windawesome::FloatingLayout.new
 end
 
+subscribe modifiers.Control | modifiers.Alt | modifiers.Shift, key.M do
+	windawesome.toggle_show_hide_window_menu Windawesome::NativeMethods.get_foreground_window
+end
+
 subscribe modifiers.Control | modifiers.Alt | modifiers.Shift, key.Q do
-	windawesome.remove_application_from_current_workspace Windawesome::NativeMethods.get_foreground_window
+	windawesome.remove_application_from_workspace Windawesome::NativeMethods.get_foreground_window
 end
 
 subscribe modifiers.Alt | modifiers.Shift, key.L do

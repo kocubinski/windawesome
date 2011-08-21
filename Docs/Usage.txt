@@ -65,7 +65,7 @@ customMatchingFunction - a delegate of type "bool CustomMatchingFunction(IntPtr 
 
 isManaged - whether Windawesome should care about that window
 tryAgainAfter - the time, in milliseconds, to wait before trying to match the rules again (if >= 0)
-windowCreatedDelay - the time, in milliseconds, to wait before taking any action after the window has been created (if > 0). Windawesome will match te rules and then sleep. If Windawesome has problems with newly created windows, try setting this to a higher value
+windowCreatedDelay - the time, in milliseconds, to wait before taking any action after the window has been created (if > 0). Windawesome will match the rules and then sleep. The default value is -1 which means that Windawesome will wait until the process is completely loaded. In most cases the default will work just fine
 handleOwnedWindows - if true, Windawesome will handle a window that is owned by this one. Useful for applications using the VCL framework as they use a window which owns the "real" window
 hideOwnedPopups - if true, Windawesome will hide all popups that are owned of the window being hidden
 redrawDesktopOnWindowCreated - if true, Windawesome will redraw the Desktop when this window is created. Useful if you have problems with that. I've seen it with mintty (the cygwin terminal emulator)

@@ -14,18 +14,10 @@ config.ProgramRules = Enumerable.ToArray[ProgramRule]([
 	),
 	ProgramRule(
 		className = "^TApplication$",
-		displayName = "^ImgBurn$",
-		windowCreatedDelay = 2000,
-		handleOwnedWindows = True
-	),
-	ProgramRule(
-		className = "^TApplication$",
-		windowCreatedDelay = 1000,
 		handleOwnedWindows = True
 	),
 	ProgramRule(
 		className = "^Vim$",
-		windowCreatedDelay = 100,
 		rules = [ProgramRule.Rule(workspace = 3, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
 	),
 	ProgramRule(
@@ -42,7 +34,6 @@ config.ProgramRules = Enumerable.ToArray[ProgramRule]([
 	),
 	ProgramRule(
 		displayName = ".*BitComet.*",
-		windowCreatedDelay = 1000,
 		onWindowCreatedAction = OnWindowShownAction.HideWindow,
 		rules = [ProgramRule.Rule(workspace = 9, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
 	),
@@ -89,7 +80,6 @@ config.ProgramRules = Enumerable.ToArray[ProgramRule]([
 	),
 	ProgramRule(
 		className = "^mintty$",
-		windowCreatedDelay = 100,
 		redrawDesktopOnWindowCreated = True,
 		rules = [ProgramRule.Rule(workspace = 3, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
 	),
@@ -99,13 +89,11 @@ config.ProgramRules = Enumerable.ToArray[ProgramRule]([
 	),
 	ProgramRule(
 		displayName = ".*Microsoft Visual Studio.*",
-		windowCreatedDelay = 2000,
 		onWindowCreatedAction = OnWindowShownAction.HideWindow,
 		rules = [ProgramRule.Rule(workspace = 5, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
 	),
 	ProgramRule(
 		className = "^HwndWrapper\[DefaultDomain.*", # Visual Studio (Express)
-		tryAgainAfter = 2000,
 		onWindowCreatedAction = OnWindowShownAction.HideWindow,
 		rules = [ProgramRule.Rule(workspace = 5, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
 	),
@@ -117,15 +105,55 @@ config.ProgramRules = Enumerable.ToArray[ProgramRule]([
 		className = "^QuickTimePlayerMain$",
 		rules = [ProgramRule.Rule(workspace = 1, isFloating = True)]
 	),
-	ProgramRule(className = "^ConsoleWindowClass$", rules = [ProgramRule.Rule(isFloating = True)]), # Interix terminal
-	ProgramRule(className = "^Internet Explorer_Hidden$", displayName = "", isManaged = False), # what the hell
-	ProgramRule(className = "^Edit$", displayName = "", isManaged = False), # some stupid window of Adobe Reader
-	ProgramRule(className = "^ShockwaveFlashFullScreen$", displayName = "^Adobe Flash Player$", isManaged = False), # Adobe Flash Player when full screen
-	ProgramRule(displayName = "^Windows 7 Manager - Junk File Cleaner$", isManaged = False),
-	ProgramRule(displayName = "^Windows 7 Manager - Registry Cleaner$", isManaged = False),
-	ProgramRule(displayName = ".*Windows 7 Manager.*", rules = [ProgramRule.Rule(workspace = 1)]),
-	ProgramRule(className = "^MsiDialogCloseClass$", isManaged = False),
-	ProgramRule(className = "^MsiDialogNoCloseClass$", isManaged = False),
+	ProgramRule(
+		className = "^wxWindowClassNR$",
+		displayName = "^Buddy List$",
+        customMatchingFunction = lambda hWnd: True
+	),
+	ProgramRule(
+		className = "^OpusApp$",
+		tryAgainAfter = 500,
+		displayName = ".*Microsoft Word Viewer$"
+	),
+	ProgramRule(
+		className = "^ConsoleWindowClass$", # Interix terminal
+		rules = [ProgramRule.Rule(isFloating = True)]
+	),
+	ProgramRule(
+		className = "^Internet Explorer_Hidden$", # what the hell
+		displayName = "",
+		isManaged = False
+	),
+	ProgramRule(
+		className = "^Edit$", # some stupid window of Adobe Reader
+		displayName = "",
+		isManaged = False
+	),
+	ProgramRule(
+		className = "^ShockwaveFlashFullScreen$", # Adobe Flash Player when full screen
+		displayName = "^Adobe Flash Player$",
+		isManaged = False
+	),
+	ProgramRule(
+		displayName = "^Windows 7 Manager - Junk File Cleaner$",
+		isManaged = False
+	),
+	ProgramRule(
+		displayName = "^Windows 7 Manager - Registry Cleaner$",
+		isManaged = False
+	),
+	ProgramRule(
+		displayName = ".*Windows 7 Manager.*",
+		rules = [ProgramRule.Rule(workspace = 1)]
+	),
+	ProgramRule(
+		className = "^MsiDialogCloseClass$",
+		isManaged = False
+	),
+	ProgramRule(
+		className = "^MsiDialogNoCloseClass$",
+		isManaged = False
+	),
 	ProgramRule(
 		className = "^#32770$", # all dialogs
 		rules = [ProgramRule.Rule(isFloating = True)] # should be floating
@@ -138,5 +166,5 @@ config.ProgramRules = Enumerable.ToArray[ProgramRule]([
 		styleNotContains = WS.WS_MAXIMIZEBOX,
 		rules = [ProgramRule.Rule(isFloating = True)]
 	),
-	ProgramRule() # there SHOULD be a catch-all rule in the end!
+	ProgramRule() # an all-catching rule in the end to manage all other windows
 ])

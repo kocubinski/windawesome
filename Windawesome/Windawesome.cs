@@ -1285,12 +1285,12 @@ namespace Windawesome
 		{
 			IntPtr result;
 			NativeMethods.SendMessageTimeout(hWnd, NativeMethods.WM_GETICON, NativeMethods.ICON_SMALL,
-				IntPtr.Zero, NativeMethods.SMTO.SMTO_ABORTIFHUNG | NativeMethods.SMTO.SMTO_BLOCK, 500, out result);
+				IntPtr.Zero, NativeMethods.SMTO.SMTO_BLOCK, 500, out result);
 
 			if (result == IntPtr.Zero)
 			{
 				NativeMethods.SendMessageTimeout(hWnd, NativeMethods.WM_QUERYDRAGICON, UIntPtr.Zero,
-					IntPtr.Zero, NativeMethods.SMTO.SMTO_ABORTIFHUNG | NativeMethods.SMTO.SMTO_BLOCK, 500, out result);
+					IntPtr.Zero, NativeMethods.SMTO.SMTO_BLOCK, 500, out result);
 			}
 
 			if (result == IntPtr.Zero)
@@ -1376,7 +1376,8 @@ namespace Windawesome
 					{
 						AddWindowToWorkspace(lParam);
 					}
-					else if (!hiddenApplications.Contains(lParam) && !CurrentWorkspace.ContainsWindow(lParam) && !CurrentWorkspace.Monitor.temporarilyShownWindows.Contains(lParam)) // if a hidden window has shown
+					else if (!hiddenApplications.Contains(lParam) && !CurrentWorkspace.ContainsWindow(lParam) &&
+						!CurrentWorkspace.Monitor.temporarilyShownWindows.Contains(lParam)) // if a hidden window has shown
 					{
 						// there is a problem with some windows showing up when others are created.
 						// how to reproduce: start BitComet 1.26 on some workspace, switch to another one
