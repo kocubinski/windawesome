@@ -837,7 +837,7 @@ namespace Windawesome
 			foreach (var window in showWindows.Where(WindowIsNotHung))
 			{
 				winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, window.hWnd, IntPtr.Zero, 0, 0, 0, 0,
-					(window == newTopmostWindow ? 0 : NativeMethods.SWP.SWP_NOACTIVATE) | NativeMethods.SWP.SWP_NOMOVE |
+					(setForeground && window == newTopmostWindow ? 0 : NativeMethods.SWP.SWP_NOACTIVATE) | NativeMethods.SWP.SWP_NOMOVE |
 					NativeMethods.SWP.SWP_NOZORDER | NativeMethods.SWP.SWP_NOOWNERZORDER | NativeMethods.SWP.SWP_NOSIZE |
 					NativeMethods.SWP.SWP_SHOWWINDOW);
 				window.ShowPopupsAndRedraw();
@@ -1053,8 +1053,6 @@ namespace Windawesome
 			var newWorkspace = workspaceId == 0 ? CurrentWorkspace : config.Workspaces[workspaceId - 1];
 			if (workspaceId != CurrentWorkspace.id)
 			{
-				// TODO: perhaps move mouse over monitors? an option?
-
 				if (newWorkspace.IsWorkspaceVisible)
 				{
 					// workspace is already visible on another monitor
@@ -1099,20 +1097,25 @@ namespace Windawesome
 				}
 
 				var showWindows = newWorkspace.GetWindows();
-				if (monitors.Length > 1 && showWindows.Count > 1)
+				if (CurrentWorkspace.Monitor != newWorkspace.Monitor)
 				{
-					// restore the Z-order of the new workspace
-					var winPosInfo = NativeMethods.BeginDeferWindowPos(showWindows.Count);
-
-					var previousHWnd = NativeMethods.HWND_TOP;
-					foreach (var window in showWindows.Where(WindowIsNotHung))
+					if (monitors.Length > 1 && showWindows.Count > 1)
 					{
-						winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, window.hWnd, previousHWnd, 0, 0, 0, 0,
-							NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
-						previousHWnd = window.hWnd;
+						// restore the Z-order of the new workspace
+						var winPosInfo = NativeMethods.BeginDeferWindowPos(showWindows.Count);
+
+						var previousHWnd = NativeMethods.HWND_TOP;
+						foreach (var window in showWindows.Where(WindowIsNotHung))
+						{
+							winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, window.hWnd, previousHWnd, 0, 0, 0, 0,
+								NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
+							previousHWnd = window.hWnd;
+						}
+
+						NativeMethods.EndDeferWindowPos(winPosInfo);
 					}
 
-					NativeMethods.EndDeferWindowPos(winPosInfo);
+					// TODO: move mouse over monitor as an option
 				}
 
 				PreviousWorkspace = CurrentWorkspace;
@@ -1405,7 +1408,18 @@ namespace Windawesome
 							}
 							else if (!CurrentWorkspace.ContainsWindow(lParam))
 							{
-								OnHiddenWindowShown(lParam, list.First.Value);
+								Workspace workspace;
+								if (monitors.Length > 1 && (workspace = list.Select(t => t.Item1).
+									FirstOrDefault(ws => ws.IsWorkspaceVisible && ws.ContainsWindow(lParam))) != null)
+								{
+									// if the window is actually visible on another monitor
+									// (e.g. when the user has ALT-TABbed to the window across monitors)
+									SwitchToWorkspace(workspace.id, false);
+								}
+								else
+								{
+									OnHiddenWindowShown(lParam, list.First.Value);
+								}
 							}
 						}
 
