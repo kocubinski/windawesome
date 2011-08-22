@@ -12,14 +12,14 @@ namespace Windawesome
 		{
 			if (Windawesome.WindowIsNotHung(window))
 			{
-				var newBounds = workspace.Monitor.screen.Bounds;
 				var currentBounds = System.Windows.Forms.Screen.FromHandle(window.hWnd).Bounds;
-				//if (NativeMethods.IsZoomed(window.hWnd) && currentBounds != newBounds)
-				//{
-				//    // restore if program is maximized and should be on a different monitor
-				//    NativeMethods.ShowWindowAsync(window.hWnd, NativeMethods.SW.SW_SHOWNOACTIVATE); // should not use SW_RESTORE as it activates the window
-				//    System.Threading.Thread.Sleep(Workspace.minimizeRestoreDelay);
-				//}
+				var newBounds = workspace.Monitor.screen.Bounds;
+				if (NativeMethods.IsZoomed(window.hWnd) && currentBounds != newBounds)
+				{
+					// restore if program is maximized and should be on a different monitor
+					NativeMethods.ShowWindow(window.hWnd, NativeMethods.SW.SW_SHOWNOACTIVATE); // should not use SW_RESTORE as it activates the window
+					System.Threading.Thread.Sleep(Workspace.minimizeRestoreDelay);
+				}
 
 				var winPlacement = NativeMethods.WINDOWPLACEMENT.Default;
 				NativeMethods.GetWindowPlacement(window.hWnd, ref winPlacement);
@@ -83,7 +83,7 @@ namespace Windawesome
 
 		void ILayout.Reposition()
 		{
-			workspace.GetWindows().ForEach(MaximizeWindow);
+			workspace.GetManagedWindows().ForEach(MaximizeWindow);
 			Workspace.DoLayoutUpdated();
 		}
 

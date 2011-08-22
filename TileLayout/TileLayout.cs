@@ -324,7 +324,7 @@ namespace Windawesome
 
 		void ILayout.Reposition()
 		{
-			var windows = workspace.GetWindows();
+			var windows = workspace.GetManagedWindows();
 			if (this.windows.Count != windows.Count() || !new HashSet<Window>(this.windows).Overlaps(windows))
 			{
 				// restore any maximized windows - should not use SW_RESTORE as it activates the window

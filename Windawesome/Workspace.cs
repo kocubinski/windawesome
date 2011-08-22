@@ -38,13 +38,9 @@ namespace Windawesome
 
 		internal bool hasChanges;
 
-		private int floatingWindowsCount;
-		private int windowsShownInTabsCount;
+		private int sharedWindowsCount;
 
 		private readonly LinkedList<Window> windows; // all windows, owner window, sorted in Z-order, topmost window first
-		private readonly LinkedList<Window> managedWindows; // windows.Where(w => !w.isFloating && !w.isMinimized), owned windows, not sorted
-		private readonly LinkedList<Window> sharedWindows; // windows.Where(w => w.shared), not sorted
-		private readonly LinkedList<Window> removedSharedWindows; // windows that need to be Initialized but then removed from shared
 
 		private static int count;
 
@@ -210,9 +206,6 @@ namespace Windawesome
 			string name = "", bool showWindowsTaskbar = false, bool repositionOnSwitchedTo = false)
 		{
 			windows = new LinkedList<Window>();
-			managedWindows = new LinkedList<Window>();
-			sharedWindows = new LinkedList<Window>();
-			removedSharedWindows = new LinkedList<Window>();
 
 			this.id = ++count;
 			this.Monitor = monitor;
@@ -246,12 +239,10 @@ namespace Windawesome
 
 		internal void SwitchTo()
 		{
-			// sets the layout- and workspace-specific changes to the windows
-			sharedWindows.ForEach(RestoreSharedWindowState);
-			if (removedSharedWindows.Count > 0)
+			if (sharedWindowsCount > 0)
 			{
-				removedSharedWindows.ForEach(w => sharedWindows.Remove(w));
-				removedSharedWindows.Clear();
+				// sets the layout- and workspace-specific changes to the windows
+				windows.Where(w => w.WorkspacesCount > 1).ForEach(w => w.DoForSelfOrOwned(win => RestoreSharedWindowState(win, false)));
 			}
 
 			if (NeedsToReposition())
@@ -266,19 +257,28 @@ namespace Windawesome
 
 		internal void Unswitch()
 		{
-			sharedWindows.Where(w => !repositionOnSwitchedTo || w.IsFloating || Layout.ShouldSaveAndRestoreSharedWindowsPosition()).ForEach(w => w.SavePosition());
+			if (sharedWindowsCount > 0)
+			{
+				windows.Where(w => w.WorkspacesCount > 1 && ShouldSaveAndRestoreSharedWindowsPosition(w)).
+					ForEach(w => w.DoForSelfOrOwned(win => win.SavePosition()));
+			}
 
 			IsWorkspaceVisible = false;
 			DoWorkspaceHidden(this);
 		}
 
-		private void RestoreSharedWindowState(Window window)
+		private void RestoreSharedWindowState(Window window, bool doNotShow)
 		{
 			window.Initialize();
-			if (!NeedsToReposition() || window.IsFloating || Layout.ShouldSaveAndRestoreSharedWindowsPosition())
+			if (ShouldSaveAndRestoreSharedWindowsPosition(window))
 			{
-				window.RestorePosition();
+				window.RestorePosition(doNotShow);
 			}
+		}
+
+		private bool ShouldSaveAndRestoreSharedWindowsPosition(Window window)
+		{
+			return !NeedsToReposition() || window.IsFloating || Layout.ShouldSaveAndRestoreSharedWindowsPosition();
 		}
 
 		public bool NeedsToReposition()
@@ -367,7 +367,7 @@ namespace Windawesome
 						if (!w.IsMinimized)
 						{
 							w.IsMinimized = true;
-							if (managedWindows.Remove(w))
+							if (!w.IsFloating)
 							{
 								Layout.WindowMinimized(w);
 							}
@@ -392,7 +392,6 @@ namespace Windawesome
 							w.IsMinimized = false;
 							if (!w.IsFloating)
 							{
-								managedWindows.AddFirst(w);
 								Layout.WindowRestored(w);
 							}
 						}
@@ -456,11 +455,7 @@ namespace Windawesome
 			windows.AddFirst(window);
 			if (window.WorkspacesCount > 1)
 			{
-				window.DoForSelfOrOwned(w => sharedWindows.AddFirst(w));
-			}
-			if (window.ShowInTabs)
-			{
-				windowsShownInTabsCount++;
+				window.DoForSelfOrOwned(_ => sharedWindowsCount++);
 			}
 			if (IsWorkspaceVisible || window.WorkspacesCount == 1)
 			{
@@ -469,13 +464,8 @@ namespace Windawesome
 
 			window.DoForSelfOrOwned(w =>
 				{
-					if (w.IsFloating)
+					if (!w.IsMinimized && !w.IsFloating)
 					{
-						floatingWindowsCount++;
-					}
-					else if (!w.IsMinimized)
-					{
-						managedWindows.AddFirst(w);
 						Layout.WindowCreated(w);
 
 						hasChanges |= !IsWorkspaceVisible;
@@ -490,22 +480,13 @@ namespace Windawesome
 			windows.Remove(window);
 			if (window.WorkspacesCount > 1)
 			{
-				window.DoForSelfOrOwned(w => sharedWindows.Remove(w));
-			}
-			if (window.ShowInTabs)
-			{
-				windowsShownInTabsCount--;
+				window.DoForSelfOrOwned(_ => sharedWindowsCount--);
 			}
 
 			window.DoForSelfOrOwned(w =>
 				{
-					if (w.IsFloating)
+					if (!w.IsMinimized && !w.IsFloating)
 					{
-						floatingWindowsCount--;
-					}
-					else if (!w.IsMinimized)
-					{
-						managedWindows.Remove(w);
 						Layout.WindowDestroyed(w);
 
 						hasChanges |= !IsWorkspaceVisible;
@@ -520,9 +501,9 @@ namespace Windawesome
 			return windows.Any(w => w.hWnd == hWnd);
 		}
 
-		public Window GetWindow(IntPtr hWnd)
+		public Window GetManagedWindow(IntPtr hWnd)
 		{
-			return managedWindows.FirstOrDefault(w => w.hWnd == hWnd);
+			return GetManagedWindows().FirstOrDefault(w => w.hWnd == hWnd);
 		}
 
 		public int GetWindowsCount()
@@ -530,7 +511,7 @@ namespace Windawesome
 			return windows.Count;
 		}
 
-		internal Window GetOwnermostWindow(IntPtr hWnd)
+		internal Window GetWindow(IntPtr hWnd)
 		{
 			return windows.FirstOrDefault(w => w.hWnd == hWnd);
 		}
@@ -539,22 +520,23 @@ namespace Windawesome
 		{
 			if (window != null)
 			{
+				var windowIsFloating = window.IsFloating;
 				window.DoForSelfOrOwned(w =>
 					{
 						w.IsFloating = !w.IsFloating;
-						if (w.IsFloating)
+						if (!w.IsMinimized)
 						{
-							floatingWindowsCount++;
-							managedWindows.Remove(w);
-							Layout.WindowDestroyed(w);
-						}
-						else
-						{
-							floatingWindowsCount--;
-							managedWindows.AddFirst(w);
-							Layout.WindowCreated(w);
+							if (w.IsFloating)
+							{
+								Layout.WindowDestroyed(w);
+							}
+							else
+							{
+								Layout.WindowCreated(w);
+							}
 						}
 					});
+				window.IsFloating = !windowIsFloating;
 			}
 		}
 
@@ -568,7 +550,7 @@ namespace Windawesome
 
 		internal void ToggleShowHideWindowTitlebar(IntPtr hWnd)
 		{
-			var window = GetWindow(hWnd);
+			var window = GetManagedWindow(hWnd);
 			if (window != null)
 			{
 				window.ToggleShowHideTitlebar();
@@ -578,7 +560,7 @@ namespace Windawesome
 
 		internal void ToggleShowHideWindowBorder(IntPtr hWnd)
 		{
-			var window = GetWindow(hWnd);
+			var window = GetManagedWindow(hWnd);
 			if (window != null)
 			{
 				window.ToggleShowHideWindowBorder();
@@ -588,7 +570,7 @@ namespace Windawesome
 
 		internal void ToggleShowHideWindowMenu(IntPtr hWnd)
 		{
-			var window = GetWindow(hWnd);
+			var window = GetManagedWindow(hWnd);
 			if (window != null)
 			{
 				window.ToggleShowHideWindowMenu();
@@ -666,22 +648,39 @@ namespace Windawesome
 
 		internal void AddToSharedWindows(Window window)
 		{
-			window.DoForSelfOrOwned(w => sharedWindows.AddFirst(w));
+			window.DoForSelfOrOwned(_ => sharedWindowsCount++);
 		}
 
-		internal void AddToRemovedSharedWindows(Window window)
+		internal void RemoveFromSharedWindows(Window window)
 		{
-			window.DoForSelfOrOwned(w => removedSharedWindows.AddFirst(w));
+			window.DoForSelfOrOwned(w =>
+				{
+					RestoreSharedWindowState(w, !IsWorkspaceVisible);
+					sharedWindowsCount--;
+				});
 		}
 
-		internal LinkedList<Window> GetOwnerWindows()
+		internal LinkedList<Window> GetWindows()
 		{
 			return windows;
 		}
 
-		public IEnumerable<Window> GetWindows()
+		public IEnumerable<Window> GetManagedWindows()
 		{
-			return managedWindows;
+			foreach (var window in windows.Unless(w => w.IsMinimized || w.IsFloating))
+			{
+				if (window.ownedWindows != null)
+				{
+					foreach (var ownedWindow in window.ownedWindows)
+					{
+						yield return ownedWindow;
+					}
+				}
+				else
+				{
+					yield return window;
+				}
+			}
 		}
 	}
 }

@@ -24,8 +24,7 @@ namespace Windawesome
 		public bool ShowMenu { get; internal set; }
 		public readonly OnWindowShownAction onHiddenWindowShownAction;
 		public readonly IntPtr menu;
-
-		private readonly LinkedList<Window> ownedWindows;
+		public readonly LinkedList<Window> ownedWindows;
 
 		private readonly NativeMethods.WS titlebarStyle;
 
@@ -228,22 +227,35 @@ namespace Windawesome
 			NativeMethods.GetWindowPlacement(hWnd, ref windowPlacement);
 		}
 
-		internal void RestorePosition()
+		internal void RestorePosition(bool doNotShow)
 		{
-			switch (windowPlacement.ShowCmd)
+			var oldShowCmd = windowPlacement.ShowCmd;
+			if (doNotShow)
 			{
-				case NativeMethods.SW.SW_SHOWNORMAL:
-					windowPlacement.ShowCmd = NativeMethods.SW.SW_SHOWNOACTIVATE;
-					break;
-				case NativeMethods.SW.SW_SHOW:
-					windowPlacement.ShowCmd = NativeMethods.SW.SW_SHOWNA;
-					break;
-				case NativeMethods.SW.SW_SHOWMINIMIZED:
-					windowPlacement.ShowCmd = NativeMethods.SW.SW_SHOWMINNOACTIVE;
-					break;
+				windowPlacement.ShowCmd = NativeMethods.SW.SW_HIDE;
+			}
+			else
+			{
+				switch (windowPlacement.ShowCmd)
+				{
+					case NativeMethods.SW.SW_SHOWNORMAL:
+						windowPlacement.ShowCmd = NativeMethods.SW.SW_SHOWNOACTIVATE;
+						break;
+					case NativeMethods.SW.SW_SHOW:
+						windowPlacement.ShowCmd = NativeMethods.SW.SW_SHOWNA;
+						break;
+					case NativeMethods.SW.SW_SHOWMINIMIZED:
+						windowPlacement.ShowCmd = NativeMethods.SW.SW_SHOWMINNOACTIVE;
+						break;
+				}
 			}
 			windowPlacement.Flags |= NativeMethods.WPF.WPF_ASYNCWINDOWPLACEMENT;
 			NativeMethods.SetWindowPlacement(hWnd, ref windowPlacement);
+
+			if (doNotShow)
+			{
+				windowPlacement.ShowCmd = oldShowCmd;
+			}
 		}
 
 		internal void ShowPopupsAndRedraw()
@@ -321,7 +333,7 @@ namespace Windawesome
 			}
 
 			windowPlacement = originalWindowPlacement;
-			RestorePosition();
+			RestorePosition(false);
 		}
 	}
 }

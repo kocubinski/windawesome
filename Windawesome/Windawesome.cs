@@ -250,11 +250,11 @@ namespace Windawesome
 			var windowsToHide = new HashSet<Window>();
 			foreach (var workspace in config.Workspaces)
 			{
-				workspace.GetOwnerWindows().ForEach(w => windowsToHide.Add(w));
+				workspace.GetWindows().ForEach(w => windowsToHide.Add(w));
 				workspace.Initialize();
 			}
 
-			windowsToHide.ExceptWith(config.StartingWorkspaces.SelectMany(ws => ws.GetOwnerWindows()));
+			windowsToHide.ExceptWith(config.StartingWorkspaces.SelectMany(ws => ws.GetWindows()));
 			windowsToHide.ForEach(HideWindow);
 
 			// initialize monitors and switches to the default starting workspaces
@@ -783,7 +783,7 @@ namespace Windawesome
 		private Window GetOwnermostWindow(IntPtr hWnd, Workspace workspace)
 		{
 			Window window = null;
-			while (hWnd != IntPtr.Zero && (window = workspace.GetOwnermostWindow(hWnd)) == null)
+			while (hWnd != IntPtr.Zero && (window = workspace.GetWindow(hWnd)) == null)
 			{
 				hWnd = NativeMethods.GetWindow(hWnd, NativeMethods.GW.GW_OWNER);
 			}
@@ -833,10 +833,10 @@ namespace Windawesome
 
 		private void ShowHideWindows(Workspace oldWorkspace, Workspace newWorkspace, bool setForeground)
 		{
-			var showWindows = newWorkspace.GetOwnerWindows();
-			var hideWindows = oldWorkspace.GetOwnerWindows().Except(showWindows);
+			var showWindows = newWorkspace.GetWindows();
+			var hideWindows = oldWorkspace.GetWindows().Except(showWindows);
 
-			var winPosInfo = NativeMethods.BeginDeferWindowPos(showWindows.Count + oldWorkspace.GetOwnerWindows().Count);
+			var winPosInfo = NativeMethods.BeginDeferWindowPos(showWindows.Count + oldWorkspace.GetWindows().Count);
 
 			var newTopmostWindow = newWorkspace.GetTopmostWindow();
 			foreach (var window in showWindows.Where(WindowIsNotHung))
@@ -939,7 +939,7 @@ namespace Windawesome
 			monitors.ForEach(m => m.CurrentVisibleWorkspace.Reposition());
 
 			// redraw all windows in current workspace
-			monitors.ForEach(m => m.CurrentVisibleWorkspace.GetWindows().ForEach(w => w.Redraw()));
+			monitors.ForEach(m => m.CurrentVisibleWorkspace.GetManagedWindows().ForEach(w => w.Redraw()));
 
 			// refresh bars
 			config.Bars.ForEach(b => b.Refresh());
@@ -1017,7 +1017,7 @@ namespace Windawesome
 
 					var list = applications[window.hWnd];
 					list.Remove(new Tuple<Workspace, Window>(workspace, window));
-					list.Where(t => --t.Item2.WorkspacesCount == 1).ForEach(t => t.Item1.AddToRemovedSharedWindows(t.Item2));
+					list.Where(t => --t.Item2.WorkspacesCount == 1).ForEach(t => t.Item1.RemoveFromSharedWindows(t.Item2));
 
 					workspace.WindowDestroyed(window);
 					if (workspace.IsCurrentWorkspace && setForeground)
@@ -1102,7 +1102,7 @@ namespace Windawesome
 					}
 				}
 
-				var showWindows = newWorkspace.GetOwnerWindows();
+				var showWindows = newWorkspace.GetWindows();
 				if (monitors.Length > 1 && showWindows.Count > 1)
 				{
 					// restore the Z-order of the new workspace

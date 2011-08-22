@@ -42,8 +42,8 @@ config.Workspaces = Enumerable.ToArray[Workspace]([
 
 config.StartingWorkspaces = [config.Workspaces[0]]
 
-config.Plugins = Enumerable.ToArray[IPlugin]([
+config.Plugins = [
 	#LoggerPlugin(logWorkspaceSwitching = True, logWindowMinimization = True, logWindowRestoration = True,
 	#	logActivation = True),
 	ShortcutsManager()
-])
+]

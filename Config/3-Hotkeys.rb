@@ -149,14 +149,14 @@ end
 
 subscribe modifiers.Alt | modifiers.Shift, key.Down do
 	if windawesome.current_workspace.layout.layout_name == "Tile"
-		window = windawesome.current_workspace.get_window Windawesome::NativeMethods.get_foreground_window
+		window = windawesome.current_workspace.get_managed_window Windawesome::NativeMethods.get_foreground_window
 		windawesome.current_workspace.layout.shift_window_to_next_position window
 	end
 end
 
 subscribe modifiers.Alt | modifiers.Shift, key.Up do
 	if windawesome.current_workspace.layout.layout_name == "Tile"
-		window = windawesome.current_workspace.get_window Windawesome::NativeMethods.get_foreground_window
+		window = windawesome.current_workspace.get_managed_window Windawesome::NativeMethods.get_foreground_window
 		windawesome.current_workspace.layout.shift_window_to_previous_position window
 	end
 end
@@ -171,7 +171,7 @@ end
 
 subscribe modifiers.Control | modifiers.Alt | modifiers.Shift, key.Return do
 	if windawesome.current_workspace.layout.layout_name == "Tile"
-		window = windawesome.current_workspace.get_window Windawesome::NativeMethods.get_foreground_window
+		window = windawesome.current_workspace.get_managed_window Windawesome::NativeMethods.get_foreground_window
 		windawesome.current_workspace.layout.shift_window_to_main_position window
 	end
 end

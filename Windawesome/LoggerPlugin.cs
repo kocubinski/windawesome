@@ -93,7 +93,7 @@ namespace Windawesome
 
 		private void OnWindowActivatedEvent(IntPtr hWnd)
 		{
-			var window = windawesome.CurrentWorkspace.GetWindow(hWnd);
+			var window = windawesome.CurrentWorkspace.GetManagedWindow(hWnd);
 			if (window != null)
 			{
 				writer.WriteLine("ACTIVATED - class '{0}'; caption '{1}'; workspace '{2}'",
