@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Drawing;
-
+﻿
 namespace Windawesome
 {
 	public class FloatingLayout : ILayout

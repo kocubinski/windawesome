@@ -34,14 +34,12 @@ namespace Windawesome
 		private readonly Tuple<NativeMethods.MOD, Keys> altTabHotkey = new Tuple<NativeMethods.MOD, Keys>(NativeMethods.MOD.MOD_ALT, Keys.Tab);
 		private readonly Queue<Action> postedActions;
 		private readonly Dictionary<int, HandleMessageDelegate> messageHandlers;
-		private readonly uint windawesomeThreadId;
 
 		private IntPtr forceForegroundWindow;
 
 		#region System Changes
 
 #if !DEBUG
-		private readonly bool changedNonClientMetrics;
 		private static readonly NativeMethods.NONCLIENTMETRICS originalNonClientMetrics;
 #endif
 		private static readonly NativeMethods.ANIMATIONINFO originalAnimationInfo;
@@ -103,7 +101,7 @@ namespace Windawesome
 			#region System Changes
 
 #if !DEBUG
-			originalNonClientMetrics = NativeMethods.NONCLIENTMETRICS.GetNONCLIENTMETRICS();
+			originalNonClientMetrics = NativeMethods.NONCLIENTMETRICS.Default;
 			NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_GETNONCLIENTMETRICS, originalNonClientMetrics.cbSize,
 				ref originalNonClientMetrics, 0);
 #endif
@@ -130,7 +128,6 @@ namespace Windawesome
 		{
 			applications = new Dictionary<IntPtr, LinkedList<Tuple<Workspace, Window>>>(20);
 			hiddenApplications = new HashMultiSet<IntPtr>();
-			windawesomeThreadId = NativeMethods.GetCurrentThreadId();
 			messageHandlers = new Dictionary<int, HandleMessageDelegate>(2);
 			postedActions = new Queue<Action>(5);
 
@@ -158,9 +155,6 @@ namespace Windawesome
 
 			monitors.ForEach(m => m.AddManyWorkspaces(config.Workspaces.Where(w => w.Monitor == m))); // n ^ 2 but hopefully fast enough
 
-			// set monitor starting workspaces as this is needed in some Widgets
-			config.StartingWorkspaces.ForEach(w => w.Monitor.SetStartingWorkspace(w));
-
 			// initialize bars and plugins
 			config.Bars.ForEach(b => b.InitializeBar(this, config));
 			config.Plugins.ForEach(p => p.InitializePlugin(this, config));
@@ -181,14 +175,13 @@ namespace Windawesome
 			if (config.WindowBorderWidth >= 0 && metrics.iBorderWidth != config.WindowBorderWidth)
 			{
 				metrics.iBorderWidth = config.WindowBorderWidth;
-				changedNonClientMetrics = true;
 			}
 			if (isAtLeastVista && config.WindowPaddedBorderWidth >= 0 && metrics.iPaddedBorderWidth != config.WindowPaddedBorderWidth)
 			{
 				metrics.iPaddedBorderWidth = config.WindowPaddedBorderWidth;
-				changedNonClientMetrics = true;
 			}
-			if (changedNonClientMetrics)
+			if ((config.WindowBorderWidth >= 0 && metrics.iBorderWidth != config.WindowBorderWidth) ||
+				(isAtLeastVista && config.WindowPaddedBorderWidth >= 0 && metrics.iPaddedBorderWidth != config.WindowPaddedBorderWidth))
 			{
 				System.Threading.Tasks.Task.Factory.StartNew(() =>
 					NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_SETNONCLIENTMETRICS, metrics.cbSize,
@@ -258,7 +251,7 @@ namespace Windawesome
 			windowsToHide.ForEach(HideWindow);
 
 			// initialize monitors and switches to the default starting workspaces
-			monitors.ForEach(m => m.Initialize());
+			config.StartingWorkspaces.ForEach(w => w.Monitor.Initialize(w));
 			Monitor.ShowHideWindowsTaskbar(CurrentWorkspace.ShowWindowsTaskbar);
 			SetWorkspaceTopManagedWindowAsForeground(CurrentWorkspace);
 			CurrentWorkspace.IsCurrentWorkspace = true;
@@ -298,9 +291,10 @@ namespace Windawesome
 
 #if !DEBUG
 			// revert the size of non-client area of windows
-			if (changedNonClientMetrics)
+			var metrics = originalNonClientMetrics;
+			if ((config.WindowBorderWidth >= 0 && metrics.iBorderWidth != config.WindowBorderWidth) ||
+				(isAtLeastVista && config.WindowPaddedBorderWidth >= 0 && metrics.iPaddedBorderWidth != config.WindowPaddedBorderWidth))
 			{
-				var metrics = originalNonClientMetrics;
 				NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_SETNONCLIENTMETRICS, metrics.cbSize,
 					ref metrics, NativeMethods.SPIF.SPIF_SENDCHANGE);
 			}
@@ -640,11 +634,12 @@ namespace Windawesome
 					}
 					else if (WindowIsNotHung(foregroundWindow))
 					{
-						var foregroundWindowThread = NativeMethods.GetWindowThreadProcessId(foregroundWindow, IntPtr.Zero);
-						if (NativeMethods.AttachThreadInput(windawesomeThreadId, foregroundWindowThread, true))
+						var currentThreadId = NativeMethods.GetCurrentThreadId();
+						var foregroundWindowThreadId = NativeMethods.GetWindowThreadProcessId(foregroundWindow, IntPtr.Zero);
+						if (NativeMethods.AttachThreadInput(currentThreadId, foregroundWindowThreadId, true))
 						{
 							successfullyChanged = TrySetForegroundWindow(hWnd);
-							NativeMethods.AttachThreadInput(windawesomeThreadId, foregroundWindowThread, false);
+							NativeMethods.AttachThreadInput(currentThreadId, foregroundWindowThreadId, false);
 						}
 					}
 
@@ -934,12 +929,13 @@ namespace Windawesome
 		{
 			RefreshApplicationsHash();
 
-			// repositions all windows in all workspaces
+			// repositions all windows in all workspaces and redraw all windows in visible workspaces
 			config.Workspaces.ForEach(ws => ws.hasChanges = true);
-			monitors.ForEach(m => m.CurrentVisibleWorkspace.Reposition());
-
-			// redraw all windows in current workspace
-			monitors.ForEach(m => m.CurrentVisibleWorkspace.GetManagedWindows().ForEach(w => w.Redraw()));
+			foreach (var monitor in monitors)
+			{
+				monitor.CurrentVisibleWorkspace.Reposition();
+				monitor.CurrentVisibleWorkspace.GetManagedWindows().ForEach(w => w.Redraw());
+			}
 
 			// refresh bars
 			config.Bars.ForEach(b => b.Refresh());

@@ -297,7 +297,7 @@ namespace Windawesome
 			this.left = left;
 			this.right = right;
 
-			return applicationPanels[bar.Monitor.CurrentVisibleWorkspace.id - 1].Values;
+			return Enumerable.Empty<Control>();
 		}
 
 		void IWidget.RepositionControls(int left, int right)
