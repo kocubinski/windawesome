@@ -50,11 +50,9 @@ namespace Windawesome
 				callbackMessageNum = NativeMethods.WM_USER + ++count;
 
 				// register as AppBar
-				var appBarData = new NativeMethods.APPBARDATA
-					{
-						hWnd = this.Handle,
-						uCallbackMessage = callbackMessageNum
-					};
+				var appBarData = NativeMethods.APPBARDATA.Default;
+				appBarData.hWnd = this.Handle;
+				appBarData.uCallbackMessage = callbackMessageNum;
 
 				NativeMethods.SHAppBarMessage(NativeMethods.ABM.ABM_NEW, ref appBarData);
 			}
@@ -62,7 +60,8 @@ namespace Windawesome
 			public void Destroy()
 			{
 				// unregister as AppBar
-				var appBarData = new NativeMethods.APPBARDATA { hWnd = this.Handle };
+				var appBarData = NativeMethods.APPBARDATA.Default;
+				appBarData.hWnd = this.Handle;
 
 				NativeMethods.SHAppBarMessage(NativeMethods.ABM.ABM_REMOVE, ref appBarData);
 
@@ -72,13 +71,11 @@ namespace Windawesome
 			public bool SetPosition(Screen screen)
 			{
 				this.screen = screen;
-
-				var appBarData = new NativeMethods.APPBARDATA
-					{
-						hWnd = this.Handle,
-						uEdge = edge,
-						rc = { left = screen.Bounds.Left, right = screen.Bounds.Right }
-					};
+				
+				var appBarData = NativeMethods.APPBARDATA.Default;
+				appBarData.hWnd = this.Handle;
+				appBarData.uEdge = edge;
+				appBarData.rc = new NativeMethods.RECT { left = screen.Bounds.Left, right = screen.Bounds.Right };
 
 				if (edge == NativeMethods.ABE.ABE_TOP)
 				{
@@ -93,14 +90,13 @@ namespace Windawesome
 
 				NativeMethods.SHAppBarMessage(NativeMethods.ABM.ABM_QUERYPOS, ref appBarData);
 
-				switch (edge)
+				if (edge == NativeMethods.ABE.ABE_TOP)
 				{
-					case NativeMethods.ABE.ABE_TOP:
-						appBarData.rc.bottom = appBarData.rc.top + Height;
-						break;
-					case NativeMethods.ABE.ABE_BOTTOM:
-						appBarData.rc.top = appBarData.rc.bottom - Height;
-						break;
+					appBarData.rc.bottom = appBarData.rc.top + Height;
+				}
+				else
+				{
+					appBarData.rc.top = appBarData.rc.bottom - Height;
 				}
 
 				NativeMethods.SHAppBarMessage(NativeMethods.ABM.ABM_SETPOS, ref appBarData);
@@ -117,11 +113,9 @@ namespace Windawesome
 
 			public void Hide()
 			{
-				var appBarData = new NativeMethods.APPBARDATA
-					{
-						hWnd = this.Handle,
-						uEdge = NativeMethods.ABE.ABE_TOP
-					};
+				var appBarData = NativeMethods.APPBARDATA.Default;
+				appBarData.hWnd = this.Handle;
+				appBarData.uEdge = NativeMethods.ABE.ABE_TOP;
 
 				appBarData.rc.left = appBarData.rc.right = appBarData.rc.top = appBarData.rc.bottom = 0;
 
@@ -333,7 +327,7 @@ namespace Windawesome
 		{
 			// TODO: the first time the Taskbar is toggled, the working area doesn't change?
 
-			var appBarData = new NativeMethods.APPBARDATA();
+			var appBarData = NativeMethods.APPBARDATA.Default;
 			var state = (NativeMethods.ABS) (uint) NativeMethods.SHAppBarMessage(NativeMethods.ABM.ABM_GETSTATE, ref appBarData);
 
 			appBarData.hWnd = taskbarHandle;
@@ -351,9 +345,9 @@ namespace Windawesome
 			isWindowsTaskbarShown = showWindowsTaskbar;
 		}
 
-		internal void AddManyWorkspaces(IEnumerable<Workspace> workspaces)
+		internal void SetWorkspaces(IEnumerable<Workspace> workspaces)
 		{
-			FindWorkspaceBarsEquivalentClasses(this.workspaces.Keys.Concat(workspaces).ToArray());
+			FindWorkspaceBarsEquivalentClasses(workspaces);
 		}
 
 		internal void AddWorkspace(Workspace workspace)
@@ -400,8 +394,8 @@ namespace Windawesome
 				AppBarNativeWindow appBarTopWindow;
 				var topBarsHeight = workspaceBarsAtTop.Sum(bar => bar.GetBarHeight());
 				var matchingAppBar = listOfUniqueTopAppBars.FirstOrDefault(uniqueAppBar =>
-					(uniqueAppBar == null && workspaceBarsAtTop.Count == 0) || (uniqueAppBar != null && topBarsHeight == uniqueAppBar.Height));
-				if (matchingAppBar != null || workspaceBarsAtTop.Count == 0)
+					(uniqueAppBar == null && topBarsHeight == 0) || (uniqueAppBar != null && topBarsHeight == uniqueAppBar.Height));
+				if (matchingAppBar != null || topBarsHeight == 0)
 				{
 					appBarTopWindow = matchingAppBar;
 				}
@@ -414,8 +408,8 @@ namespace Windawesome
 				AppBarNativeWindow appBarBottomWindow;
 				var bottomBarsHeight = workspaceBarsAtBottom.Sum(bar => bar.GetBarHeight());
 				matchingAppBar = listOfUniqueBottomAppBars.FirstOrDefault(uniqueAppBar =>
-					(uniqueAppBar == null && workspaceBarsAtBottom.Count == 0) || (uniqueAppBar != null && bottomBarsHeight == uniqueAppBar.Height));
-				if (matchingAppBar != null || workspaceBarsAtBottom.Count == 0)
+					(uniqueAppBar == null && bottomBarsHeight == 0) || (uniqueAppBar != null && bottomBarsHeight == uniqueAppBar.Height));
+				if (matchingAppBar != null || bottomBarsHeight == 0)
 				{
 					appBarBottomWindow = matchingAppBar;
 				}

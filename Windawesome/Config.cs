@@ -24,16 +24,13 @@ namespace Windawesome
 		public bool HideMouseWhenTyping { get; set; }
 		public bool FocusFollowsMouse { get; set; }
 		public bool FocusFollowsMouseSetOnTop { get; set; }
+		public bool MoveMouseOverMonitorsOnSwitch { get; set; }
 		public Tuple<NativeMethods.MOD, System.Windows.Forms.Keys> UniqueHotkey { get; set; }
 
 		internal Config()
 		{
 			this.WindowBorderWidth = -1;
 			this.WindowPaddedBorderWidth = -1;
-			this.ShowMinimizeMaximizeRestoreAnimations = false;
-			this.HideMouseWhenTyping = false;
-			this.FocusFollowsMouse = false;
-			this.FocusFollowsMouseSetOnTop = false;
 		}
 
 		internal void LoadConfiguration(Windawesome windawesome)

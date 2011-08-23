@@ -27,7 +27,7 @@ namespace Windawesome
 
 		private void OnWorkspaceLayoutChanged(Workspace workspace)
 		{
-			if (workspace.Monitor == bar.Monitor)
+			if (workspace.Monitor == bar.Monitor && workspace.IsWorkspaceVisible)
 			{
 				var oldWidth = layoutLabel.Width;
 				layoutLabel.Text = workspace.Layout.LayoutSymbol();

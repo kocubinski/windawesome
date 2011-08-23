@@ -153,7 +153,7 @@ namespace Windawesome
 			CurrentWorkspace = config.StartingWorkspaces.First(w => w.Monitor.screen.Primary);
 			PreviousWorkspace = CurrentWorkspace;
 
-			monitors.ForEach(m => m.AddManyWorkspaces(config.Workspaces.Where(w => w.Monitor == m))); // n ^ 2 but hopefully fast enough
+			monitors.ForEach(m => m.SetWorkspaces(config.Workspaces.Where(w => w.Monitor == m))); // n ^ 2 but hopefully fast enough
 
 			// initialize bars and plugins
 			config.Bars.ForEach(b => b.InitializeBar(this, config));
@@ -1038,8 +1038,8 @@ namespace Windawesome
 						}
 					});
 				list.ForEach(t => t.Item1.WindowDestroyed(t.Item2));
-				Workspace workspace;
-				if ((workspace = list.Select(t => t.Item1).FirstOrDefault(ws => ws.IsCurrentWorkspace)) != null)
+				var workspace = list.Select(t => t.Item1).FirstOrDefault(ws => ws.IsCurrentWorkspace);
+				if (workspace != null)
 				{
 					SetWorkspaceTopManagedWindowAsForeground(workspace);
 				}
@@ -1096,9 +1096,9 @@ namespace Windawesome
 					}
 				}
 
-				var showWindows = newWorkspace.GetWindows();
 				if (CurrentWorkspace.Monitor != newWorkspace.Monitor)
 				{
+					var showWindows = newWorkspace.GetWindows();
 					if (monitors.Length > 1 && showWindows.Count > 1)
 					{
 						// restore the Z-order of the new workspace
@@ -1115,7 +1115,11 @@ namespace Windawesome
 						NativeMethods.EndDeferWindowPos(winPosInfo);
 					}
 
-					// TODO: move mouse over monitor as an option
+					if (config.MoveMouseOverMonitorsOnSwitch)
+					{
+						var bounds = newWorkspace.Monitor.screen.Bounds;
+						NativeMethods.SetCursorPos((bounds.Left + bounds.Right) / 2, (bounds.Top + bounds.Bottom) / 2);
+					}
 				}
 
 				PreviousWorkspace = CurrentWorkspace;
@@ -1412,7 +1416,7 @@ namespace Windawesome
 								if (monitors.Length > 1 && (workspace = list.Select(t => t.Item1).
 									FirstOrDefault(ws => ws.IsWorkspaceVisible && ws.ContainsWindow(lParam))) != null)
 								{
-									// if the window is actually visible on another monitor
+									// the window is actually visible on another monitor
 									// (e.g. when the user has ALT-TABbed to the window across monitors)
 									SwitchToWorkspace(workspace.id, false);
 								}

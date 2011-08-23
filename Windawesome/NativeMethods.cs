@@ -858,6 +858,10 @@ namespace Windawesome
 
 		// misc stuff
 
+		[DllImport("user32.dll")]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		public static extern bool SetCursorPos(int X, int Y);
+
 		#region GlobalAddAtom/GlobalDeleteAtom
 
 		[DllImport("kernel32.dll", CharSet = CharSet.Auto)]
