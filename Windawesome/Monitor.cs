@@ -50,9 +50,7 @@ namespace Windawesome
 				callbackMessageNum = NativeMethods.WM_USER + ++count;
 
 				// register as AppBar
-				var appBarData = NativeMethods.APPBARDATA.Default;
-				appBarData.hWnd = this.Handle;
-				appBarData.uCallbackMessage = callbackMessageNum;
+				var appBarData = new NativeMethods.APPBARDATA(this.Handle, callbackMessageNum);
 
 				NativeMethods.SHAppBarMessage(NativeMethods.ABM.ABM_NEW, ref appBarData);
 			}
@@ -60,8 +58,7 @@ namespace Windawesome
 			public void Destroy()
 			{
 				// unregister as AppBar
-				var appBarData = NativeMethods.APPBARDATA.Default;
-				appBarData.hWnd = this.Handle;
+				var appBarData = new NativeMethods.APPBARDATA(this.Handle);
 
 				NativeMethods.SHAppBarMessage(NativeMethods.ABM.ABM_REMOVE, ref appBarData);
 
@@ -71,11 +68,8 @@ namespace Windawesome
 			public bool SetPosition(Screen screen)
 			{
 				this.screen = screen;
-				
-				var appBarData = NativeMethods.APPBARDATA.Default;
-				appBarData.hWnd = this.Handle;
-				appBarData.uEdge = edge;
-				appBarData.rc = new NativeMethods.RECT { left = screen.Bounds.Left, right = screen.Bounds.Right };
+
+				var appBarData = new NativeMethods.APPBARDATA(this.Handle, uEdge: edge, rc: new NativeMethods.RECT { left = screen.Bounds.Left, right = screen.Bounds.Right });
 
 				if (edge == NativeMethods.ABE.ABE_TOP)
 				{
@@ -113,11 +107,7 @@ namespace Windawesome
 
 			public void Hide()
 			{
-				var appBarData = NativeMethods.APPBARDATA.Default;
-				appBarData.hWnd = this.Handle;
-				appBarData.uEdge = NativeMethods.ABE.ABE_TOP;
-
-				appBarData.rc.left = appBarData.rc.right = appBarData.rc.top = appBarData.rc.bottom = 0;
+				var appBarData = new NativeMethods.APPBARDATA(this.Handle, uEdge: NativeMethods.ABE.ABE_TOP);
 
 				NativeMethods.SHAppBarMessage(NativeMethods.ABM.ABM_QUERYPOS, ref appBarData);
 				NativeMethods.SHAppBarMessage(NativeMethods.ABM.ABM_SETPOS, ref appBarData);
@@ -327,10 +317,9 @@ namespace Windawesome
 		{
 			// TODO: the first time the Taskbar is toggled, the working area doesn't change?
 
-			var appBarData = NativeMethods.APPBARDATA.Default;
+			var appBarData = new NativeMethods.APPBARDATA(taskbarHandle);
 			var state = (NativeMethods.ABS) (uint) NativeMethods.SHAppBarMessage(NativeMethods.ABM.ABM_GETSTATE, ref appBarData);
 
-			appBarData.hWnd = taskbarHandle;
 			appBarData.lParam = (IntPtr) (showWindowsTaskbar ? state & ~NativeMethods.ABS.ABS_AUTOHIDE : state | NativeMethods.ABS.ABS_AUTOHIDE);
 			NativeMethods.SHAppBarMessage(NativeMethods.ABM.ABM_SETSTATE, ref appBarData);
 

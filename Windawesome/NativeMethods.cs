@@ -45,7 +45,7 @@ namespace Windawesome
 				}
 			}
 
-			NONCLIENTMETRICSSize = Marshal.SizeOf(typeof (NONCLIENTMETRICS)) - (Windawesome.isAtLeastVista ? 0 : 4);
+			NONCLIENTMETRICSSize = Marshal.SizeOf(typeof(NONCLIENTMETRICS)) - (Windawesome.isAtLeastVista ? 0 : 4);
 		}
 
 		// hooks stuff
@@ -192,6 +192,8 @@ namespace Windawesome
 
 		#region SHAppBarMessage
 
+		private static readonly int APPBARDATASize = Marshal.SizeOf(typeof(APPBARDATA));
+
 		[StructLayout(LayoutKind.Sequential)]
 		public struct RECT
 		{
@@ -211,12 +213,14 @@ namespace Windawesome
 			public RECT rc;
 			public IntPtr lParam;
 
-			public static APPBARDATA Default
+			public APPBARDATA(IntPtr hWnd, uint uCallbackMessage = default(uint), ABE uEdge = default(ABE), RECT rc = default(RECT), IntPtr lParam = default(IntPtr))
 			{
-				get
-				{
-					return new APPBARDATA { cbSize = Marshal.SizeOf(typeof (APPBARDATA)) };
-				}
+				cbSize = APPBARDATASize;
+				this.hWnd = hWnd;
+				this.uCallbackMessage = uCallbackMessage;
+				this.uEdge = uEdge;
+				this.rc = rc;
+				this.lParam = lParam;
 			}
 		}
 
@@ -536,7 +540,7 @@ namespace Windawesome
 		[return: MarshalAs(UnmanagedType.Bool)]
 		public static extern bool SetWindowPlacement(IntPtr hWnd, [In] ref WINDOWPLACEMENT lpwndpl);
 
-		private static readonly int WINDOWPLACEMENTSize = Marshal.SizeOf(typeof (WINDOWPLACEMENT));
+		private static readonly int WINDOWPLACEMENTSize = Marshal.SizeOf(typeof(WINDOWPLACEMENT));
 
 		[StructLayout(LayoutKind.Sequential)]
 		public struct POINT
