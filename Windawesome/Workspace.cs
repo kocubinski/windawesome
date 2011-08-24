@@ -306,9 +306,12 @@ namespace Windawesome
 
 		internal void ToggleWindowsTaskbarVisibility()
 		{
-			ShowWindowsTaskbar = !ShowWindowsTaskbar;
-			Monitor.ShowHideWindowsTaskbar(ShowWindowsTaskbar);
-			Reposition();
+			if (Monitor.screen.Primary)
+			{
+				ShowWindowsTaskbar = !ShowWindowsTaskbar;
+				Monitor.ShowHideWindowsTaskbar(ShowWindowsTaskbar);
+				Reposition();
+			}
 		}
 
 		//internal bool HideBar(int workspacesCount, IEnumerable<Workspace> workspaces, IBar hideBar)

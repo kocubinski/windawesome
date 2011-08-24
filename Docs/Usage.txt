@@ -87,7 +87,7 @@ onHiddenWindowShownAction - specifies what to do when a hidden window suddenly s
 showOnWorkspacesCount - if > 0, the window is going to be shown on that number workspaces, starting from the first one. So if showOnWorkspacesCount == number of workspaces, then the window is shown on all workspace. Note this is different than not managing the window
 rules - a list of Rule objects
 
-Whenever a new window is created, Windawesome tries to match it with any program rule in config.programRules. "className" through "customMatchingFunction", including, must all match. The FIRST matching rule is used, that is why an "all-catch" rule should be at the end. After that, if a window is not managed, Windawesome does nothing more - which means you will see the window on every workspace and as a normal, floating window.
+Whenever a new window is created, Windawesome tries to match it with any program rule in config.programRules. "className" through "customMatchingFunction", including, must all match. The FIRST matching rule is used, if any. I personally put an "all-catching" rule at the end to manage all windows without specific rules. After that, if a window is not managed, Windawesome does nothing more - which means you will see the window on every workspace and as a normal, floating window.
 
 ====================================================================
 

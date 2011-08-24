@@ -334,84 +334,67 @@ namespace Windawesome
 			isWindowsTaskbarShown = showWindowsTaskbar;
 		}
 
-		internal void SetWorkspaces(IEnumerable<Workspace> workspaces)
-		{
-			FindWorkspaceBarsEquivalentClasses(workspaces);
-		}
-
 		internal void AddWorkspace(Workspace workspace)
 		{
-			FindWorkspaceBarsEquivalentClasses(workspaces.Keys.Concat(new Workspace[] { workspace }).ToArray());
+			var workspaceBarsAtTop = workspace.barsAtTop[monitorIndex];
+			var workspaceBarsAtBottom = workspace.barsAtBottom[monitorIndex];
+
+			int workspaceBarsEquivalentClass;
+			var matchingBar = workspaces.Keys.FirstOrDefault(ws =>
+				workspaceBarsAtTop.SequenceEqual(ws.barsAtTop[monitorIndex]) && workspaceBarsAtBottom.SequenceEqual(ws.barsAtBottom[monitorIndex]));
+			if (matchingBar != null)
+			{
+				var matchingWorkspace = workspaces[matchingBar];
+				this.workspaces[workspace] = new Tuple<int, AppBarNativeWindow, AppBarNativeWindow>(matchingWorkspace.Item1, matchingWorkspace.Item2, matchingWorkspace.Item3);
+
+				return ;
+			}
+			else
+			{
+				workspaceBarsEquivalentClass = (workspaces.Count == 0 ? 0 : workspaces.Values.Max(t => t.Item1)) + 1;
+			}
+
+			AppBarNativeWindow appBarTopWindow;
+			var topBarsHeight = workspaceBarsAtTop.Sum(bar => bar.GetBarHeight());
+			var matchingAppBar = workspaces.Values.Select(t => t.Item2).FirstOrDefault(ab =>
+				(ab == null && topBarsHeight == 0) || (ab != null && topBarsHeight == ab.Height));
+			if (matchingAppBar != null || topBarsHeight == 0)
+			{
+				appBarTopWindow = matchingAppBar;
+			}
+			else
+			{
+				appBarTopWindow = new AppBarNativeWindow(topBarsHeight, true);
+			}
+
+			AppBarNativeWindow appBarBottomWindow;
+			var bottomBarsHeight = workspaceBarsAtBottom.Sum(bar => bar.GetBarHeight());
+			matchingAppBar = workspaces.Values.Select(t => t.Item3).FirstOrDefault(uniqueAppBar =>
+				(uniqueAppBar == null && bottomBarsHeight == 0) || (uniqueAppBar != null && bottomBarsHeight == uniqueAppBar.Height));
+			if (matchingAppBar != null || bottomBarsHeight == 0)
+			{
+				appBarBottomWindow = matchingAppBar;
+			}
+			else
+			{
+				appBarBottomWindow = new AppBarNativeWindow(bottomBarsHeight, false);
+			}
+
+			this.workspaces[workspace] = new Tuple<int, AppBarNativeWindow, AppBarNativeWindow>(workspaceBarsEquivalentClass, appBarTopWindow, appBarBottomWindow);
 		}
 
 		internal void RemoveWorkspace(Workspace workspace)
 		{
-			FindWorkspaceBarsEquivalentClasses(workspaces.Keys.Where(w => w != workspace).ToArray());
-		}
-
-		private void FindWorkspaceBarsEquivalentClasses(IEnumerable<Workspace> workspaces)
-		{
-			// this statement uses the laziness of Where
-			this.workspaces.Values.Select(t => t.Item2).Concat(this.workspaces.Values.Select(t => t.Item3)).
-				Where(ab => ab != null && ab.Handle != IntPtr.Zero).ForEach(ab => ab.Destroy());
-
-			this.workspaces.Clear();
-
-			var listOfUniqueBars = new LinkedList<Tuple<IEnumerable<IBar>, IEnumerable<IBar>, int>>();
-			var listOfUniqueTopAppBars = new LinkedList<AppBarNativeWindow>();
-			var listOfUniqueBottomAppBars = new LinkedList<AppBarNativeWindow>();
-
-			int i = 0, last = 0;
-			foreach (var workspace in workspaces)
+			var workspaceTuple = workspaces[workspace];
+			if (workspaceTuple.Item2 != null && workspaces.Where(kv => kv.Key != workspace).All(kv => kv.Value.Item2 != workspaceTuple.Item2))
 			{
-				var workspaceBarsAtTop = workspace.barsAtTop[monitorIndex];
-				var workspaceBarsAtBottom = workspace.barsAtBottom[monitorIndex];
-
-				int workspaceBarsEquivalentClass;
-				var matchingBar = listOfUniqueBars.FirstOrDefault(uniqueBar =>
-					workspaceBarsAtTop.SequenceEqual(uniqueBar.Item1) && workspaceBarsAtBottom.SequenceEqual(uniqueBar.Item2));
-				if (matchingBar != null)
-				{
-					workspaceBarsEquivalentClass = matchingBar.Item3;
-				}
-				else
-				{
-					workspaceBarsEquivalentClass = ++last;
-					listOfUniqueBars.AddLast(new Tuple<IEnumerable<IBar>, IEnumerable<IBar>, int>(workspaceBarsAtTop, workspaceBarsAtBottom, last));
-				}
-
-				AppBarNativeWindow appBarTopWindow;
-				var topBarsHeight = workspaceBarsAtTop.Sum(bar => bar.GetBarHeight());
-				var matchingAppBar = listOfUniqueTopAppBars.FirstOrDefault(uniqueAppBar =>
-					(uniqueAppBar == null && topBarsHeight == 0) || (uniqueAppBar != null && topBarsHeight == uniqueAppBar.Height));
-				if (matchingAppBar != null || topBarsHeight == 0)
-				{
-					appBarTopWindow = matchingAppBar;
-				}
-				else
-				{
-					appBarTopWindow = new AppBarNativeWindow(topBarsHeight, true);
-					listOfUniqueTopAppBars.AddLast(appBarTopWindow);
-				}
-
-				AppBarNativeWindow appBarBottomWindow;
-				var bottomBarsHeight = workspaceBarsAtBottom.Sum(bar => bar.GetBarHeight());
-				matchingAppBar = listOfUniqueBottomAppBars.FirstOrDefault(uniqueAppBar =>
-					(uniqueAppBar == null && bottomBarsHeight == 0) || (uniqueAppBar != null && bottomBarsHeight == uniqueAppBar.Height));
-				if (matchingAppBar != null || bottomBarsHeight == 0)
-				{
-					appBarBottomWindow = matchingAppBar;
-				}
-				else
-				{
-					appBarBottomWindow = new AppBarNativeWindow(bottomBarsHeight, false);
-					listOfUniqueBottomAppBars.AddLast(appBarBottomWindow);
-				}
-
-				this.workspaces[workspace] = new Tuple<int, AppBarNativeWindow, AppBarNativeWindow>(workspaceBarsEquivalentClass, appBarTopWindow, appBarBottomWindow);
-
-				i++;
+				workspaceTuple.Item2.Destroy();
 			}
+			if (workspaceTuple.Item3 != null && workspaces.Where(kv => kv.Key != workspace).All(kv => kv.Value.Item3 != workspaceTuple.Item3))
+			{
+				workspaceTuple.Item3.Destroy();
+			}
+			workspaces.Remove(workspace);
 		}
 
 		private void ShowHideBars(AppBarNativeWindow previousAppBarTopWindow, AppBarNativeWindow previousAppBarBottomWindow,

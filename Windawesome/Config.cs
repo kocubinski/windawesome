@@ -199,6 +199,7 @@ namespace Windawesome
 		internal readonly NativeMethods.WS_EX exStyleContains;
 		internal readonly NativeMethods.WS_EX exStyleNotContains;
 		private readonly CustomMatchingFunction customMatchingFunction;
+
 		internal readonly bool isManaged;
 		internal readonly int tryAgainAfter;
 		internal readonly int windowCreatedDelay;

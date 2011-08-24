@@ -153,7 +153,7 @@ namespace Windawesome
 			CurrentWorkspace = config.StartingWorkspaces.First(w => w.Monitor.screen.Primary);
 			PreviousWorkspace = CurrentWorkspace;
 
-			monitors.ForEach(m => m.SetWorkspaces(config.Workspaces.Where(w => w.Monitor == m))); // n ^ 2 but hopefully fast enough
+			monitors.ForEach(m => config.Workspaces.Where(w => w.Monitor == m).ForEach(m.AddWorkspace)); // n ^ 2 but hopefully fast enough
 
 			// initialize bars and plugins
 			config.Bars.ForEach(b => b.InitializeBar(this, config));
@@ -417,8 +417,11 @@ namespace Windawesome
 							case OnWindowShownAction.MoveWindowToCurrentWorkspace:
 								var workspaceId = CurrentWorkspace.id;
 								var matchingRuleWorkspace = matchingRules.First().workspace;
-								PostAction(() => ChangeApplicationToWorkspace(hWnd, workspaceId, matchingRuleWorkspace));
-								OnWindowCreatedOnCurrentWorkspace(hWnd, programRule);
+								PostAction(() =>
+									{
+										ChangeApplicationToWorkspace(hWnd, workspaceId, matchingRuleWorkspace);
+										OnWindowCreatedOnCurrentWorkspace(hWnd, programRule);
+									});
 								break;
 							case OnWindowShownAction.TemporarilyShowWindowOnCurrentWorkspace:
 								CurrentWorkspace.Monitor.temporarilyShownWindows.Add(hWnd);
@@ -1131,12 +1134,18 @@ namespace Windawesome
 			return false;
 		}
 
-		// TODO: check if working
-		public void MoveWorkspaceToMonitor(Workspace workspace, Monitor monitor)
+		public void MoveWorkspaceToMonitor(Workspace workspace, Monitor newMonitor, bool switchTo = true)
 		{
 			var oldMonitor = workspace.Monitor;
-			if (oldMonitor != monitor && oldMonitor.Workspaces.Count() > 1)
+			if (oldMonitor != newMonitor && oldMonitor.Workspaces.Count() > 1)
 			{
+				// unswitch the current workspace
+				if (CurrentWorkspace != workspace && switchTo)
+				{
+					CurrentWorkspace.IsCurrentWorkspace = false;
+				}
+
+				// if the workspace to be moved is visible on the monitor, switch to another one
 				if (oldMonitor.CurrentVisibleWorkspace == workspace)
 				{
 					var oldMonitorNewWorkspace = oldMonitor.Workspaces.First(ws => !ws.IsWorkspaceVisible);
@@ -1144,25 +1153,26 @@ namespace Windawesome
 					ShowHideWindows(workspace, oldMonitorNewWorkspace, false);
 				}
 
+				// remove from old/add to new monitor
 				oldMonitor.RemoveWorkspace(workspace);
-				workspace.Monitor = monitor;
-				monitor.AddWorkspace(workspace);
+				workspace.Monitor = newMonitor;
+				newMonitor.AddWorkspace(workspace);
 
-				var newMonitorOldWorkspace = monitor.CurrentVisibleWorkspace;
-				if (CurrentWorkspace != workspace)
-				{
-					CurrentWorkspace.IsCurrentWorkspace = false;
-				}
-				monitor.SwitchToWorkspace(workspace);
-				if (CurrentWorkspace != workspace)
+				// switch to the workspace now on the new monitor
+				ShowHideWindows(newMonitor.CurrentVisibleWorkspace, workspace, true);
+				newMonitor.SwitchToWorkspace(workspace);
+
+				// switch to the moved workspace
+				if (CurrentWorkspace != workspace && switchTo)
 				{
 					workspace.IsCurrentWorkspace = true;
 
 					PreviousWorkspace = CurrentWorkspace;
 					CurrentWorkspace = workspace;
 				}
+
+				// reposition the windows on the workspace
 				workspace.Reposition();
-				ShowHideWindows(newMonitorOldWorkspace, workspace, true);
 			}
 		}
 
