@@ -215,7 +215,6 @@ namespace Windawesome
 						applicationPanels[workspaceId].Values.ForEach(p => p.Show());
 					}
 					currentlyHighlightedPanel = null;
-					ActivateTopmost(workspace);
 				}
 			}
 		}
@@ -279,6 +278,7 @@ namespace Windawesome
 			Workspace.WindowActivatedEvent += OnWindowActivated;
 			Workspace.WorkspaceHidden += OnWorkspaceHidden;
 			Workspace.WorkspaceShown += OnWorkspaceShown;
+			Workspace.WorkspaceActivated += ActivateTopmost;
 
 			currentlyHighlightedPanel = null;
 

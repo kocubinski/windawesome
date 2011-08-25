@@ -958,8 +958,17 @@ namespace Windawesome
 
 				if (window != null && !newWorkspace.ContainsWindow(hWnd))
 				{
+					if (!follow && oldWorkspace.IsWorkspaceVisible)
+					{
+						HideWindow(window);
+					}
 					oldWorkspace.WindowDestroyed(window);
+
 					newWorkspace.WindowCreated(window);
+					if (!follow && newWorkspace.IsWorkspaceVisible)
+					{
+						window.Show();
+					}
 
 					var list = applications[window.hWnd];
 					list.Remove(new Tuple<Workspace, Window>(oldWorkspace, window));
@@ -984,6 +993,10 @@ namespace Windawesome
 					var newWindow = new Window(window);
 
 					newWorkspace.WindowCreated(newWindow);
+					if (!follow && newWorkspace.IsWorkspaceVisible)
+					{
+						window.Show();
+					}
 
 					var list = applications[window.hWnd];
 					list.AddFirst(new Tuple<Workspace, Window>(newWorkspace, newWindow));
@@ -1015,13 +1028,16 @@ namespace Windawesome
 				}
 				else
 				{
-					HideWindow(window);
+					if (workspace.IsWorkspaceVisible)
+					{
+						HideWindow(window);
+					}
+					workspace.WindowDestroyed(window);
 
 					var list = applications[window.hWnd];
 					list.Remove(new Tuple<Workspace, Window>(workspace, window));
 					list.Where(t => --t.Item2.WorkspacesCount == 1).ForEach(t => t.Item1.RemoveFromSharedWindows(t.Item2));
 
-					workspace.WindowDestroyed(window);
 					if (workspace.IsCurrentWorkspace && setForeground)
 					{
 						SetWorkspaceTopManagedWindowAsForeground(workspace);
