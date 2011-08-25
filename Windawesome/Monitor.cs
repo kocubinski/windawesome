@@ -258,9 +258,13 @@ namespace Windawesome
 			}
 		}
 
-		internal void Initialize(Workspace startingWorkspace)
+		internal void SetStartingWorkspace(Workspace startingWorkspace)
 		{
 			CurrentVisibleWorkspace = startingWorkspace;
+		}
+
+		internal void Initialize()
+		{
 			var workspaceTuple = workspaces[CurrentVisibleWorkspace];
 			ShowHideBars(null, null, workspaceTuple.Item2, workspaceTuple.Item3, CurrentVisibleWorkspace, CurrentVisibleWorkspace);
 

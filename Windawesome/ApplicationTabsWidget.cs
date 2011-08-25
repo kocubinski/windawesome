@@ -169,7 +169,6 @@ namespace Windawesome
 
 				if (isShown && workspace.IsWorkspaceVisible)
 				{
-					OnWindowActivated(window.hWnd);
 					ResizeApplicationPanels(left, right, workspaceId);
 				}
 				else
@@ -190,7 +189,6 @@ namespace Windawesome
 				applicationPanels[workspaceId].Remove(window.hWnd);
 				if (isShown && workspace.IsWorkspaceVisible)
 				{
-					ActivateTopmost(workspace);
 					ResizeApplicationPanels(left, right, workspaceId);
 				}
 				else
@@ -250,12 +248,12 @@ namespace Windawesome
 		private void OnBarShown()
 		{
 			isShown = true;
-			OnWorkspaceShown(bar.Monitor.CurrentVisibleWorkspace);
+			windawesome.monitors.ForEach(m => OnWorkspaceShown(m.CurrentVisibleWorkspace));
 		}
 
 		private void OnBarHidden()
 		{
-			OnWorkspaceHidden(bar.Monitor.CurrentVisibleWorkspace);
+			windawesome.monitors.ForEach(m => OnWorkspaceHidden(m.CurrentVisibleWorkspace));
 			isShown = false;
 		}
 

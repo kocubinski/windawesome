@@ -171,7 +171,7 @@ namespace Windawesome
 		private void OnBarShown()
 		{
 			isShown = true;
-			SetWorkspaceLabelColor(bar.Monitor.CurrentVisibleWorkspace);
+			windawesome.monitors.ForEach(m => SetWorkspaceLabelColor(m.CurrentVisibleWorkspace));
 		}
 
 		private void OnBarHidden()
@@ -182,7 +182,7 @@ namespace Windawesome
 			{
 				flashingWindows.Values.ForEach(SetWorkspaceLabelColor);
 			}
-			SetWorkspaceLabelColor(bar.Monitor.CurrentVisibleWorkspace);
+			windawesome.monitors.ForEach(m => SetWorkspaceLabelColor(m.CurrentVisibleWorkspace));
 		}
 
 		#region IWidget Members
