@@ -8,7 +8,6 @@ namespace Windawesome
 {
 	public class WorkspacesWidget : IFixedWidthWidget
 	{
-		private Bar bar;
 		private Label[] workspaceLabels;
 		private readonly Color[] normalForegroundColor;
 		private readonly Color[] normalBackgroundColor;
@@ -195,8 +194,6 @@ namespace Windawesome
 
 		void IWidget.InitializeWidget(Bar bar)
 		{
-			this.bar = bar;
-
 			if (flashWorkspaces)
 			{
 				flashTimer.Tick += OnTimerTick;

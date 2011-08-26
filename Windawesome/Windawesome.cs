@@ -357,7 +357,7 @@ namespace Windawesome
 			Quit();
 		}
 
-		private bool IsAppWindow(IntPtr hWnd)
+		private static bool IsAppWindow(IntPtr hWnd)
 		{
 			return NativeMethods.IsWindowVisible(hWnd) && NativeMethods.GetParent(hWnd) == IntPtr.Zero &&
 				!NativeMethods.GetWindowStyleLongPtr(hWnd).HasFlag(NativeMethods.WS.WS_CHILD);
@@ -573,7 +573,7 @@ namespace Windawesome
 			}
 		}
 
-		private void OutputWarning(string warning)
+		private static void OutputWarning(string warning)
 		{
 			System.IO.File.AppendAllLines("warnings.txt", new[]
 				{
@@ -658,7 +658,7 @@ namespace Windawesome
 			}
 		}
 
-		private bool TrySetForegroundWindow(IntPtr hWnd)
+		private static bool TrySetForegroundWindow(IntPtr hWnd)
 		{
 			const int tryCount = 5;
 			var count = 0;
@@ -781,7 +781,7 @@ namespace Windawesome
 
 		#endregion
 
-		private Window GetOwnerWindow(IntPtr hWnd, Workspace workspace)
+		private static Window GetOwnerWindow(IntPtr hWnd, Workspace workspace)
 		{
 			Window window = null;
 			while (hWnd != IntPtr.Zero && (window = workspace.GetWindow(hWnd)) == null)
@@ -1353,10 +1353,10 @@ namespace Windawesome
 							}
 							else
 							{
-								bitmap = Icon.ExtractAssociatedIcon(processFileName).ToBitmap();
-								if (bitmap != null)
+								var icon = Icon.ExtractAssociatedIcon(processFileName);
+								if (icon != null)
 								{
-									bitmap = new Bitmap(bitmap, smallIconSize);
+									bitmap = new Bitmap(icon.ToBitmap(), smallIconSize);
 								}
 							}
 						}
@@ -1370,7 +1370,15 @@ namespace Windawesome
 			}
 			else
 			{
-				action(new Bitmap(Bitmap.FromHicon(result), smallIconSize));
+				Bitmap bitmap = null;
+				try
+				{
+					bitmap = new Bitmap(Bitmap.FromHicon(result), smallIconSize);
+				}
+				catch
+				{
+				}
+				action(bitmap);
 			}
 		}
 

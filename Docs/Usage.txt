@@ -125,8 +125,8 @@ A workspace contains Windows and Bars and is displaying the windows in a particu
 
 monitor - the Monitor that the Workspace initially belongs to
 layout - the layout to be used to position windows (make sure to use a new instance for each workspace)
-barsAtTop - a list of IBar objects to be visible at the top of this workspace (Bars can be shared between Workspaces on the same monitor)
-barsAtBottom - a list of IBar objects to be visible at the bottom of this workspace (Bars can be shared between Workspaces on the same monitor)
+barsAtTop - a list of IBar objects to be visible at the top of this workspace (IBars can be shared between Workspaces on the same monitor). This list may contain bars from different monitors - when the Workspace is on a specific Monitor only the bars that are for that particular Monitor will be visible
+barsAtBottom - a list of IBar objects to be visible at the bottom of this workspace (IBars can be shared between Workspaces on the same monitor). This list may contain bars from different monitors - when the Workspace is on a specific Monitor only the bars that are for that particular Monitor will be visible
 name - a short, descriptive name that is going to be shown next to the workspace ID in the Workspaces Widget
 showWindowsTaskbar - a boolean to indicate whether to show the Windows taskbar initially on this workspace
 repositionOnSwitchedTo - a boolean indicating whether to reposition all windows when this workspace has been switched to
@@ -213,5 +213,8 @@ Known bugs/limitations:
 - Whenever a label's text is longer than the width, ellipsis show. However, then the text alignment changes to Top or something. This is a bug in the .NET Framework since version 2.0 and hasn't been fixed even in 4.0. Should be relatively easy to fix that by drawing one's own text, but I won't bother.
 - There is a minor chance that the System Tray Widget is not going to work properly in some case. Let me know if that happens with the exact scenario.
 - Do not dock an application that is managed - when you change the workspace Windawesome will hide it but the working area will not reset. If you want to dock a window - make sure it is not managed.
+- Do not use the same shared window (i.e. a window that is on more than one workspace) on two or more workspaces which are shown at the same time on two or more monitors. This will not work as you expect it.
 
-For any suggestions, complaints or the likes, feel free to write to boris underscore petrov at live dot com or use the discussions/issues tabs on the website.
+====================================================================
+
+For any suggestions, complaints or the likes, feel free to write to boris_petrov@live.com or use the discussions/issues tabs on the website.

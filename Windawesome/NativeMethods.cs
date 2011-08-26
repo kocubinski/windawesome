@@ -1619,6 +1619,7 @@ namespace Windawesome
 
 		#region SystemParametersInfo
 
+		[Flags]
 		public enum SPIF : uint
 		{
 			SPIF_UPDATEINIFILE = 0x01,

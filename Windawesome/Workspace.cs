@@ -435,7 +435,7 @@ namespace Windawesome
 						return ;
 					}
 				}
-				else if (windows.Count > 1)
+				else if (windows.First.Next != null)
 				{
 					var secondZOrderWindow = windows.First.Next.Value;
 					if (!secondZOrderWindow.IsMinimized)

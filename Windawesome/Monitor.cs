@@ -343,7 +343,6 @@ namespace Windawesome
 			var workspaceBarsAtTop = workspace.barsAtTop[monitorIndex];
 			var workspaceBarsAtBottom = workspace.barsAtBottom[monitorIndex];
 
-			int workspaceBarsEquivalentClass;
 			var matchingBar = workspaces.Keys.FirstOrDefault(ws =>
 				workspaceBarsAtTop.SequenceEqual(ws.barsAtTop[monitorIndex]) && workspaceBarsAtBottom.SequenceEqual(ws.barsAtBottom[monitorIndex]));
 			if (matchingBar != null)
@@ -353,10 +352,8 @@ namespace Windawesome
 
 				return ;
 			}
-			else
-			{
-				workspaceBarsEquivalentClass = (workspaces.Count == 0 ? 0 : workspaces.Values.Max(t => t.Item1)) + 1;
-			}
+
+			var workspaceBarsEquivalentClass = (this.workspaces.Count == 0 ? 0 : this.workspaces.Values.Max(t => t.Item1)) + 1;
 
 			AppBarNativeWindow appBarTopWindow;
 			var topBarsHeight = workspaceBarsAtTop.Sum(bar => bar.GetBarHeight());

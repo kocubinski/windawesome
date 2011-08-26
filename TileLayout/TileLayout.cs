@@ -324,14 +324,14 @@ namespace Windawesome
 
 		void ILayout.Reposition()
 		{
-			var windows = workspace.GetManagedWindows();
-			if (this.windows.Count != windows.Count() || !new HashSet<Window>(this.windows).Overlaps(windows))
+			var managedWindows = workspace.GetManagedWindows();
+			if (this.windows.Count != managedWindows.Count() || !new HashSet<Window>(this.windows).Overlaps(managedWindows))
 			{
 				// restore any maximized windows - should not use SW_RESTORE as it activates the window
-				windows.ForEach(w => NativeMethods.ShowWindowAsync(w.hWnd, NativeMethods.SW.SW_SHOWNOACTIVATE));
+				managedWindows.ForEach(w => NativeMethods.ShowWindowAsync(w.hWnd, NativeMethods.SW.SW_SHOWNOACTIVATE));
 				System.Threading.Thread.Sleep(Workspace.minimizeRestoreDelay);
 
-				this.windows = new LinkedList<Window>(windows);
+				this.windows = new LinkedList<Window>(managedWindows);
 			}
 
 			Reposition();

@@ -21,7 +21,7 @@ namespace Windawesome
 		public readonly bool redrawOnShow;
 		public readonly bool activateLastActivePopup;
 		public readonly bool hideOwnedPopups;
-		public bool ShowMenu { get; internal set; }
+		public bool ShowMenu { get; private set; }
 		public readonly OnWindowShownAction onHiddenWindowShownAction;
 		public readonly IntPtr menu;
 		public readonly LinkedList<Window> ownedWindows;

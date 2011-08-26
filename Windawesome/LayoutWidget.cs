@@ -7,8 +7,6 @@ namespace Windawesome
 {
 	public class LayoutWidget : IFixedWidthWidget
 	{
-		private static Windawesome windawesome;
-
 		private Label layoutLabel;
 		private readonly Color backgroundColor;
 		private readonly Color foregroundColor;
@@ -44,7 +42,6 @@ namespace Windawesome
 
 		void IWidget.StaticInitializeWidget(Windawesome windawesome, Config config)
 		{
-			LayoutWidget.windawesome = windawesome;
 		}
 
 		void IWidget.InitializeWidget(Bar bar)
@@ -63,7 +60,7 @@ namespace Windawesome
 			layoutLabel.ForeColor = foregroundColor;
 			if (onClick != null)
 			{
-				layoutLabel.Click += (_1, _2) => onClick();
+				layoutLabel.Click += (unused1, unused2) => onClick();
 			}
 		}
 
