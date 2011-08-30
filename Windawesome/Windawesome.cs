@@ -22,11 +22,11 @@ namespace Windawesome
 		public static readonly bool isAtLeastVista;
 		public static readonly bool isAtLeast7;
 		public static readonly Size smallIconSize;
+		public static readonly IntPtr taskbarButtonsWindowHandle;
 
 		private readonly Config config;
 		private readonly Dictionary<IntPtr, LinkedList<Tuple<Workspace, Window>>> applications; // hWnd to a list of workspaces and windows
 		private readonly HashMultiSet<IntPtr> hiddenApplications;
-		private readonly uint shellMessageNum;
 		private readonly IntPtr getForegroundPrivilageAtom;
 		private const uint postActionMessageNum = NativeMethods.WM_USER;
 
@@ -122,6 +122,10 @@ namespace Windawesome
 			#endregion
 
 			smallIconSize = SystemInformation.SmallIconSize;
+
+			taskbarButtonsWindowHandle = Monitor.taskbarHandle;
+			taskbarButtonsWindowHandle = NativeMethods.FindWindowEx(taskbarButtonsWindowHandle, IntPtr.Zero, "ReBarWindow32", "");
+			taskbarButtonsWindowHandle = NativeMethods.FindWindowEx(taskbarButtonsWindowHandle, IntPtr.Zero, "MSTaskSwWClass", "Running Applications");
 		}
 
 		internal Windawesome()
@@ -147,8 +151,6 @@ namespace Windawesome
 				throw new Exception("Each Monitor should have exactly one corresponding Workspace in StartingWorkspaces, i.e. " +
 					"you should have as many Workspaces in StartingWorkspaces as you have Monitors!");
 			}
-
-			// TODO: ALT+TAB works accross monitors, which is annoying
 
 			CurrentWorkspace = config.StartingWorkspaces.First(w => w.Monitor.screen.Primary);
 			PreviousWorkspace = CurrentWorkspace;
@@ -241,7 +243,6 @@ namespace Windawesome
 
 			// register a shell hook
 			NativeMethods.RegisterShellHookWindow(this.Handle);
-			shellMessageNum = NativeMethods.RegisterWindowMessage("SHELLHOOK");
 
 			// initialize all workspaces and hide windows not on StartingWorkspaces
 			var windowsToHide = new HashSet<Window>();
@@ -252,6 +253,10 @@ namespace Windawesome
 			}
 			windowsToHide.ExceptWith(config.StartingWorkspaces.SelectMany(ws => ws.GetWindows()));
 			windowsToHide.ForEach(HideWindow);
+
+			// remove windows from ALT-TAB menu and Taskbar
+			config.StartingWorkspaces.Where(ws => ws != CurrentWorkspace).SelectMany(ws => ws.GetWindows()).
+				Where(w => w.hideFromAltTabAndTaskbarWhenOnInactiveWorkspace).ForEach(w => w.ShowInAltTabAndTaskbar(false));
 
 			// initialize monitors and switch to the default starting workspaces
 			config.StartingWorkspaces.ForEach(w => w.Monitor.Initialize());
@@ -689,8 +694,6 @@ namespace Windawesome
 		private readonly NativeMethods.INPUT rightShiftKeyDown = new NativeMethods.INPUT(Keys.RShiftKey, 0);
 		private readonly NativeMethods.INPUT rightShiftKeyUp = new NativeMethods.INPUT(Keys.RShiftKey, NativeMethods.KEYEVENTF_KEYUP);
 
-		private readonly NativeMethods.INPUT winKeyDown = new NativeMethods.INPUT(Keys.LWin, 0);
-		private readonly NativeMethods.INPUT winKeyUp = new NativeMethods.INPUT(Keys.LWin, NativeMethods.KEYEVENTF_KEYUP);
 		private readonly NativeMethods.INPUT leftWinKeyDown = new NativeMethods.INPUT(Keys.LWin, 0);
 		private readonly NativeMethods.INPUT leftWinKeyUp = new NativeMethods.INPUT(Keys.LWin, NativeMethods.KEYEVENTF_KEYUP);
 		private readonly NativeMethods.INPUT rightWinKeyDown = new NativeMethods.INPUT(Keys.RWin, 0);
@@ -725,7 +728,7 @@ namespace Windawesome
 			var leftWinPressed = (NativeMethods.GetAsyncKeyState(Keys.LWin) & 0x8000) == 0x8000;
 			var rightWinPressed = (NativeMethods.GetAsyncKeyState(Keys.RWin) & 0x8000) == 0x8000;
 
-			PressReleaseModifierKey(leftWinPressed, rightWinPressed, winShouldBePressed, winKeyDown, leftWinKeyUp, rightWinKeyUp, ref i);
+			PressReleaseModifierKey(leftWinPressed, rightWinPressed, winShouldBePressed, leftWinKeyDown, leftWinKeyUp, rightWinKeyUp, ref i);
 
 			var controlShouldBePressed = hotkey.Item1.HasFlag(NativeMethods.MOD.MOD_CONTROL);
 			var leftControlPressed = (NativeMethods.GetAsyncKeyState(Keys.LControlKey) & 0x8000) == 0x8000;
@@ -748,7 +751,7 @@ namespace Windawesome
 
 			PressReleaseModifierKey(leftControlPressed, rightControlPressed, controlShouldBePressed, controlKeyUp, leftControlKeyDown, rightControlKeyDown, ref i);
 
-			PressReleaseModifierKey(leftWinPressed, rightWinPressed, winShouldBePressed, winKeyUp, leftWinKeyDown, rightWinKeyDown, ref i);
+			PressReleaseModifierKey(leftWinPressed, rightWinPressed, winShouldBePressed, leftWinKeyUp, leftWinKeyDown, rightWinKeyDown, ref i);
 
 			PressReleaseModifierKey(leftShiftPressed, rightShiftPressed, shiftShouldBePressed, shiftKeyUp, leftShiftKeyDown, rightShiftKeyDown, ref i);
 
@@ -899,6 +902,11 @@ namespace Windawesome
 			}
 
 			ForceForegroundWindow(window);
+		}
+
+		private static void MoveMouseToMiddleOf(Rectangle bounds)
+		{
+			NativeMethods.SetCursorPos((bounds.Left + bounds.Right) / 2, (bounds.Top + bounds.Bottom) / 2);
 		}
 
 		#endregion
@@ -1118,32 +1126,47 @@ namespace Windawesome
 					}
 				}
 
-				if (monitors.Length > 1 && CurrentWorkspace.Monitor != newWorkspace.Monitor)
+				if (monitors.Length > 1)
 				{
-					var showWindows = newWorkspace.GetWindows();
-					if (showWindows.Count > 1)
+					if (CurrentWorkspace.Monitor != newWorkspace.Monitor)
 					{
-						// restore the Z-order of the new workspace
-						var winPosInfo = NativeMethods.BeginDeferWindowPos(showWindows.Count);
-
-						var previousHWnd = NativeMethods.HWND_TOP;
-						foreach (var window in showWindows.Where(WindowIsNotHung))
+						var showWindows = newWorkspace.GetWindows();
+						if (showWindows.Count > 1)
 						{
-							winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, window.hWnd, previousHWnd, 0, 0, 0, 0,
-								NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
-							previousHWnd = window.hWnd;
+							// restore the Z-order of the new workspace
+							var winPosInfo = NativeMethods.BeginDeferWindowPos(showWindows.Count);
+
+							var previousHWnd = NativeMethods.HWND_TOP;
+							foreach (var window in showWindows.Where(WindowIsNotHung))
+							{
+								winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, window.hWnd, previousHWnd, 0, 0, 0, 0,
+									NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
+								previousHWnd = window.hWnd;
+							}
+
+							NativeMethods.EndDeferWindowPos(winPosInfo);
 						}
 
-						NativeMethods.EndDeferWindowPos(winPosInfo);
+						if (config.MoveMouseOverMonitorsOnSwitch)
+						{
+							MoveMouseToMiddleOf(newWorkspace.Monitor.screen.Bounds);
+						}
+
+						// remove windows from ALT-TAB menu and Taskbar
+						if (CurrentWorkspace.hideFromAltTabWhenOnInactiveWorkspaceCount > 0)
+						{
+							CurrentWorkspace.GetWindows().Where(w => w.hideFromAltTabAndTaskbarWhenOnInactiveWorkspace).ForEach(w => w.ShowInAltTabAndTaskbar(false));
+						}
 					}
 
-					if (config.MoveMouseOverMonitorsOnSwitch)
+					// add windows to ALT-TAB menu and Taskbar
+					if (newWorkspace.hideFromAltTabWhenOnInactiveWorkspaceCount > 0)
 					{
-						var bounds = newWorkspace.Monitor.screen.Bounds;
-						NativeMethods.SetCursorPos((bounds.Left + bounds.Right) / 2, (bounds.Top + bounds.Bottom) / 2);
+						newWorkspace.GetWindows().Where(w => w.hideFromAltTabAndTaskbarWhenOnInactiveWorkspace).ForEach(w => w.ShowInAltTabAndTaskbar(true));
 					}
 				}
 
+				// set previous and current workspaces
 				PreviousWorkspace = CurrentWorkspace;
 				CurrentWorkspace = newWorkspace;
 
@@ -1186,9 +1209,16 @@ namespace Windawesome
 				{
 					workspace.IsCurrentWorkspace = true;
 
+					if (config.MoveMouseOverMonitorsOnSwitch)
+					{
+						MoveMouseToMiddleOf(workspace.Monitor.screen.Bounds);
+					}
+
 					PreviousWorkspace = CurrentWorkspace;
 					CurrentWorkspace = workspace;
 				}
+
+				// TODO: window.hideFromAltTabAndTaskbarWhenOnInactiveWorkspace?
 
 				// reposition the windows on the workspace
 				workspace.Reposition();
@@ -1427,8 +1457,8 @@ namespace Windawesome
 						// another problem is that some windows continuously keep showing when hidden.
 						// how to reproduce: TortoiseSVN. About box. Click check for updates. This window
 						// keeps showing up when changing workspaces
-						NativeMethods.PostMessage(this.Handle, shellMessageNum,
-							(UIntPtr) (uint) NativeMethods.ShellEvents.HSHELL_WINDOWACTIVATED, lParam);
+						NativeMethods.PostMessage(this.Handle, NativeMethods.WM_SHELLHOOKMESSAGE,
+							(UIntPtr) NativeMethods.ShellEvents.HSHELL_WINDOWACTIVATED, lParam);
 					}
 					break;
 				case NativeMethods.ShellEvents.HSHELL_WINDOWDESTROYED: // window destroyed or minimized to tray
@@ -1439,19 +1469,22 @@ namespace Windawesome
 					break;
 				case NativeMethods.ShellEvents.HSHELL_WINDOWACTIVATED: // window activated
 				case NativeMethods.ShellEvents.HSHELL_RUDEAPPACTIVATED:
-					if (!hiddenApplications.Contains(lParam))
+					// lParam doesn't contain a useful value (rather it is 0) when an application from another monitor is clicked
+					// so we use GetForegroundWindow to get the true one
+					var foregroundWindow = NativeMethods.GetForegroundWindow();
+					if (!hiddenApplications.Contains(foregroundWindow))
 					{
-						if (lParam != IntPtr.Zero && !CurrentWorkspace.Monitor.temporarilyShownWindows.Contains(lParam))
+						if (foregroundWindow != NativeMethods.GetShellWindow() && !CurrentWorkspace.Monitor.temporarilyShownWindows.Contains(foregroundWindow))
 						{
-							if (!applications.TryGetValue(lParam, out list)) // if a new window has shown
+							if (!applications.TryGetValue(foregroundWindow, out list)) // if a new window has shown
 							{
 								RefreshApplicationsHash();
 							}
-							else if (!CurrentWorkspace.ContainsWindow(lParam))
+							else if (!CurrentWorkspace.ContainsWindow(foregroundWindow))
 							{
 								Workspace workspace;
 								if (monitors.Length > 1 && (workspace = list.Select(t => t.Item1).
-									FirstOrDefault(ws => ws.IsWorkspaceVisible && ws.ContainsWindow(lParam))) != null)
+									FirstOrDefault(ws => ws.IsWorkspaceVisible && ws.ContainsWindow(foregroundWindow))) != null)
 								{
 									// the window is actually visible on another monitor
 									// (e.g. when the user has ALT-TABbed to the window across monitors)
@@ -1459,7 +1492,7 @@ namespace Windawesome
 								}
 								else
 								{
-									OnHiddenWindowShown(lParam, list.First.Value);
+									OnHiddenWindowShown(foregroundWindow, list.First.Value);
 								}
 							}
 						}
@@ -1468,7 +1501,7 @@ namespace Windawesome
 						// and the shared window is the active window, Windows sends a HSHELL_WINDOWACTIVATED
 						// for the shared window after the switch (even if it is not the top window in the
 						// workspace being switched to), which causes a wrong reordering in Z order
-						CurrentWorkspace.WindowActivated(lParam);
+						CurrentWorkspace.WindowActivated(foregroundWindow);
 					}
 					break;
 				case NativeMethods.ShellEvents.HSHELL_GETMINRECT: // window minimized or restored
@@ -1501,12 +1534,12 @@ namespace Windawesome
 					}
 					break;
 				case NativeMethods.ShellEvents.HSHELL_WINDOWREPLACING:
-					NativeMethods.PostMessage(this.Handle, shellMessageNum,
-						(UIntPtr) (uint) NativeMethods.ShellEvents.HSHELL_WINDOWCREATED, lParam);
+					NativeMethods.PostMessage(this.Handle, NativeMethods.WM_SHELLHOOKMESSAGE,
+						(UIntPtr) NativeMethods.ShellEvents.HSHELL_WINDOWCREATED, lParam);
 					break;
 				case NativeMethods.ShellEvents.HSHELL_WINDOWREPLACED:
-					NativeMethods.PostMessage(this.Handle, shellMessageNum,
-						(UIntPtr) (uint) NativeMethods.ShellEvents.HSHELL_WINDOWDESTROYED, lParam);
+					NativeMethods.PostMessage(this.Handle, NativeMethods.WM_SHELLHOOKMESSAGE,
+						(UIntPtr) NativeMethods.ShellEvents.HSHELL_WINDOWDESTROYED, lParam);
 					break;
 			}
 		}
@@ -1515,7 +1548,7 @@ namespace Windawesome
 		protected override void WndProc(ref Message m)
 		{
 			HandleMessageDelegate messageDelegate;
-			if (m.Msg == shellMessageNum)
+			if (m.Msg == NativeMethods.WM_SHELLHOOKMESSAGE)
 			{
 				if (inShellMessage)
 				{

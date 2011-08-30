@@ -81,7 +81,9 @@ namespace Windawesome
 		[return: MarshalAs(UnmanagedType.Bool)]
 		public static extern bool DeregisterShellHookWindow(IntPtr hWnd);
 
-		public enum ShellEvents
+		public static readonly uint WM_SHELLHOOKMESSAGE = RegisterWindowMessage("SHELLHOOK");
+
+		public enum ShellEvents : uint
 		{
 			HSHELL_WINDOWCREATED = 1,
 			HSHELL_WINDOWDESTROYED = 2,

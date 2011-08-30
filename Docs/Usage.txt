@@ -35,7 +35,7 @@ Configuration files are read in order so if you use something in one file from a
 ====================================================================
 
 Config:
-This is the global configuration unit of Windawesome. These instance variables are set in the configuration files and should ALL be given values.
+This is the global configuration unit of Windawesome. These instance variables are set in the configuration files and you should at least give values to all that don't have defaults.
 Plugins - an enumerable of IPlugin objects
 Bars - an array of IBar objects
 Workspaces - an array of Workspace objects
@@ -55,22 +55,22 @@ UniqueHotkey - Windawesome uses this hotkey so it can switch to applications whe
 ProgramRule:
 A program rule tells Windawesome how to treat any newly created window - this can be customized in a variety of ways:
 
-className - the window class name, a regular expression
-displayName - the window display name, a regular expression
-processName - the name of the process (which is the name of the executable without the extension), a regular expression
-styleContains - the window styles that must be present in the window's style
-styleNotContains - the window styles that must NOT be present in the window's style
-exStyleContains - the extended window styles that must be present in the window's extended style
-exStyleNotContains - the extended window styles that must NOT be present in the window's extended style
+className - the window class name, a regular expression. Defaults to ".*"
+displayName - the window display name, a regular expression. Defaults to ".*"
+processName - the name of the process (which is the name of the executable without the extension), a regular expression. Defaults to ".*"
+styleContains - the window styles that must be present in the window's style. Defaults to 0
+styleNotContains - the window styles that must NOT be present in the window's style. Defaults to 0
+exStyleContains - the extended window styles that must be present in the window's extended style. Defaults to 0
+exStyleNotContains - the extended window styles that must NOT be present in the window's extended style. Defaults to 0
 customMatchingFunction - a delegate of type "bool CustomMatchingFunction(IntPtr hWnd)" which is called after each rule that matches all of the above variables. It should return true if the rule is to be matched and false otherwise. The default one returns true if the window has no owner
 
-isManaged - whether Windawesome should care about that window
-tryAgainAfter - the time, in milliseconds, to wait before trying to match the rules again (if >= 0)
+isManaged - whether Windawesome should care about that window. Defaults to true
+tryAgainAfter - the time, in milliseconds, to wait before trying to match the rules again (if >= 0). Defaults to -1
 windowCreatedDelay - the time, in milliseconds, to wait before taking any action after the window has been created (if > 0). Windawesome will match the rules and then sleep. The default value is -1 which means that Windawesome will wait until the process is completely loaded. In most cases the default will work just fine
-handleOwnedWindows - if true, Windawesome will handle a window that is owned by this one. Useful for applications using the VCL framework as they use a window which owns the "real" window
-hideOwnedPopups - if true, Windawesome will hide all popups that are owned of the window being hidden
-redrawDesktopOnWindowCreated - if true, Windawesome will redraw the Desktop when this window is created. Useful if you have problems with that. I've seen it with mintty (the cygwin terminal emulator)
-showMenu - if true, the menu bar (if any) of a window is shown, otherwise - not. Note that actually this doesn't work for a lot of windows, because they don't have a menu in Window's sense
+handleOwnedWindows - if true, Windawesome will handle a window that is owned by this one. Useful for applications using the VCL framework as they use a window which owns the "real" window. Defaults to false
+hideOwnedPopups - if true, Windawesome will hide all popups that are owned of the window being hidden. Defaults to true
+redrawDesktopOnWindowCreated - if true, Windawesome will redraw the Desktop when this window is created. Useful if you have problems with that. I've seen it with mintty (the cygwin terminal emulator). Defaults to false
+showMenu - if true, the menu bar (if any) of a window is shown, otherwise - not. Note that actually this doesn't work for a lot of windows, because they don't have a menu in Window's sense. Defaults to true
 onWindowCreatedOnCurrentWorkspaceAction - specifies what to do when a window is created on the current workspace or MoveWindowToCurrentWorkspace/TemporarilyShowWindowOnCurrentWorkspace is used in the onWindowCreatedAction. Can be one of the enum values:
 	ActivateWindow - activates the window (default)
 	MoveToBottom - moves the new window to the bottom of the Z order and activates the one that was active up to now
@@ -84,8 +84,8 @@ onHiddenWindowShownAction - specifies what to do when a hidden window suddenly s
 	MoveWindowToCurrentWorkspace - moves the window to the current workspace
 	TemporarilyShowWindowOnCurrentWorkspace - shows the window but doesn't move it to the current workspace. Can be dismissed by calling DismissTemporarilyShownWindow
 	HideWindow - hides the window
-showOnWorkspacesCount - if > 0, the window is going to be shown on that number workspaces, starting from the first one. So if showOnWorkspacesCount == number of workspaces, then the window is shown on all workspace. Note this is different than not managing the window
-rules - a list of Rule objects
+showOnWorkspacesCount - if > 0, the window is going to be shown on that number workspaces, starting from the first one. So if showOnWorkspacesCount == number of workspaces, then the window is shown on all workspace. Note this is different than not managing the window. Defaults to 0
+rules - a list of Rule objects. Defaults to a list with one Rule with all the defaults for it
 
 Whenever a new window is created, Windawesome tries to match it with any program rule in config.programRules. "className" through "customMatchingFunction", including, must all match. The FIRST matching rule is used, if any. I personally put an "all-catching" rule at the end to manage all windows without specific rules. After that, if a window is not managed, Windawesome does nothing more - which means you will see the window on every workspace and as a normal, floating window.
 
@@ -94,14 +94,15 @@ Whenever a new window is created, Windawesome tries to match it with any program
 Rule:
 Each rule governs the specific settings for a Window on a particular Workspace
 
-workspace - the Workspace ID to put the window on (starting from 1)
-isFloating - whether the window is floating, i.e. the layout shouldn't manage it
-showInTabs - whether the window will show in Windawesome's Application Tabs Widget
-titlebar - whether the window's titlebar is SHOWN, HIDDEN or AS_IS (the last one means that Windawesome will not do anything to the titlebar - do NOT use that if the window is shared, i.e. visible on two or more workspaces, if on any of the others it is not AS_IS)
-inTaskbar - whether the window is SHOWN, HIDDEN or AS_IS in Window's taskbar
-windowBorders - whether the window's border is SHOWN, HIDDEN or AS_IS (the last one means that Windawesome will not do anything to the border - do NOT use that if the window is shared, i.e. visible on two or more workspaces, if on any of the others it is not AS_IS)
-redrawOnShow - whether the window should be redrawed when shown. Some windows (e.g. Excel) have a problem when hidden and then shown again
-activateLastActivePopup - whether Windawesome should activate the last active popup of the window, instead of the window itself. This is normally what you want as most windows that a top-level window creates are popups and they should be above the main window
+workspace - the Workspace ID to put the window on (starting from 1). 0 means the current Workspace. Defaults to 0
+isFloating - whether the window is floating, i.e. the layout shouldn't manage it. Defaults to false
+showInTabs - whether the window will show in Windawesome's Application Tabs Widget. Defaults to true
+titlebar - whether the window's titlebar is SHOWN, HIDDEN or AS_IS (the last one means that Windawesome will not do anything to the titlebar - do NOT use that if the window is shared, i.e. visible on two or more workspaces, if on any of the others it is not AS_IS). Defaults to AS_IS
+inAltTabAndTaskbar - whether the window is SHOWN, HIDDEN or AS_IS in Windows' taskbar and Alt-Tab menu. Defaults to AS_IS
+windowBorders - whether the window's border is SHOWN, HIDDEN or AS_IS (the last one means that Windawesome will not do anything to the border - do NOT use that if the window is shared, i.e. visible on two or more workspaces, if on any of the others it is not AS_IS). Defaults to AS_IS
+redrawOnShow - whether the window should be redrawed when shown. Some windows (e.g. Excel) have a problem when hidden and then shown again. Defaults to false
+activateLastActivePopup - whether Windawesome should activate the last active popup of the window, instead of the window itself. This is normally what you want as most windows that a top-level window creates are popups and they should be above the main window. Defaults to true
+hideFromAltTabAndTaskbarWhenOnInactiveWorkspace - if true, hides the window from the Alt-Tab menu and the Windows Taskbar when the application is visible on some Workspace but it is not the active one (which can happen only with multiple monitors). Defaults to true
 
 ====================================================================
 
@@ -112,9 +113,9 @@ monitor - the Monitor that the Bar belongs to
 leftAlignedWidgets - a list of IFixedWidthWidget objects which are going to be left-aligned on the bar. They will show from left to right, i.e. the leftmost edge of the first object in the list is going to be at the leftmost position on the screen
 rightAlignedWidgets - a list of IFixedWidthWidget objects which are going to be right-aligned on the bar. They will show from left to right, i.e. the rightmost edge of the last object in the list is going to be at the rightmost position on the screen
 middleAlignedWidgets - a list of IFSpanWidget objects which are going to span all the available space in the middle of the bar
-barHeight - the height of the bar, in pixels
-font - the default font to be used for any Widget, if it does not specify anything else
-backgroundColor - the default background color of the Bar
+barHeight - the height of the bar, in pixels. Defaults to 20
+font - the default font to be used for any Widget, if it does not specify anything else. Defaults to "Lucida Console", 8 points
+backgroundColor - the default background color of the Bar. Defaults to the default background color of a Windows Forms window
 
 Left and right aligned widgets SHOULD be of type IFixedWidthWidget (which means they are not spanning all the available space, not that they cannot change their width), while middle aligned widgets SHOULD be of type ISpanWidget.
 
@@ -125,11 +126,11 @@ A workspace contains Windows and Bars and is displaying the windows in a particu
 
 monitor - the Monitor that the Workspace initially belongs to
 layout - the layout to be used to position windows (make sure to use a new instance for each workspace)
-barsAtTop - a list of IBar objects to be visible at the top of this workspace (IBars can be shared between Workspaces on the same monitor). This list may contain bars from different monitors - when the Workspace is on a specific Monitor only the bars that are for that particular Monitor will be visible
-barsAtBottom - a list of IBar objects to be visible at the bottom of this workspace (IBars can be shared between Workspaces on the same monitor). This list may contain bars from different monitors - when the Workspace is on a specific Monitor only the bars that are for that particular Monitor will be visible
-name - a short, descriptive name that is going to be shown next to the workspace ID in the Workspaces Widget
-showWindowsTaskbar - a boolean to indicate whether to show the Windows taskbar initially on this workspace
-repositionOnSwitchedTo - a boolean indicating whether to reposition all windows when this workspace has been switched to
+barsAtTop - a list of IBar objects to be visible at the top of this workspace (IBars can be shared between Workspaces on the same monitor). This list may contain bars from different monitors - when the Workspace is on a specific Monitor only the bars that are for that particular Monitor will be visible. Defaults to null (which means no bars)
+barsAtBottom - a list of IBar objects to be visible at the bottom of this workspace (IBars can be shared between Workspaces on the same monitor). This list may contain bars from different monitors - when the Workspace is on a specific Monitor only the bars that are for that particular Monitor will be visible. Defaults to null (which means no bars)
+name - a short, descriptive name that is going to be shown next to the workspace ID in the Workspaces Widget. Defaults to ""
+showWindowsTaskbar - a boolean to indicate whether to show the Windows taskbar initially on this workspace. Defaults to false
+repositionOnSwitchedTo - a boolean indicating whether to reposition all windows when this workspace has been switched to. Defaults to false
 
 ====================================================================
 
@@ -145,11 +146,11 @@ Floating - nothing to be customized there
 Tile:
 Contains a master area and a stack area.
 
-layoutAxis - the way to position the master and stack area in respect to each other - LeftToRight means master on the left, stack on the right and so on. Monocle is full screen, i.e. the master and stack area overlap each other
-masterAreaAxis - the way to position the windows in the master area in respect to each other
-stackAreaAxis - the way to position the windows in the stack area in respect to each other
-masterAreaFactor - a number between 0 and 1 indicating the percentage of the working area for the master area
-masterAreaWindowsCount - an initial count for the number of windows in the master area
+layoutAxis - the way to position the master and stack area in respect to each other - LeftToRight means master on the left, stack on the right and so on. Monocle is full screen, i.e. the master and stack area overlap each other. Defaults to LayoutAxis.LeftToRight
+masterAreaAxis - the way to position the windows in the master area in respect to each other. Defaults to LayoutAxis.Monocle
+stackAreaAxis - the way to position the windows in the stack area in respect to each other. Defaults to LayoutAxis.TopToBottom
+masterAreaFactor - a number between 0 and 1 indicating the percentage of the working area for the master area. Defaults to 0.6
+masterAreaWindowsCount - an initial count for the number of windows in the master area. Defaults to 1
 API:
 AddToMasterAreaWindowsCount - adds a number to the masterAreaWindowsCount. Can be negative
 ToggleLayoutAxis - toggles the next layout in the layout axis
@@ -168,28 +169,28 @@ AddToMasterAreaFactor - a double to add to the master area factor. Can be negati
 IWidgets:
 Things you put on a Bar to display various info.
 Workspaces Widget:
-normalForegroundColor - an array of ten Colors. Whenever the workspace is not selected and it contains N windows, normalForegroundColor[N] is going to be used as a foreground color
-normalBackgroundColor - an array of ten Colors. Whenever the workspace is not selected and it contains N windows, normalBackgroundColor[N] is going to be used as a background color
-highlightedForegroundColor - the Color to be used when the workspace is the current one
-highlightedBackgroundColor - the Color to be used when the workspace is the current one
-flashingForegroundColor - the Color to be used when the workspace is flashing
-flashingBackgroundColor - the Color to be used when the workspace is flashing
-flashWorkspaces - boolean indicating whether to flash the workspace or not when some window in it is flashing
+normalForegroundColor - an array of ten Colors. Whenever the workspace is not selected and it contains N windows, normalForegroundColor[N] is going to be used as a foreground color. Has some nice defaults
+normalBackgroundColor - an array of ten Colors. Whenever the workspace is not selected and it contains N windows, normalBackgroundColor[N] is going to be used as a background color. Has some nice defaults
+highlightedForegroundColor - the Color to be used when the workspace is the current one. Defaults to White
+highlightedBackgroundColor - the Color to be used when the workspace is the current one. Defaults to Blue or something
+flashingForegroundColor - the Color to be used when the workspace is flashing. Defaults to White
+flashingBackgroundColor - the Color to be used when the workspace is flashing. Defaults to Red
+flashWorkspaces - boolean indicating whether to flash the workspace or not when some window in it is flashing. Defaults to true
 
-Layout Widget - accepts a background and a foreground color as arguments
+Layout Widget - accepts a background and a foreground color as arguments. They have defaults
 
-System Tray Widget - accepts a boolean indicating whether to show the hidden tray icons too (Windows 7 only)
+System Tray Widget - accepts a boolean indicating whether to show the hidden tray icons too (Windows 7 only). False by default
 
-DateTime Widget - accepts a string to format the DateTime object, as well as back- and fore-colors, update time (in milliseconds, specifying how often to update the value) and a handler for a click
+DateTime Widget - accepts a string to format the DateTime object, as well as back- and fore-colors (with defaults), update time (in milliseconds, specifying how often to update the value, 30000 by default) and a handler for a click (none by default)
 
-Application Tabs Widget - accepts a boolean indicating whether to show a single tab for the foreground application only, or to show all windows. 4 arguments for colors too
+Application Tabs Widget - accepts a boolean indicating whether to show a single tab for the foreground application only (false by default), or to show all windows. 4 arguments for colors too with nice defaults
 
-CpuMonitorWidget - accepts the time in milliseconds to wait before updating the value (should be at least 500) and a prefix and a suffix to display
+CpuMonitorWidget - accepts the time in milliseconds to wait before updating the value (should be at least 500, 1000 by default) and a prefix and a suffix to display ("CPU:" and "%" respectively by default)
 
 ====================================================================
 
 Plugins:
-WindowSubclassing - I tried to make a plugin which would subclass all windows and then catch movement, maximization, restoration and stuff like that on workspaces that shouldn't allow actions like that (e.g. full-screen). It works but Windows seems to have problems with that kind of things, so I would suggest you don't use it. You can try, however.
+WindowSubclassing - I tried to make a plugin which would subclass all windows and then catch movement, maximization, restoration and stuff like that on workspaces that shouldn't allow actions like that (e.g. full-screen). It works but Windows seems to have problems with that kind of things, so I would suggest you don't use it. It hasn't been updated in a long time either
 
 LoggerPlugin - a plugin which logs in a file what windows are created/destroyed/minimized/activated/restored and what workspaces are activated. Useful if you have problems with some programs to see what window classes are created so you can ignore them in your config files.
 

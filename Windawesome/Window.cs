@@ -10,7 +10,7 @@ namespace Windawesome
 		public bool IsFloating { get; internal set; }
 		public bool ShowInTabs { get; private set; }
 		public State Titlebar { get; internal set; }
-		public State InTaskbar { get; internal set; }
+		public State InAltTabAndTaskbar { get; internal set; }
 		public State WindowBorders { get; internal set; }
 		public int WorkspacesCount { get; internal set; } // if > 1 window is shared between two or more workspaces
 		public bool IsMinimized { get; internal set; }
@@ -24,12 +24,16 @@ namespace Windawesome
 		public bool ShowMenu { get; private set; }
 		public readonly OnWindowShownAction onHiddenWindowShownAction;
 		public readonly IntPtr menu;
+		public readonly bool hideFromAltTabAndTaskbarWhenOnInactiveWorkspace;
 		public readonly LinkedList<Window> ownedWindows;
 
 		private readonly NativeMethods.WS titlebarStyle;
 
 		private readonly NativeMethods.WS borderStyle;
 		private readonly NativeMethods.WS_EX borderExStyle;
+
+		private readonly NativeMethods.WS originalStyle;
+		private readonly NativeMethods.WS_EX originalExStyle;
 
 		private NativeMethods.WINDOWPLACEMENT windowPlacement;
 		private readonly NativeMethods.WINDOWPLACEMENT originalWindowPlacement;
@@ -42,7 +46,7 @@ namespace Windawesome
 			IsFloating = rule.isFloating;
 			ShowInTabs = rule.showInTabs;
 			Titlebar = rule.titlebar;
-			InTaskbar = rule.inTaskbar;
+			InAltTabAndTaskbar = rule.inAltTabAndTaskbar;
 			WindowBorders = rule.windowBorders;
 			this.WorkspacesCount = workspacesCount;
 			this.IsMinimized = NativeMethods.IsIconic(hWnd);
@@ -56,23 +60,22 @@ namespace Windawesome
 			ShowMenu = programRule.showMenu;
 			onHiddenWindowShownAction = programRule.onHiddenWindowShownAction;
 			this.menu = menu;
+			this.hideFromAltTabAndTaskbarWhenOnInactiveWorkspace = rule.hideFromAltTabAndTaskbarWhenOnInactiveWorkspace;
 
 			this.ownedWindows = ownedWindows;
+			this.originalExStyle = originalExStyle;
 
-			titlebarStyle = 0;
-			titlebarStyle |= originalStyle & NativeMethods.WS.WS_CAPTION;
-			titlebarStyle |= originalStyle & NativeMethods.WS.WS_MINIMIZEBOX;
-			titlebarStyle |= originalStyle & NativeMethods.WS.WS_MAXIMIZEBOX;
-			titlebarStyle |= originalStyle & NativeMethods.WS.WS_SYSMENU;
+			this.originalStyle = originalStyle;
 
-			borderStyle = 0;
-			borderStyle |= originalStyle & NativeMethods.WS.WS_SIZEBOX;
+			titlebarStyle = originalStyle &
+				(NativeMethods.WS.WS_CAPTION | NativeMethods.WS.WS_MINIMIZEBOX |
+				NativeMethods.WS.WS_MAXIMIZEBOX | NativeMethods.WS.WS_SYSMENU);
 
-			borderExStyle = 0;
-			borderExStyle |= originalExStyle & NativeMethods.WS_EX.WS_EX_DLGMODALFRAME;
-			borderExStyle |= originalExStyle & NativeMethods.WS_EX.WS_EX_CLIENTEDGE;
-			borderExStyle |= originalExStyle & NativeMethods.WS_EX.WS_EX_STATICEDGE;
-			borderExStyle |= originalExStyle & NativeMethods.WS_EX.WS_EX_WINDOWEDGE;
+			borderStyle = originalStyle & NativeMethods.WS.WS_SIZEBOX;
+
+			borderExStyle = originalExStyle &
+				(NativeMethods.WS_EX.WS_EX_DLGMODALFRAME | NativeMethods.WS_EX.WS_EX_CLIENTEDGE |
+				NativeMethods.WS_EX.WS_EX_STATICEDGE | NativeMethods.WS_EX.WS_EX_WINDOWEDGE);
 
 			windowPlacement = NativeMethods.WINDOWPLACEMENT.Default;
 			SavePosition();
@@ -85,7 +88,7 @@ namespace Windawesome
 			this.IsFloating = window.IsFloating;
 			this.ShowInTabs = window.ShowInTabs;
 			this.Titlebar = window.Titlebar;
-			this.InTaskbar = window.InTaskbar;
+			this.InAltTabAndTaskbar = window.InAltTabAndTaskbar;
 			this.WindowBorders = window.WindowBorders;
 			this.WorkspacesCount = window.WorkspacesCount;
 			IsMinimized = window.IsMinimized;
@@ -99,6 +102,7 @@ namespace Windawesome
 			ShowMenu = window.ShowMenu;
 			onHiddenWindowShownAction = window.onHiddenWindowShownAction;
 			menu = window.menu;
+			this.hideFromAltTabAndTaskbarWhenOnInactiveWorkspace = window.hideFromAltTabAndTaskbarWhenOnInactiveWorkspace;
 
 			if (window.ownedWindows != null)
 			{
@@ -132,14 +136,9 @@ namespace Windawesome
 			var prevStyle = style;
 			var prevExStyle = exStyle;
 
-			switch (this.InTaskbar)
+			if (this.InAltTabAndTaskbar != State.AS_IS)
 			{
-				case State.SHOWN:
-					exStyle = (exStyle | NativeMethods.WS_EX.WS_EX_APPWINDOW) & ~NativeMethods.WS_EX.WS_EX_TOOLWINDOW;
-					break;
-				case State.HIDDEN:
-					exStyle = (exStyle & ~NativeMethods.WS_EX.WS_EX_APPWINDOW) | NativeMethods.WS_EX.WS_EX_TOOLWINDOW;
-					break;
+				ShowInAltTabAndTaskbar(this.InAltTabAndTaskbar == State.SHOWN);
 			}
 			switch (this.Titlebar)
 			{
@@ -179,8 +178,22 @@ namespace Windawesome
 
 		internal void ToggleShowHideInTaskbar()
 		{
-			this.InTaskbar = (State) (((int) this.InTaskbar + 1) % 2);
-			Initialize();
+			this.InAltTabAndTaskbar = (State) (((int) this.InAltTabAndTaskbar + 1) % 2);
+			ShowInAltTabAndTaskbar(this.InAltTabAndTaskbar == State.SHOWN);
+		}
+
+		internal void ShowInAltTabAndTaskbar(bool show)
+		{
+			// show/hide from Alt-Tab menu
+			var exStyle = NativeMethods.GetWindowExStyleLongPtr(hWnd);
+			NativeMethods.SetWindowExStyleLongPtr(hWnd,
+				show ?
+				(exStyle | NativeMethods.WS_EX.WS_EX_APPWINDOW) & ~NativeMethods.WS_EX.WS_EX_TOOLWINDOW :
+				(exStyle & ~NativeMethods.WS_EX.WS_EX_APPWINDOW) | NativeMethods.WS_EX.WS_EX_TOOLWINDOW);
+
+			// show/hide from Taskbar
+			NativeMethods.PostMessage(Windawesome.taskbarButtonsWindowHandle, NativeMethods.WM_SHELLHOOKMESSAGE,
+				(UIntPtr) (show ? NativeMethods.ShellEvents.HSHELL_WINDOWCREATED : NativeMethods.ShellEvents.HSHELL_WINDOWDESTROYED), hWnd);
 		}
 
 		internal void ToggleShowHideTitlebar()
@@ -313,19 +326,11 @@ namespace Windawesome
 
 		internal void RevertToInitialValues()
 		{
-			if (this.Titlebar != State.AS_IS)
-			{
-				this.Titlebar = State.SHOWN;
-			}
-			if (this.InTaskbar != State.AS_IS)
-			{
-				this.InTaskbar = State.SHOWN;
-			}
-			if (this.WindowBorders != State.AS_IS)
-			{
-				this.WindowBorders = State.SHOWN;
-			}
-			Initialize();
+			NativeMethods.SetWindowStyleLongPtr(hWnd, originalStyle);
+			NativeMethods.SetWindowExStyleLongPtr(hWnd, originalExStyle);
+			Redraw();
+			NativeMethods.PostMessage(Windawesome.taskbarButtonsWindowHandle, NativeMethods.WM_SHELLHOOKMESSAGE,
+				(UIntPtr) NativeMethods.ShellEvents.HSHELL_WINDOWCREATED, hWnd);
 
 			if (!ShowMenu)
 			{

@@ -37,6 +37,7 @@ namespace Windawesome
 		}
 
 		internal bool hasChanges;
+		internal int hideFromAltTabWhenOnInactiveWorkspaceCount;
 
 		private int sharedWindowsCount;
 
@@ -456,9 +457,9 @@ namespace Windawesome
 		internal void WindowCreated(Window window)
 		{
 			windows.AddFirst(window);
-			if (window.WorkspacesCount > 1)
+			if (window.hideFromAltTabAndTaskbarWhenOnInactiveWorkspace)
 			{
-				window.DoForSelfOrOwned(_ => sharedWindowsCount++);
+				hideFromAltTabWhenOnInactiveWorkspaceCount++;
 			}
 			if (IsWorkspaceVisible || window.WorkspacesCount == 1)
 			{
@@ -467,6 +468,10 @@ namespace Windawesome
 
 			window.DoForSelfOrOwned(w =>
 				{
+					if (w.WorkspacesCount > 1)
+					{
+						sharedWindowsCount++;
+					}
 					if (!w.IsMinimized && !w.IsFloating)
 					{
 						Layout.WindowCreated(w);
@@ -481,13 +486,17 @@ namespace Windawesome
 		internal void WindowDestroyed(Window window)
 		{
 			windows.Remove(window);
-			if (window.WorkspacesCount > 1)
+			if (window.hideFromAltTabAndTaskbarWhenOnInactiveWorkspace)
 			{
-				window.DoForSelfOrOwned(_ => sharedWindowsCount--);
+				hideFromAltTabWhenOnInactiveWorkspaceCount--;
 			}
 
 			window.DoForSelfOrOwned(w =>
 				{
+					if (w.WorkspacesCount > 1)
+					{
+						sharedWindowsCount--;
+					}
 					if (!w.IsMinimized && !w.IsFloating)
 					{
 						Layout.WindowDestroyed(w);

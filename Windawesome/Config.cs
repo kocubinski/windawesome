@@ -38,7 +38,7 @@ namespace Windawesome
 			const string layoutsDirName = "Layouts";
 			const string widgetsDirName = "Widgets";
 			const string pluginsDirName = "Plugins";
-			const string configDirName	= "Config";
+			const string configDirName  = "Config";
 
 			if (!Directory.Exists(configDirName) || Directory.EnumerateFiles(configDirName).FirstOrDefault() == null)
 			{
@@ -283,27 +283,29 @@ namespace Windawesome
 		public class Rule
 		{
 			public Rule(int workspace = 0, bool isFloating = false, bool showInTabs = true,
-				State titlebar = State.AS_IS, State inTaskbar = State.AS_IS, State windowBorders = State.AS_IS,
-				bool redrawOnShow = false, bool activateLastActivePopup = true)
+				State titlebar = State.AS_IS, State inAltTabAndTaskbar = State.AS_IS, State windowBorders = State.AS_IS,
+				bool redrawOnShow = false, bool activateLastActivePopup = true, bool hideFromAltTabAndTaskbarWhenOnInactiveWorkspace = true)
 			{
 				this.workspace = workspace;
 				this.isFloating = isFloating;
 				this.showInTabs = showInTabs;
 				this.titlebar = titlebar;
-				this.inTaskbar = inTaskbar;
+				this.inAltTabAndTaskbar = inAltTabAndTaskbar;
 				this.windowBorders = windowBorders;
 				this.redrawOnShow = redrawOnShow;
 				this.activateLastActivePopup = activateLastActivePopup;
+				this.hideFromAltTabAndTaskbarWhenOnInactiveWorkspace = hideFromAltTabAndTaskbarWhenOnInactiveWorkspace;
 			}
 
 			internal readonly int workspace;
 			internal readonly bool isFloating;
 			internal readonly bool showInTabs;
 			internal readonly State titlebar;
-			internal readonly State inTaskbar;
+			internal readonly State inAltTabAndTaskbar;
 			internal readonly State windowBorders;
 			internal readonly bool redrawOnShow;
 			internal readonly bool activateLastActivePopup;
+			internal readonly bool hideFromAltTabAndTaskbarWhenOnInactiveWorkspace;
 		}
 	}
 }
