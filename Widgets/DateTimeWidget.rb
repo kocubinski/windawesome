@@ -2,7 +2,6 @@
 class DateTimeWidget
 	include Windawesome::IFixedWidthWidget
 	include System
-	include System::Collections::Generic
 	include System::Drawing
 	include System::Windows::Forms
 	include System::Linq
@@ -49,13 +48,12 @@ class DateTimeWidget
 	end
 
 	def reposition_controls left, right
-		@left = left
-		@right = right
-
 		if @isLeft
+			@left = left
 			@label.location = Point.new left, 0
 			@right = @label.right
 		else
+			@right = right
 			@label.location = Point.new right - @label.width, 0
 			@left = @label.left
 		end

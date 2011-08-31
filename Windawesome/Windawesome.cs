@@ -1054,7 +1054,6 @@ namespace Windawesome
 			}
 		}
 
-		// TODO: when the last application on a monitor is removed, an application from another monitor is activated
 		public void RemoveApplicationFromAllWorkspaces(IntPtr hWnd) // sort of UnmanageWindow
 		{
 			LinkedList<Tuple<Workspace, Window>> list;
@@ -1395,8 +1394,7 @@ namespace Windawesome
 						}
 
 						return bitmap;
-					}, hWnd).ContinueWith(t => action(t.Result), System.Threading.CancellationToken.None,
-						System.Threading.Tasks.TaskContinuationOptions.None, System.Threading.Tasks.TaskScheduler.FromCurrentSynchronizationContext());
+					}, hWnd).ContinueWith(t => action(t.Result), System.Threading.Tasks.TaskScheduler.FromCurrentSynchronizationContext());
 			}
 			else
 			{

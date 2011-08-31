@@ -326,11 +326,19 @@ namespace Windawesome
 
 		internal void RevertToInitialValues()
 		{
-			NativeMethods.SetWindowStyleLongPtr(hWnd, originalStyle);
-			NativeMethods.SetWindowExStyleLongPtr(hWnd, originalExStyle);
-			Redraw();
-			NativeMethods.PostMessage(Windawesome.taskbarButtonsWindowHandle, NativeMethods.WM_SHELLHOOKMESSAGE,
-				(UIntPtr) NativeMethods.ShellEvents.HSHELL_WINDOWCREATED, hWnd);
+			if (this.Titlebar != State.AS_IS)
+			{
+				this.Titlebar = State.SHOWN;
+			}
+			if (this.InAltTabAndTaskbar != State.AS_IS)
+			{
+				this.InAltTabAndTaskbar = State.SHOWN;
+			}
+			if (this.WindowBorders != State.AS_IS)
+			{
+				this.WindowBorders = State.SHOWN;
+			}
+			Initialize();
 
 			if (!ShowMenu)
 			{

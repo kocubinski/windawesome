@@ -232,7 +232,7 @@ namespace Windawesome
 				NativeMethods.WINEVENT.WINEVENT_OUTOFCONTEXT | NativeMethods.WINEVENT.WINEVENT_SKIPOWNTHREAD);
 		}
 
-		public Monitor(int monitorIndex)
+		internal Monitor(int monitorIndex)
 		{
 			this.workspaces = new Dictionary<Workspace, Tuple<int, AppBarNativeWindow, AppBarNativeWindow>>(2);
 			this.temporarilyShownWindows = new HashSet<IntPtr>();

@@ -6,8 +6,6 @@ using System.Windows.Forms;
 
 namespace Windawesome
 {
-	// TODO: something doesn't work with multiple bars and when clicking on apps to change them
-	// TODO: when an application that is not the foreground window closes, the Widget doesn't refresh fine
 	public class ApplicationTabsWidget : ISpanWidget
 	{
 		private static Windawesome windawesome;
