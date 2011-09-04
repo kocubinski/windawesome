@@ -292,7 +292,14 @@ namespace Windawesome
 
 		public static readonly IntPtr HWND_MESSAGE = (IntPtr) (-3);
 
+		#region GetShellWindow
+
+		[DllImport("user32.dll")]
+		private static extern IntPtr GetShellWindow();
+
 		public static readonly IntPtr shellWindow = GetShellWindow();
+
+		#endregion
 
 		#region EnumDesktopWindows
 
@@ -362,9 +369,6 @@ namespace Windawesome
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
 		public static extern bool IsWindow([Optional] IntPtr hWnd);
-
-		[DllImport("user32.dll")]
-		private static extern IntPtr GetShellWindow();
 
 		#region GetMenu/SetMenu/DestroyMenu
 

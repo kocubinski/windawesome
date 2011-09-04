@@ -464,6 +464,10 @@ namespace Windawesome
 			{
 				hideFromAltTabWhenOnInactiveWorkspaceCount++;
 			}
+			if (window.WorkspacesCount > 1)
+			{
+				window.DoForSelfOrOwned(_ => sharedWindowsCount++);
+			}
 			if (IsWorkspaceVisible || window.WorkspacesCount == 1)
 			{
 				window.DoForSelfOrOwned(w => w.Initialize());
@@ -471,10 +475,6 @@ namespace Windawesome
 
 			window.DoForSelfOrOwned(w =>
 				{
-					if (w.WorkspacesCount > 1)
-					{
-						sharedWindowsCount++;
-					}
 					if (!w.IsMinimized && !w.IsFloating)
 					{
 						Layout.WindowCreated(w);
@@ -493,13 +493,13 @@ namespace Windawesome
 			{
 				hideFromAltTabWhenOnInactiveWorkspaceCount--;
 			}
+			if (window.WorkspacesCount > 1)
+			{
+				window.DoForSelfOrOwned(_ => sharedWindowsCount--);
+			}
 
 			window.DoForSelfOrOwned(w =>
 				{
-					if (w.WorkspacesCount > 1)
-					{
-						sharedWindowsCount--;
-					}
 					if (!w.IsMinimized && !w.IsFloating)
 					{
 						Layout.WindowDestroyed(w);
