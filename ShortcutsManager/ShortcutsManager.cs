@@ -113,14 +113,13 @@ namespace Windawesome
 
 		public delegate bool KeyboardEventHandler();
 		private static readonly NativeMethods.HookProc keyboardHookProcedure = KeyboardHookProc;
-		private static IntPtr hook = IntPtr.Zero;
-		private static readonly Dictionary<Subscription, KeyboardEventHandler> subscriptions;
-		private static bool hasKeyOnlySubscriptions;
 		private static readonly List<KeyboardEventHandler> registeredHotkeys;
+		private static IntPtr hook;
+		private static Dictionary<Subscription, KeyboardEventHandler> subscriptions;
+		private static bool hasKeyOnlySubscriptions;
 
 		static ShortcutsManager()
 		{
-			subscriptions = new Dictionary<Subscription, KeyboardEventHandler>(new Subscription.SubscriptionEqualityComparer());
 			registeredHotkeys = new List<KeyboardEventHandler>();
 		}
 
@@ -137,6 +136,8 @@ namespace Windawesome
 			{
 				if (hook == IntPtr.Zero)
 				{
+					subscriptions = new Dictionary<Subscription, KeyboardEventHandler>(new Subscription.SubscriptionEqualityComparer());
+
 					hook = NativeMethods.SetWindowsHookEx(NativeMethods.WH_KEYBOARD_LL, keyboardHookProcedure,
 						System.Diagnostics.Process.GetCurrentProcess().MainModule.BaseAddress, 0);
 				}
@@ -186,35 +187,35 @@ namespace Windawesome
 				{
 					KeyModifiers modifiersPressed = 0;
 					// there is no other way to distinguish between left and right modifier keys
-					if ((NativeMethods.GetAsyncKeyState(Keys.LShiftKey) & 0x8000) == 0x8000)
+					if ((NativeMethods.GetKeyState(Keys.LShiftKey) & 0x8000) == 0x8000)
 					{
 						modifiersPressed |= KeyModifiers.LShift;
 					}
-					if ((NativeMethods.GetAsyncKeyState(Keys.RShiftKey) & 0x8000) == 0x8000)
+					if ((NativeMethods.GetKeyState(Keys.RShiftKey) & 0x8000) == 0x8000)
 					{
 						modifiersPressed |= KeyModifiers.RShift;
 					}
-					if ((NativeMethods.GetAsyncKeyState(Keys.LMenu) & 0x8000) == 0x8000)
+					if ((NativeMethods.GetKeyState(Keys.LMenu) & 0x8000) == 0x8000)
 					{
 						modifiersPressed |= KeyModifiers.LAlt;
 					}
-					if ((NativeMethods.GetAsyncKeyState(Keys.RMenu) & 0x8000) == 0x8000)
+					if ((NativeMethods.GetKeyState(Keys.RMenu) & 0x8000) == 0x8000)
 					{
 						modifiersPressed |= KeyModifiers.RAlt;
 					}
-					if ((NativeMethods.GetAsyncKeyState(Keys.LControlKey) & 0x8000) == 0x8000)
+					if ((NativeMethods.GetKeyState(Keys.LControlKey) & 0x8000) == 0x8000)
 					{
 						modifiersPressed |= KeyModifiers.LControl;
 					}
-					if ((NativeMethods.GetAsyncKeyState(Keys.RControlKey) & 0x8000) == 0x8000)
+					if ((NativeMethods.GetKeyState(Keys.RControlKey) & 0x8000) == 0x8000)
 					{
 						modifiersPressed |= KeyModifiers.RControl;
 					}
-					if ((NativeMethods.GetAsyncKeyState(Keys.LWin) & 0x8000) == 0x8000)
+					if ((NativeMethods.GetKeyState(Keys.LWin) & 0x8000) == 0x8000)
 					{
 						modifiersPressed |= KeyModifiers.LWin;
 					}
-					if ((NativeMethods.GetAsyncKeyState(Keys.RWin) & 0x8000) == 0x8000)
+					if ((NativeMethods.GetKeyState(Keys.RWin) & 0x8000) == 0x8000)
 					{
 						modifiersPressed |= KeyModifiers.RWin;
 					}
@@ -252,10 +253,7 @@ namespace Windawesome
 			{
 				NativeMethods.UnhookWindowsHookEx(hook);
 			}
-			for (var i = 0; i < registeredHotkeys.Count; i++)
-			{
-				NativeMethods.UnregisterHotKey(Windawesome.HandleStatic, i);
-			}
+			Enumerable.Range(0, registeredHotkeys.Count).ForEach(i => NativeMethods.UnregisterHotKey(Windawesome.HandleStatic, i));
 		}
 
 		#endregion

@@ -410,42 +410,45 @@ namespace Windawesome
 		public const int minimizeRestoreDelay = 300;
 		internal void WindowActivated(IntPtr hWnd)
 		{
-			Window window;
-			if (hWnd == IntPtr.Zero && windows.Count > 0)
+			if (windows.Count > 0)
 			{
-				window = windows.First.Value;
-				if (!window.IsMinimized)
+				Window window;
+				if (hWnd == NativeMethods.shellWindow)
 				{
-					// sometimes Windows doesn't send a HSHELL_GETMINRECT message on minimize
-					System.Threading.Thread.Sleep(minimizeRestoreDelay);
-					if (NativeMethods.IsIconic(window.hWnd))
-					{
-						WindowMinimized(window.hWnd);
-					}
-				}
-			}
-			else if ((window = MoveWindowToTop(hWnd)) != null)
-			{
-				if (window.IsMinimized)
-				{
-					System.Threading.Thread.Sleep(minimizeRestoreDelay);
-					if (!NativeMethods.IsIconic(hWnd))
-					{
-						// sometimes Windows doesn't send a HSHELL_GETMINRECT message on restore
-						WindowRestored(hWnd);
-						return ;
-					}
-				}
-				else if (windows.First.Next != null)
-				{
-					var secondZOrderWindow = windows.First.Next.Value;
-					if (!secondZOrderWindow.IsMinimized)
+					window = windows.First.Value;
+					if (!window.IsMinimized)
 					{
 						// sometimes Windows doesn't send a HSHELL_GETMINRECT message on minimize
 						System.Threading.Thread.Sleep(minimizeRestoreDelay);
-						if (NativeMethods.IsIconic(secondZOrderWindow.hWnd))
+						if (NativeMethods.IsIconic(window.hWnd))
 						{
-							WindowMinimized(secondZOrderWindow.hWnd);
+							WindowMinimized(window.hWnd);
+						}
+					}
+				}
+				else if ((window = MoveWindowToTop(hWnd)) != null)
+				{
+					if (window.IsMinimized)
+					{
+						System.Threading.Thread.Sleep(minimizeRestoreDelay);
+						if (!NativeMethods.IsIconic(hWnd))
+						{
+							// sometimes Windows doesn't send a HSHELL_GETMINRECT message on restore
+							WindowRestored(hWnd);
+							return ;
+						}
+					}
+					else if (windows.First.Next != null)
+					{
+						var secondZOrderWindow = windows.First.Next.Value;
+						if (!secondZOrderWindow.IsMinimized)
+						{
+							// sometimes Windows doesn't send a HSHELL_GETMINRECT message on minimize
+							System.Threading.Thread.Sleep(minimizeRestoreDelay);
+							if (NativeMethods.IsIconic(secondZOrderWindow.hWnd))
+							{
+								WindowMinimized(secondZOrderWindow.hWnd);
+							}
 						}
 					}
 				}

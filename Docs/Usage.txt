@@ -185,7 +185,9 @@ DateTime Widget - accepts a string to format the DateTime object, as well as bac
 
 Application Tabs Widget - accepts a boolean indicating whether to show a single tab for the foreground application only (false by default), or to show all windows. 4 arguments for colors too with nice defaults
 
-CpuMonitorWidget - accepts the time in milliseconds to wait before updating the value (should be at least 500, 1000 by default) and a prefix and a suffix to display ("CPU:" and "%" respectively by default)
+CpuMonitorWidget - accepts the time in milliseconds to wait before updating the value (should be at least 500, 1000 by default), a prefix and a suffix to display ("CPU:" and "%" respectively by default) and a background color (white)
+
+LaptopBatteryMonitorWidget - accepts the text to show when the battery is charging ("C" by default), when it is not charging ("B"), the time in milliseconds to wait before updating the value (60000 by default), a prefix and a suffix to display (" " and "%" respectively by default) and a background color (white)
 
 ====================================================================
 

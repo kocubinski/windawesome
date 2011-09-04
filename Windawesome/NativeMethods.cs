@@ -292,6 +292,8 @@ namespace Windawesome
 
 		public static readonly IntPtr HWND_MESSAGE = (IntPtr) (-3);
 
+		public static readonly IntPtr shellWindow = GetShellWindow();
+
 		#region EnumDesktopWindows
 
 		public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
@@ -362,7 +364,7 @@ namespace Windawesome
 		public static extern bool IsWindow([Optional] IntPtr hWnd);
 
 		[DllImport("user32.dll")]
-		public static extern IntPtr GetShellWindow();
+		private static extern IntPtr GetShellWindow();
 
 		#region GetMenu/SetMenu/DestroyMenu
 
@@ -859,8 +861,15 @@ namespace Windawesome
 
 		#endregion
 
+		#region GetKeyState/GetAsyncKeyState
+
+		[DllImport("user32.dll")]
+		public static extern short GetKeyState(System.Windows.Forms.Keys nVirtKey);
+
 		[DllImport("user32.dll")]
 		public static extern short GetAsyncKeyState(System.Windows.Forms.Keys nVirtKey);
+
+		#endregion
 
 		// misc stuff
 

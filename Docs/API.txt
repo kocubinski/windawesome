@@ -1,5 +1,6 @@
 IMPORTANT!!!
-This document may be out of date. It most probably is, as I am too lazy to update it. If you want to write a plugin/widget for Windawesome, I suggest you look at the code and see what methods are public in addition to reading this document.
+This document is badly out of date. If you want to write a plugin/widget for Windawesome, I suggest you look at the code and see what methods are public so you know what you can use.
+If you just want to configure Windawesome, then the only functions you need are the public ones in Windawesome.cs - take a look at them. They are pretty self-explanatory, I think.
 
 Methods:
 

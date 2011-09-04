@@ -28,9 +28,9 @@ namespace Windawesome
 		private readonly Dictionary<IntPtr, LinkedList<Tuple<Workspace, Window>>> applications; // hWnd to a list of workspaces and windows
 		private readonly HashMultiSet<IntPtr> hiddenApplications;
 		private readonly IntPtr getForegroundPrivilageAtom;
+		private readonly uint windawesomeThreadId = NativeMethods.GetCurrentThreadId();
 		private const uint postActionMessageNum = NativeMethods.WM_USER;
 
-		private readonly Tuple<NativeMethods.MOD, Keys> uniqueHotkey;
 		private readonly Tuple<NativeMethods.MOD, Keys> altTabHotkey = new Tuple<NativeMethods.MOD, Keys>(NativeMethods.MOD.MOD_ALT, Keys.Tab);
 		private readonly Queue<Action> postedActions;
 		private readonly Dictionary<int, HandleMessageDelegate> messageHandlers;
@@ -232,7 +232,6 @@ namespace Windawesome
 			#endregion
 
 			// register hotkey for forcing a foreground window
-			uniqueHotkey = config.UniqueHotkey;
 			getForegroundPrivilageAtom = (IntPtr) NativeMethods.GlobalAddAtom("WindawesomeShortcutGetForegroundPrivilage");
 			if (!NativeMethods.RegisterHotKey(this.Handle, (ushort) getForegroundPrivilageAtom, config.UniqueHotkey.Item1, config.UniqueHotkey.Item2))
 			{
@@ -436,7 +435,7 @@ namespace Windawesome
 								OnWindowCreatedOnCurrentWorkspace(hWnd, programRule);
 								break;
 							case OnWindowShownAction.HideWindow:
-								if (matchingRules.All(r => r.workspace == 0 ? !CurrentWorkspace.IsWorkspaceVisible : !config.Workspaces[r.workspace - 1].IsWorkspaceVisible))
+								if (matchingRules.All(r => !config.Workspaces[r.workspace - 1].IsWorkspaceVisible))
 								{
 									hiddenApplications.Add(hWnd);
 									NativeMethods.ShowWindow(hWnd, NativeMethods.SW.SW_HIDE);
@@ -617,7 +616,7 @@ namespace Windawesome
 			}
 			else
 			{
-				ForceForegroundWindow(NativeMethods.GetShellWindow());
+				ForceForegroundWindow(NativeMethods.shellWindow);
 			}
 		}
 
@@ -645,19 +644,18 @@ namespace Windawesome
 					}
 					else if (WindowIsNotHung(foregroundWindow))
 					{
-						var currentThreadId = NativeMethods.GetCurrentThreadId();
 						var foregroundWindowThreadId = NativeMethods.GetWindowThreadProcessId(foregroundWindow, IntPtr.Zero);
-						if (NativeMethods.AttachThreadInput(currentThreadId, foregroundWindowThreadId, true))
+						if (NativeMethods.AttachThreadInput(windawesomeThreadId, foregroundWindowThreadId, true))
 						{
 							successfullyChanged = TrySetForegroundWindow(hWnd);
-							NativeMethods.AttachThreadInput(currentThreadId, foregroundWindowThreadId, false);
+							NativeMethods.AttachThreadInput(windawesomeThreadId, foregroundWindowThreadId, false);
 						}
 					}
 
 					if (!successfullyChanged)
 					{
 						forceForegroundWindow = hWnd;
-						SendHotkey(uniqueHotkey);
+						SendHotkey(config.UniqueHotkey);
 					}
 				}
 			}
@@ -966,16 +964,19 @@ namespace Windawesome
 
 				if (window != null && !newWorkspace.ContainsWindow(hWnd))
 				{
-					if (!follow && oldWorkspace.IsWorkspaceVisible)
-					{
-						HideWindow(window);
-					}
 					oldWorkspace.WindowDestroyed(window);
-
 					newWorkspace.WindowCreated(window);
-					if (!follow && newWorkspace.IsWorkspaceVisible)
+
+					if (!follow)
 					{
-						window.Show();
+						if (oldWorkspace.IsWorkspaceVisible && !newWorkspace.IsWorkspaceVisible)
+						{
+							HideWindow(window);
+						}
+						else if (!oldWorkspace.IsWorkspaceVisible && newWorkspace.IsWorkspaceVisible)
+						{
+							window.Show();
+						}
 					}
 
 					var list = applications[window.hWnd];
@@ -1001,7 +1002,7 @@ namespace Windawesome
 					var newWindow = new Window(window);
 
 					newWorkspace.WindowCreated(newWindow);
-					if (!follow && newWorkspace.IsWorkspaceVisible)
+					if (!follow && !oldWorkspace.IsWorkspaceVisible && newWorkspace.IsWorkspaceVisible)
 					{
 						window.Show();
 					}
@@ -1080,7 +1081,7 @@ namespace Windawesome
 		public bool SwitchToWorkspace(int workspaceId, bool setForeground = true)
 		{
 			var newWorkspace = workspaceId == 0 ? CurrentWorkspace : config.Workspaces[workspaceId - 1];
-			if (workspaceId != CurrentWorkspace.id)
+			if (newWorkspace.id != CurrentWorkspace.id)
 			{
 				if (newWorkspace.IsWorkspaceVisible)
 				{
@@ -1175,7 +1176,7 @@ namespace Windawesome
 			return false;
 		}
 
-		public void MoveWorkspaceToMonitor(Workspace workspace, Monitor newMonitor, bool switchTo = true)
+		public void MoveWorkspaceToMonitor(Workspace workspace, Monitor newMonitor, bool showOnNewMonitor = true, bool switchTo = true)
 		{
 			var oldMonitor = workspace.Monitor;
 			if (oldMonitor != newMonitor && oldMonitor.Workspaces.Count() > 1)
@@ -1184,6 +1185,12 @@ namespace Windawesome
 				if (CurrentWorkspace != workspace && switchTo)
 				{
 					CurrentWorkspace.IsCurrentWorkspace = false;
+
+					// remove windows from ALT-TAB menu and Taskbar
+					if (CurrentWorkspace.hideFromAltTabWhenOnInactiveWorkspaceCount > 0)
+					{
+						CurrentWorkspace.GetWindows().Where(w => w.hideFromAltTabAndTaskbarWhenOnInactiveWorkspace).ForEach(w => w.ShowInAltTabAndTaskbar(false));
+					}
 				}
 
 				// if the workspace to be moved is visible on the old monitor, switch to another one
@@ -1199,25 +1206,32 @@ namespace Windawesome
 				workspace.Monitor = newMonitor;
 				newMonitor.AddWorkspace(workspace);
 
-				// switch to the workspace now on the new monitor
-				ShowHideWindows(newMonitor.CurrentVisibleWorkspace, workspace, true);
-				newMonitor.SwitchToWorkspace(workspace);
+				if (switchTo || showOnNewMonitor) // if the workspace must be switched to, it must be shown too
+				{
+					// switch to the workspace now on the new monitor
+					ShowHideWindows(newMonitor.CurrentVisibleWorkspace, workspace, true);
+					newMonitor.SwitchToWorkspace(workspace);
+				}
 
 				// switch to the moved workspace
 				if (CurrentWorkspace != workspace && switchTo)
 				{
 					workspace.IsCurrentWorkspace = true;
 
-					if (config.MoveMouseOverMonitorsOnSwitch)
+					// add windows to ALT-TAB menu and Taskbar
+					if (workspace.hideFromAltTabWhenOnInactiveWorkspaceCount > 0)
 					{
-						MoveMouseToMiddleOf(workspace.Monitor.screen.Bounds);
+						workspace.GetWindows().Where(w => w.hideFromAltTabAndTaskbarWhenOnInactiveWorkspace).ForEach(w => w.ShowInAltTabAndTaskbar(true));
 					}
 
 					PreviousWorkspace = CurrentWorkspace;
 					CurrentWorkspace = workspace;
 				}
 
-				// TODO: window.hideFromAltTabAndTaskbarWhenOnInactiveWorkspace?
+				if (CurrentWorkspace == workspace && config.MoveMouseOverMonitorsOnSwitch)
+				{
+					MoveMouseToMiddleOf(workspace.Monitor.screen.Bounds);
+				}
 
 				// reposition the windows on the workspace
 				workspace.Reposition();
@@ -1469,10 +1483,10 @@ namespace Windawesome
 				case NativeMethods.ShellEvents.HSHELL_RUDEAPPACTIVATED:
 					// lParam doesn't contain a useful value (rather it is 0) when an application from another monitor is clicked
 					// so we use GetForegroundWindow to get the true one
-					var foregroundWindow = NativeMethods.GetForegroundWindow();
-					if (!hiddenApplications.Contains(foregroundWindow))
+					var foregroundWindow = lParam != IntPtr.Zero ? lParam : NativeMethods.GetForegroundWindow();
+					if (!hiddenApplications.Contains(lParam))
 					{
-						if (foregroundWindow != NativeMethods.GetShellWindow() && !CurrentWorkspace.Monitor.temporarilyShownWindows.Contains(foregroundWindow))
+						if (foregroundWindow != NativeMethods.shellWindow && !CurrentWorkspace.Monitor.temporarilyShownWindows.Contains(foregroundWindow))
 						{
 							if (!applications.TryGetValue(foregroundWindow, out list)) // if a new window has shown
 							{
@@ -1499,8 +1513,9 @@ namespace Windawesome
 						// and the shared window is the active window, Windows sends a HSHELL_WINDOWACTIVATED
 						// for the shared window after the switch (even if it is not the top window in the
 						// workspace being switched to), which causes a wrong reordering in Z order
-						CurrentWorkspace.WindowActivated(foregroundWindow);
 					}
+
+					CurrentWorkspace.WindowActivated(foregroundWindow);
 					break;
 				case NativeMethods.ShellEvents.HSHELL_GETMINRECT: // window minimized or restored
 					System.Threading.Thread.Sleep(Workspace.minimizeRestoreDelay);
