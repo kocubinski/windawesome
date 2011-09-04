@@ -466,7 +466,7 @@ namespace Windawesome
 			}
 			if (window.WorkspacesCount > 1)
 			{
-				window.DoForSelfOrOwned(_ => sharedWindowsCount++);
+				sharedWindowsCount++;
 			}
 			if (IsWorkspaceVisible || window.WorkspacesCount == 1)
 			{
@@ -495,7 +495,7 @@ namespace Windawesome
 			}
 			if (window.WorkspacesCount > 1)
 			{
-				window.DoForSelfOrOwned(_ => sharedWindowsCount--);
+				sharedWindowsCount--;
 			}
 
 			window.DoForSelfOrOwned(w =>
@@ -663,16 +663,13 @@ namespace Windawesome
 
 		internal void AddToSharedWindows(Window window)
 		{
-			window.DoForSelfOrOwned(_ => sharedWindowsCount++);
+			sharedWindowsCount++;
 		}
 
 		internal void RemoveFromSharedWindows(Window window)
 		{
-			window.DoForSelfOrOwned(w =>
-				{
-					RestoreSharedWindowState(w, !IsWorkspaceVisible);
-					sharedWindowsCount--;
-				});
+			window.DoForSelfOrOwned(w => RestoreSharedWindowState(w, !IsWorkspaceVisible));
+			sharedWindowsCount--;
 		}
 
 		internal LinkedList<Window> GetWindows()
