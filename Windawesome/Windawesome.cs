@@ -792,6 +792,25 @@ namespace Windawesome
 			return window;
 		}
 
+		private IntPtr GetOwnerWindow(IntPtr hWnd)
+		{
+			var originalHWnd = hWnd;
+			LinkedList<Tuple<Workspace, Window>> list = null;
+			var ownerHWnds = new LinkedList<IntPtr>();
+			while (hWnd != IntPtr.Zero && !applications.TryGetValue(hWnd, out list))
+			{
+				ownerHWnds.AddFirst(hWnd);
+				hWnd = NativeMethods.GetWindow(hWnd, NativeMethods.GW.GW_OWNER);
+			}
+			if (list != null)
+			{
+				return list.First.Value.Item2.hWnd;
+			}
+
+			var result = ownerHWnds.FirstOrDefault(IsAppWindow);
+			return result != IntPtr.Zero ? result : originalHWnd;
+		}
+
 		private void OnHiddenWindowShown(IntPtr hWnd, Tuple<Workspace, Window> tuple)
 		{
 			switch (tuple.Item2.onHiddenWindowShownAction)
@@ -1483,9 +1502,11 @@ namespace Windawesome
 				case NativeMethods.ShellEvents.HSHELL_RUDEAPPACTIVATED:
 					// lParam doesn't contain a useful value (rather it is 0) when an application from another monitor is clicked
 					// so we use GetForegroundWindow to get the true one
-					var foregroundWindow = lParam != IntPtr.Zero ? lParam : NativeMethods.GetForegroundWindow();
 					if (!hiddenApplications.Contains(lParam))
 					{
+						var foregroundWindow = lParam != IntPtr.Zero ? lParam :
+							GetOwnerWindow(NativeMethods.GetForegroundWindow()); // GetForegroundWindow returns an owned window but everything else
+																				 // here expects an owner window
 						if (foregroundWindow != NativeMethods.shellWindow && !CurrentWorkspace.Monitor.temporarilyShownWindows.Contains(foregroundWindow))
 						{
 							if (!applications.TryGetValue(foregroundWindow, out list)) // if a new window has shown
@@ -1513,9 +1534,9 @@ namespace Windawesome
 						// and the shared window is the active window, Windows sends a HSHELL_WINDOWACTIVATED
 						// for the shared window after the switch (even if it is not the top window in the
 						// workspace being switched to), which causes a wrong reordering in Z order
+						CurrentWorkspace.WindowActivated(foregroundWindow);
 					}
 
-					CurrentWorkspace.WindowActivated(foregroundWindow);
 					break;
 				case NativeMethods.ShellEvents.HSHELL_GETMINRECT: // window minimized or restored
 					System.Threading.Thread.Sleep(Workspace.minimizeRestoreDelay);
