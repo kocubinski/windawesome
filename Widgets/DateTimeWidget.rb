@@ -25,7 +25,7 @@ class DateTimeWidget
 		end
 	end
 
-	def static_initialize_widget windawesome, config; end
+	def static_initialize_widget windawesome; end
 
 	def initialize_widget bar
 		@bar = bar

@@ -9,7 +9,6 @@ namespace Windawesome
 	public class ApplicationTabsWidget : ISpanWidget
 	{
 		private static Windawesome windawesome;
-		private static Config config;
 
 		private Dictionary<IntPtr, Panel>[] applicationPanels; // hWnd -> Panel
 		private Panel currentlyHighlightedPanel;
@@ -265,10 +264,9 @@ namespace Windawesome
 
 		#region IWidget Members
 
-		void IWidget.StaticInitializeWidget(Windawesome windawesome, Config config)
+		void IWidget.StaticInitializeWidget(Windawesome windawesome)
 		{
 			ApplicationTabsWidget.windawesome = windawesome;
-			ApplicationTabsWidget.config = config;
 		}
 
 		void IWidget.InitializeWidget(Bar bar)
@@ -289,9 +287,9 @@ namespace Windawesome
 
 			currentlyHighlightedPanel = null;
 
-			mustResize = new bool[config.Workspaces.Length];
-			applicationPanels = new Dictionary<IntPtr, Panel>[config.Workspaces.Length];
-			for (var i = 0; i < config.Workspaces.Length; i++)
+			mustResize = new bool[windawesome.config.Workspaces.Length];
+			applicationPanels = new Dictionary<IntPtr, Panel>[windawesome.config.Workspaces.Length];
+			for (var i = 0; i < windawesome.config.Workspaces.Length; i++)
 			{
 				applicationPanels[i] = new Dictionary<IntPtr, Panel>(3);
 			}
@@ -310,7 +308,7 @@ namespace Windawesome
 			this.left = left;
 			this.right = right;
 
-			for (var i = 0; i < config.Workspaces.Length; i++)
+			for (var i = 0; i < windawesome.config.Workspaces.Length; i++)
 			{
 				mustResize[i] = true;
 			}

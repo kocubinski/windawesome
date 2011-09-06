@@ -203,7 +203,6 @@ namespace Windawesome
 		internal readonly bool isManaged;
 		internal readonly int tryAgainAfter;
 		internal readonly int windowCreatedDelay;
-		internal readonly bool handleOwnedWindows;
 		internal readonly bool hideOwnedPopups;
 		internal readonly bool redrawDesktopOnWindowCreated;
 		internal readonly bool showMenu;
@@ -216,7 +215,8 @@ namespace Windawesome
 
 		private static bool DefaultCustomMatchingFunction(IntPtr hWnd)
 		{
-			return NativeMethods.GetWindow(hWnd, NativeMethods.GW.GW_OWNER) == IntPtr.Zero;
+			return !NativeMethods.GetWindowExStyleLongPtr(hWnd).HasFlag(NativeMethods.WS_EX.WS_EX_TOOLWINDOW) &&
+				NativeMethods.GetWindow(hWnd, NativeMethods.GW.GW_OWNER) == IntPtr.Zero;
 		}
 
 		internal bool IsMatch(IntPtr hWnd, string cName, string dName, string pName, NativeMethods.WS style, NativeMethods.WS_EX exStyle)
@@ -232,7 +232,7 @@ namespace Windawesome
 			NativeMethods.WS_EX exStyleContains = (NativeMethods.WS_EX) 0, NativeMethods.WS_EX exStyleNotContains = (NativeMethods.WS_EX) 0,
 			CustomMatchingFunction customMatchingFunction = null,
 
-			bool isManaged = true, int tryAgainAfter = -1, int windowCreatedDelay = -1, bool handleOwnedWindows = false,
+			bool isManaged = true, int tryAgainAfter = -1, int windowCreatedDelay = -1,
 			bool hideOwnedPopups = true, bool redrawDesktopOnWindowCreated = false, bool showMenu = true,
 			OnWindowCreatedOnCurrentWorkspaceAction onWindowCreatedOnCurrentWorkspaceAction = OnWindowCreatedOnCurrentWorkspaceAction.ActivateWindow,
 			OnWindowShownAction onWindowCreatedAction = OnWindowShownAction.SwitchToWindowsWorkspace,
@@ -253,7 +253,6 @@ namespace Windawesome
 			{
 				this.tryAgainAfter = tryAgainAfter;
 				this.windowCreatedDelay = windowCreatedDelay;
-				this.handleOwnedWindows = handleOwnedWindows;
 				this.hideOwnedPopups = hideOwnedPopups;
 				this.redrawDesktopOnWindowCreated = redrawDesktopOnWindowCreated;
 				this.showMenu = showMenu;

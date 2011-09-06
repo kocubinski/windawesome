@@ -25,7 +25,6 @@ namespace Windawesome
 		public readonly OnWindowShownAction onHiddenWindowShownAction;
 		public readonly IntPtr menu;
 		public readonly bool hideFromAltTabAndTaskbarWhenOnInactiveWorkspace;
-		public readonly LinkedList<Window> ownedWindows;
 
 		private readonly NativeMethods.WS titlebarStyle;
 
@@ -39,7 +38,7 @@ namespace Windawesome
 		private readonly NativeMethods.WINDOWPLACEMENT originalWindowPlacement;
 
 		internal Window(IntPtr hWnd, string className, string displayName, string processName, int workspacesCount, bool is64BitProcess,
-			NativeMethods.WS originalStyle, NativeMethods.WS_EX originalExStyle, LinkedList<Window> ownedWindows, ProgramRule.Rule rule, ProgramRule programRule,
+			NativeMethods.WS originalStyle, NativeMethods.WS_EX originalExStyle, ProgramRule.Rule rule, ProgramRule programRule,
 			IntPtr menu)
 		{
 			this.hWnd = hWnd;
@@ -62,7 +61,6 @@ namespace Windawesome
 			this.menu = menu;
 			this.hideFromAltTabAndTaskbarWhenOnInactiveWorkspace = rule.hideFromAltTabAndTaskbarWhenOnInactiveWorkspace;
 
-			this.ownedWindows = ownedWindows;
 			this.originalExStyle = originalExStyle;
 
 			this.originalStyle = originalStyle;
@@ -103,11 +101,6 @@ namespace Windawesome
 			onHiddenWindowShownAction = window.onHiddenWindowShownAction;
 			menu = window.menu;
 			this.hideFromAltTabAndTaskbarWhenOnInactiveWorkspace = window.hideFromAltTabAndTaskbarWhenOnInactiveWorkspace;
-
-			if (window.ownedWindows != null)
-			{
-				this.ownedWindows = new LinkedList<Window>(window.ownedWindows.Select(w => new Window(w)));
-			}
 
 			titlebarStyle = window.titlebarStyle;
 
@@ -309,18 +302,6 @@ namespace Windawesome
 			if (menu != IntPtr.Zero)
 			{
 				NativeMethods.SetMenu(this.hWnd, this.ShowMenu ? this.menu : IntPtr.Zero);
-			}
-		}
-
-		internal void DoForSelfOrOwned(Action<Window> action)
-		{
-			if (ownedWindows != null)
-			{
-				ownedWindows.ForEach(action);
-			}
-			else
-			{
-				action(this);
 			}
 		}
 

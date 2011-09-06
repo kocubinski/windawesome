@@ -9,7 +9,7 @@ namespace Windawesome
 		 * This is guaranteed to be called exactly once for every widget type. Useful for
 		 * initializing any static data
 		 */
-		void StaticInitializeWidget(Windawesome windawesome, Config config);
+		void StaticInitializeWidget(Windawesome windawesome);
 
 		/*
 		 * This is called for every Bar that contains this instance of the widget

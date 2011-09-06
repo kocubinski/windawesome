@@ -24,7 +24,6 @@ namespace Windawesome
 		private readonly Dictionary<IntPtr, Workspace> flashingWindows;
 
 		private static Windawesome windawesome;
-		private static Config config;
 		private static Timer flashTimer;
 		private static HashSet<Workspace> flashingWorkspaces;
 
@@ -186,10 +185,9 @@ namespace Windawesome
 
 		#region IWidget Members
 
-		void IWidget.StaticInitializeWidget(Windawesome windawesome, Config config)
+		void IWidget.StaticInitializeWidget(Windawesome windawesome)
 		{
 			WorkspacesWidget.windawesome = windawesome;
-			WorkspacesWidget.config = config;
 		}
 
 		void IWidget.InitializeWidget(Bar bar)
@@ -208,7 +206,7 @@ namespace Windawesome
 			bar.BarShown += OnBarShown;
 			bar.BarHidden += OnBarHidden;
 
-			workspaceLabels = new Label[config.Workspaces.Length];
+			workspaceLabels = new Label[windawesome.config.Workspaces.Length];
 
 			Workspace.WorkspaceApplicationAdded += (ws, _) => SetWorkspaceLabelColor(ws);
 			Workspace.WorkspaceApplicationRemoved += (ws, _) => SetWorkspaceLabelColor(ws);
@@ -218,9 +216,9 @@ namespace Windawesome
 			Workspace.WorkspaceShown += OnWorkspaceChangedFromTo;
 			Workspace.WorkspaceHidden += OnWorkspaceChangedFromTo;
 
-			for (var i = 0; i < config.Workspaces.Length; i++)
+			for (var i = 0; i < windawesome.config.Workspaces.Length; i++)
 			{
-				var workspace = config.Workspaces[i];
+				var workspace = windawesome.config.Workspaces[i];
 				var name = (i + 1) + (workspace.name == "" ? "" : ":" + workspace.name);
 
 				var label = bar.CreateLabel(" " + name + " ", 0);

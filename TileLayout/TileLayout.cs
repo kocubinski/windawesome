@@ -329,7 +329,7 @@ namespace Windawesome
 			{
 				// restore any maximized windows - should not use SW_RESTORE as it activates the window
 				managedWindows.ForEach(w => NativeMethods.ShowWindowAsync(w.hWnd, NativeMethods.SW.SW_SHOWNOACTIVATE));
-				System.Threading.Thread.Sleep(Workspace.minimizeRestoreDelay);
+				System.Threading.Thread.Sleep(NativeMethods.minimizeRestoreDelay);
 
 				this.windows = new LinkedList<Window>(managedWindows);
 			}
@@ -353,7 +353,7 @@ namespace Windawesome
 			{
 				// restore if maximized - should not use SW_RESTORE as it activates the window
 				NativeMethods.ShowWindowAsync(window.hWnd, NativeMethods.SW.SW_SHOWNOACTIVATE);
-				System.Threading.Thread.Sleep(Workspace.minimizeRestoreDelay);
+				System.Threading.Thread.Sleep(NativeMethods.minimizeRestoreDelay);
 			}
 			this.windows.AddFirst(window);
 			if (workspace.IsWorkspaceVisible)

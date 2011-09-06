@@ -82,6 +82,11 @@ namespace Windawesome
 			Removed
 		}
 
+		public void Clear()
+		{
+			set.Clear();
+		}
+
 		#region IEnumerable<T> Members
 
 		public IEnumerator<T> GetEnumerator()

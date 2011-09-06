@@ -282,7 +282,7 @@ namespace Windawesome
 			return this.monitorIndex;
 		}
 
-		private static void TaskbarShownWinEventDelegate(IntPtr hWinEventHook, uint eventType,
+		private static void TaskbarShownWinEventDelegate(IntPtr hWinEventHook, NativeMethods.EVENT eventType,
 			IntPtr hwnd, int idObject, int idChild, uint dwEventThread, uint dwmsEventTime)
 		{
 			if (NativeMethods.IsWindowVisible(taskbarHandle) != isWindowsTaskbarShown)

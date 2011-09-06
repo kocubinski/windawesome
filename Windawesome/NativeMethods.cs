@@ -108,7 +108,7 @@ namespace Windawesome
 
 		#region SetWinEventHook/UnhookWinEvent
 
-		public delegate void WinEventDelegate(IntPtr hWinEventHook, uint eventType,
+		public delegate void WinEventDelegate(IntPtr hWinEventHook, EVENT eventType,
 			IntPtr hwnd, int idObject, int idChild, uint dwEventThread, uint dwmsEventTime);
 
 		[DllImport("user32.dll")]
@@ -117,8 +117,18 @@ namespace Windawesome
 
 		public enum EVENT : uint
 		{
-			EVENT_OBJECT_SHOW = 0x00008002
+			EVENT_OBJECT_DESTROY = 0x00008001,
+			EVENT_OBJECT_SHOW = 0x00008002,
+			EVENT_OBJECT_HIDE = 0x00008003,
+
+			EVENT_SYSTEM_FOREGROUND = 0x3,
+
+			EVENT_SYSTEM_MINIMIZESTART = 0x16,
+			EVENT_SYSTEM_MINIMIZEEND = 0x17
 		}
+
+		public const int OBJID_WINDOW = 0x00000000;
+		public const int CHILDID_SELF = 0;
 
 		[Flags]
 		public enum WINEVENT : uint
@@ -292,6 +302,8 @@ namespace Windawesome
 
 		public static readonly IntPtr HWND_MESSAGE = (IntPtr) (-3);
 
+		public const int minimizeRestoreDelay = 300;
+
 		#region GetShellWindow
 
 		[DllImport("user32.dll")]
@@ -385,9 +397,6 @@ namespace Windawesome
 
 		#endregion
 
-		[DllImport("user32.dll")]
-		public static extern IntPtr GetParent(IntPtr hWnd);
-
 		#region GetWindow
 
 		[DllImport("user32.dll")]
@@ -399,7 +408,7 @@ namespace Windawesome
 		}
 
 		#endregion
-
+		
 		#region FindWindow/FindWindowEx
 
 		[DllImport("user32.dll", CharSet = CharSet.Auto)]
@@ -410,7 +419,7 @@ namespace Windawesome
 
 		#endregion
 
-		#region GetWindowLongPtr/SetWindowLongPtr/GetWindow
+		#region GetWindowLongPtr/SetWindowLongPtr
 
 		public delegate UIntPtr SetWindowStyleLongPtrDelegate(IntPtr hWnd, WS dwNewLong);
 		public static readonly SetWindowStyleLongPtrDelegate SetWindowStyleLongPtr;

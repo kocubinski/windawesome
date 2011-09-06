@@ -5,7 +5,7 @@ namespace Windawesome
 {
 	public interface IBar
 	{
-		void InitializeBar(Windawesome windawesome, Config config);
+		void InitializeBar(Windawesome windawesome);
 		void Dispose();
 
 		IntPtr Handle { get; }

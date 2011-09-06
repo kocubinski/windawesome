@@ -138,13 +138,13 @@ namespace Windawesome
 
 		#region IBar Members
 
-		void IBar.InitializeBar(Windawesome windawesome, Config config)
+		void IBar.InitializeBar(Windawesome windawesome)
 		{
 			// statically initialize all widgets
 			// this statement uses the laziness of Where
 			this.leftAlignedWidgets.Cast<IWidget>().Concat(this.rightAlignedWidgets).Concat(this.middleAlignedWidgets).
 				Where(w => !widgetTypes.Contains(w.GetType())).
-				ForEach(w => { w.StaticInitializeWidget(windawesome, config); widgetTypes.Add(w.GetType()); });
+				ForEach(w => { w.StaticInitializeWidget(windawesome); widgetTypes.Add(w.GetType()); });
 
 			WidgetControlsChanged = OnWidgetControlsChanged;
 			SpanWidgetControlsAdded = OnSpanWidgetControlsAdded;

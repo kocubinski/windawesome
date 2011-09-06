@@ -119,7 +119,7 @@ namespace Windawesome
 
 		#region IPlugin Members
 
-		void IPlugin.InitializePlugin(Windawesome windawesome, Config config)
+		void IPlugin.InitializePlugin(Windawesome windawesome)
 		{
 			Workspace.WorkspaceApplicationAdded += OnWorkspaceApplicationAdded;
 			Workspace.WorkspaceApplicationRemoved += OnWorkspaceApplicationRemoved;
@@ -128,8 +128,8 @@ namespace Windawesome
 			Workspace.WorkspaceLayoutChanged += OnWorkspaceLayoutChanged;
 			this.windawesome = windawesome;
 
-			subclassedWindows = new HashMultiSet<Window>[config.Workspaces.Length];
-			for (var i = 0; i < config.Workspaces.Length; i++)
+			subclassedWindows = new HashMultiSet<Window>[windawesome.config.Workspaces.Length];
+			for (var i = 0; i < windawesome.config.Workspaces.Length; i++)
 			{
 				subclassedWindows[i] = new HashMultiSet<Window>();
 			}

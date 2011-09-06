@@ -15,7 +15,7 @@ namespace Windawesome
 				{
 					// restore if program is maximized and should be on a different monitor
 					NativeMethods.ShowWindow(window.hWnd, NativeMethods.SW.SW_SHOWNOACTIVATE); // should not use SW_RESTORE as it activates the window
-					System.Threading.Thread.Sleep(Workspace.minimizeRestoreDelay);
+					System.Threading.Thread.Sleep(NativeMethods.minimizeRestoreDelay);
 				}
 
 				var winPlacement = NativeMethods.WINDOWPLACEMENT.Default;
@@ -53,6 +53,14 @@ namespace Windawesome
 			}
 		}
 
+		private void OnWorkspaceApplicationAddedOrRemoved(Workspace workspace, Window window)
+		{
+			if (workspace == this.workspace && workspace.IsWorkspaceVisible)
+			{
+				Workspace.DoLayoutUpdated();
+			}
+		}
+
 		#region ILayout Members
 
 		string ILayout.LayoutSymbol()
@@ -71,6 +79,9 @@ namespace Windawesome
 
 			workspace.WindowTitlebarToggled += MaximizeWindow;
 			workspace.WindowBorderToggled += MaximizeWindow;
+
+			Workspace.WorkspaceApplicationAdded += OnWorkspaceApplicationAddedOrRemoved;
+			Workspace.WorkspaceApplicationRemoved += OnWorkspaceApplicationAddedOrRemoved;
 		}
 
 		bool ILayout.ShouldSaveAndRestoreSharedWindowsPosition()
@@ -98,16 +109,11 @@ namespace Windawesome
 			if (workspace.IsWorkspaceVisible)
 			{
 				MaximizeWindow(window);
-				Workspace.DoLayoutUpdated();
 			}
 		}
 
 		void ILayout.WindowDestroyed(Window window)
 		{
-			if (workspace.IsWorkspaceVisible)
-			{
-				Workspace.DoLayoutUpdated();
-			}
 		}
 
 		#endregion

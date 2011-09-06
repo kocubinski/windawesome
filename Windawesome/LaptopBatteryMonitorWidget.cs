@@ -61,7 +61,7 @@ namespace Windawesome
 			}
 		}
 
-		void IWidget.StaticInitializeWidget(Windawesome windawesome, Config config)
+		void IWidget.StaticInitializeWidget(Windawesome windawesome)
 		{
 		}
 

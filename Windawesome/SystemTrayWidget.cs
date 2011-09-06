@@ -292,7 +292,7 @@ namespace Windawesome
 
 		#region IWidget Members
 
-		void IWidget.StaticInitializeWidget(Windawesome windawesome, Config config)
+		void IWidget.StaticInitializeWidget(Windawesome windawesome)
 		{
 			if (Windawesome.isRunningElevated)
 			{
