@@ -1,8 +1,18 @@
+from System import IntPtr
 from System.Linq import Enumerable
-from Windawesome import ProgramRule, State, OnWindowShownAction
+from Windawesome import ProgramRule, State, OnWindowShownAction, OnWindowCreatedOnCurrentWorkspaceAction, NativeMethods
 from Windawesome.NativeMethods import WS, WS_EX
 
-config.ProgramRules = Enumerable.ToArray[ProgramRule]([
+def TApplicationCustomMatchingFunction(hWnd):
+	if NativeMethods.GetWindowExStyleLongPtr.Invoke(hWnd).HasFlag(NativeMethods.WS_EX.WS_EX_TOOLWINDOW):
+		return False
+	oldHWnd = hWnd
+	while hWnd != IntPtr.Zero:
+		oldHWnd = hWnd
+		hWnd = NativeMethods.GetWindow(hWnd, NativeMethods.GW.GW_OWNER)
+	return NativeMethods.GetWindowClassName(oldHWnd) == "TApplication"
+
+config.ProgramRules = [
 	ProgramRule(
 		className = "^cygwin/x X rl$",
 		rules = [ProgramRule.Rule(workspace = 5)]
@@ -13,8 +23,16 @@ config.ProgramRules = Enumerable.ToArray[ProgramRule]([
 		isManaged = False
 	),
 	ProgramRule(
+		className = "^TMainForm$",
+		displayName = "^Find and Run Robot 2$",
+		customMatchingFunction = lambda hWnd: True,
+        isManaged = False
+	),
+	ProgramRule(
 		className = "^TApplication$",
-		handleOwnedWindows = True
+		customMatchingFunction = lambda hWnd: True,
+		hideOwnedPopups = False,
+		rules = [ProgramRule.Rule(isFloating = True)]
 	),
 	ProgramRule(
 		className = "^Vim$",
@@ -72,7 +90,7 @@ config.ProgramRules = Enumerable.ToArray[ProgramRule]([
 	),
 	ProgramRule(
 		className = "^__oxFrame.class__$", # ICQ chat window
-		onWindowCreatedAction = OnWindowShownAction.TemporarilyShowWindowOnCurrentWorkspace,
+		onWindowCreatedAction = OnWindowShownAction.HideWindow,
 		rules = [ProgramRule.Rule(workspace = 4)]
 	),
 	ProgramRule(
@@ -167,5 +185,9 @@ config.ProgramRules = Enumerable.ToArray[ProgramRule]([
 		styleNotContains = WS.WS_MAXIMIZEBOX,
 		rules = [ProgramRule.Rule(isFloating = True)]
 	),
+	ProgramRule(
+		customMatchingFunction = TApplicationCustomMatchingFunction,
+		rules = [ProgramRule.Rule(showInTabs = False)]
+	),
 	ProgramRule() # an all-catching rule in the end to manage all other windows
-])
+]
