@@ -113,7 +113,6 @@
     <Reference Include="System.Windows.Forms" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Utilities.cs" />
     <Compile Include="WindowSubclassing.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

@@ -121,8 +121,6 @@ namespace Windawesome
 			EVENT_OBJECT_SHOW = 0x00008002,
 			EVENT_OBJECT_HIDE = 0x00008003,
 
-			EVENT_SYSTEM_FOREGROUND = 0x3,
-
 			EVENT_SYSTEM_MINIMIZESTART = 0x16,
 			EVENT_SYSTEM_MINIMIZEEND = 0x17
 		}
@@ -408,7 +406,7 @@ namespace Windawesome
 		}
 
 		#endregion
-		
+
 		#region FindWindow/FindWindowEx
 
 		[DllImport("user32.dll", CharSet = CharSet.Auto)]

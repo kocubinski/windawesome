@@ -177,6 +177,7 @@
     <Compile Include="NativeMethods.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Utilities.cs" />
     <Compile Include="Windawesome.cs" />
     <Compile Include="Window.cs" />
     <Compile Include="Workspace.cs" />

@@ -38,8 +38,7 @@ namespace Windawesome
 		private readonly NativeMethods.WINDOWPLACEMENT originalWindowPlacement;
 
 		internal Window(IntPtr hWnd, string className, string displayName, string processName, int workspacesCount, bool is64BitProcess,
-			NativeMethods.WS originalStyle, NativeMethods.WS_EX originalExStyle, ProgramRule.Rule rule, ProgramRule programRule,
-			IntPtr menu)
+			NativeMethods.WS originalStyle, NativeMethods.WS_EX originalExStyle, ProgramRule.Rule rule, ProgramRule programRule, IntPtr menu)
 		{
 			this.hWnd = hWnd;
 			IsFloating = rule.isFloating;
