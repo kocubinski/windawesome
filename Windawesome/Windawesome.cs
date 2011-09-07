@@ -973,16 +973,8 @@ namespace Windawesome
 				list.ForEach(t => t.Item1.WindowDestroyed(t.Item2));
 				if (CurrentWorkspace.GetWindowsCount() != oldWorkspaceWindowCount)
 				{
-					if (CurrentWorkspace.GetWindowsCount() == 0)
-					{
-						// TODO: this doesn't work - it still changes to another visible workspace
-						var currentWorkspaceId = CurrentWorkspace.id;
-						PostAction(() => SwitchToWorkspace(currentWorkspaceId));
-					}
-					else
-					{
-						SetWorkspaceTopManagedWindowAsForeground(CurrentWorkspace);
-					}
+					// the window was on the current workspace, so activate another one
+					SetWorkspaceTopManagedWindowAsForeground(CurrentWorkspace);
 				}
 				var window = list.First.Value.Item2;
 				if (!window.ShowMenu && window.menu != IntPtr.Zero)

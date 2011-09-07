@@ -306,18 +306,9 @@ namespace Windawesome
 
 		internal void RevertToInitialValues()
 		{
-			if (this.Titlebar != State.AS_IS)
-			{
-				this.Titlebar = State.SHOWN;
-			}
-			if (this.InAltTabAndTaskbar != State.AS_IS)
-			{
-				this.InAltTabAndTaskbar = State.SHOWN;
-			}
-			if (this.WindowBorders != State.AS_IS)
-			{
-				this.WindowBorders = State.SHOWN;
-			}
+			this.Titlebar = State.SHOWN;
+			this.InAltTabAndTaskbar = State.SHOWN;
+			this.WindowBorders = State.SHOWN;
 			Initialize();
 
 			if (!ShowMenu)
