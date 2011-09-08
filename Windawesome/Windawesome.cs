@@ -244,6 +244,18 @@ namespace Windawesome
 					" switching to windows as you change workspaces!");
 			}
 
+			// register a shell hook
+			NativeMethods.RegisterShellHookWindow(this.Handle);
+
+			// register some shell events
+			winEventDelegate = WinEventDelegate;
+			windowShownOrDestroyedWinEventHook = NativeMethods.SetWinEventHook(NativeMethods.EVENT.EVENT_OBJECT_DESTROY, NativeMethods.EVENT.EVENT_OBJECT_HIDE,
+				IntPtr.Zero, winEventDelegate, 0, 0,
+				NativeMethods.WINEVENT.WINEVENT_OUTOFCONTEXT | NativeMethods.WINEVENT.WINEVENT_SKIPOWNTHREAD);
+			windowMinimizedOrRestoredWinEventHook = NativeMethods.SetWinEventHook(NativeMethods.EVENT.EVENT_SYSTEM_MINIMIZESTART, NativeMethods.EVENT.EVENT_SYSTEM_MINIMIZEEND,
+				IntPtr.Zero, winEventDelegate, 0, 0,
+				NativeMethods.WINEVENT.WINEVENT_OUTOFCONTEXT | NativeMethods.WINEVENT.WINEVENT_SKIPOWNTHREAD);
+
 			// initialize all workspaces and hide windows not on StartingWorkspaces
 			var windowsToHide = new HashSet<Window>();
 			foreach (var workspace in config.Workspaces)
@@ -263,18 +275,6 @@ namespace Windawesome
 			Monitor.ShowHideWindowsTaskbar(CurrentWorkspace.ShowWindowsTaskbar);
 			SetWorkspaceTopManagedWindowAsForeground(CurrentWorkspace);
 			CurrentWorkspace.IsCurrentWorkspace = true;
-
-			// register a shell hook
-			NativeMethods.RegisterShellHookWindow(this.Handle);
-
-			// register some shell events
-			winEventDelegate = WinEventDelegate;
-			windowShownOrDestroyedWinEventHook = NativeMethods.SetWinEventHook(NativeMethods.EVENT.EVENT_OBJECT_DESTROY, NativeMethods.EVENT.EVENT_OBJECT_HIDE,
-				IntPtr.Zero, winEventDelegate, 0, 0,
-				NativeMethods.WINEVENT.WINEVENT_OUTOFCONTEXT | NativeMethods.WINEVENT.WINEVENT_SKIPOWNTHREAD);
-			windowMinimizedOrRestoredWinEventHook = NativeMethods.SetWinEventHook(NativeMethods.EVENT.EVENT_SYSTEM_MINIMIZESTART, NativeMethods.EVENT.EVENT_SYSTEM_MINIMIZEEND,
-				IntPtr.Zero, winEventDelegate, 0, 0,
-				NativeMethods.WINEVENT.WINEVENT_OUTOFCONTEXT | NativeMethods.WINEVENT.WINEVENT_SKIPOWNTHREAD);
 		}
 
 		public void Quit()
@@ -848,6 +848,8 @@ namespace Windawesome
 
 		public void RefreshWindawesome()
 		{
+			hiddenApplications.Clear();
+
 			RefreshApplicationsHash();
 
 			// repositions all windows in all workspaces and redraw all windows in visible workspaces
@@ -927,7 +929,7 @@ namespace Windawesome
 
 		public void TemporarilyShowWindowOnCurrentWorkspace(Window window)
 		{
-			if (!CurrentWorkspace.ContainsWindow(window.hWnd))
+			if (!NativeMethods.IsWindowVisible(window.hWnd))
 			{
 				CurrentWorkspace.Monitor.temporarilyShownWindows.Add(window.hWnd);
 				window.Show();
