@@ -175,51 +175,56 @@ namespace Windawesome
 			{
 				if (wParam == NativeMethods.WM_KEYDOWN || wParam == NativeMethods.WM_SYSKEYDOWN)
 				{
-					KeyModifiers modifiersPressed = 0;
-					// there is no other way to distinguish between left and right modifier keys
-					if ((NativeMethods.GetKeyState(Keys.LShiftKey) & 0x8000) == 0x8000)
+					var key = (Keys) Marshal.ReadInt32(lParam);
+					if (key != Keys.LShiftKey && key != Keys.RShiftKey &&
+						key != Keys.LMenu && key != Keys.RMenu &&
+						key != Keys.LControlKey && key != Keys.RControlKey &&
+						key != Keys.LWin && key != Keys.RWin)
 					{
-						modifiersPressed |= KeyModifiers.LShift;
-					}
-					if ((NativeMethods.GetKeyState(Keys.RShiftKey) & 0x8000) == 0x8000)
-					{
-						modifiersPressed |= KeyModifiers.RShift;
-					}
-					if ((NativeMethods.GetKeyState(Keys.LMenu) & 0x8000) == 0x8000)
-					{
-						modifiersPressed |= KeyModifiers.LAlt;
-					}
-					if ((NativeMethods.GetKeyState(Keys.RMenu) & 0x8000) == 0x8000)
-					{
-						modifiersPressed |= KeyModifiers.RAlt;
-					}
-					if ((NativeMethods.GetKeyState(Keys.LControlKey) & 0x8000) == 0x8000)
-					{
-						modifiersPressed |= KeyModifiers.LControl;
-					}
-					if ((NativeMethods.GetKeyState(Keys.RControlKey) & 0x8000) == 0x8000)
-					{
-						modifiersPressed |= KeyModifiers.RControl;
-					}
-					if ((NativeMethods.GetKeyState(Keys.LWin) & 0x8000) == 0x8000)
-					{
-						modifiersPressed |= KeyModifiers.LWin;
-					}
-					if ((NativeMethods.GetKeyState(Keys.RWin) & 0x8000) == 0x8000)
-					{
-						modifiersPressed |= KeyModifiers.RWin;
-					}
-
-					if (hasKeyOnlySubscriptions || modifiersPressed != KeyModifiers.None)
-					{
-						var key = (Keys) Marshal.ReadInt32(lParam);
-
-						KeyboardEventHandler handlers;
-						if (subscriptions.TryGetValue(new Subscription(modifiersPressed, key), out handlers))
+						KeyModifiers modifiersPressed = 0;
+						// there is no other way to distinguish between left and right modifier keys
+						if ((NativeMethods.GetKeyState(Keys.LShiftKey) & 0x8000) == 0x8000)
 						{
-							if (handlers.GetInvocationList().Cast<KeyboardEventHandler>().Any(handler => handler()))
+							modifiersPressed |= KeyModifiers.LShift;
+						}
+						if ((NativeMethods.GetKeyState(Keys.RShiftKey) & 0x8000) == 0x8000)
+						{
+							modifiersPressed |= KeyModifiers.RShift;
+						}
+						if ((NativeMethods.GetKeyState(Keys.LMenu) & 0x8000) == 0x8000)
+						{
+							modifiersPressed |= KeyModifiers.LAlt;
+						}
+						if ((NativeMethods.GetKeyState(Keys.RMenu) & 0x8000) == 0x8000)
+						{
+							modifiersPressed |= KeyModifiers.RAlt;
+						}
+						if ((NativeMethods.GetKeyState(Keys.LControlKey) & 0x8000) == 0x8000)
+						{
+							modifiersPressed |= KeyModifiers.LControl;
+						}
+						if ((NativeMethods.GetKeyState(Keys.RControlKey) & 0x8000) == 0x8000)
+						{
+							modifiersPressed |= KeyModifiers.RControl;
+						}
+						if ((NativeMethods.GetKeyState(Keys.LWin) & 0x8000) == 0x8000)
+						{
+							modifiersPressed |= KeyModifiers.LWin;
+						}
+						if ((NativeMethods.GetKeyState(Keys.RWin) & 0x8000) == 0x8000)
+						{
+							modifiersPressed |= KeyModifiers.RWin;
+						}
+
+						if (hasKeyOnlySubscriptions || modifiersPressed != KeyModifiers.None)
+						{
+							KeyboardEventHandler handlers;
+							if (subscriptions.TryGetValue(new Subscription(modifiersPressed, key), out handlers))
 							{
-								return NativeMethods.IntPtrOne;
+								if (handlers.GetInvocationList().Cast<KeyboardEventHandler>().Any(handler => handler()))
+								{
+									return NativeMethods.IntPtrOne;
+								}
 							}
 						}
 					}
