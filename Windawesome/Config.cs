@@ -283,7 +283,7 @@ namespace Windawesome
 		{
 			public Rule(int workspace = 0, bool isFloating = false, bool showInTabs = true,
 				State titlebar = State.AS_IS, State inAltTabAndTaskbar = State.AS_IS, State windowBorders = State.AS_IS,
-				bool redrawOnShow = false, bool activateLastActivePopup = true, bool hideFromAltTabAndTaskbarWhenOnInactiveWorkspace = true)
+				bool redrawOnShow = false, bool activateLastActivePopup = true, bool hideFromAltTabAndTaskbarWhenOnInactiveWorkspace = false)
 			{
 				this.workspace = workspace;
 				this.isFloating = isFloating;

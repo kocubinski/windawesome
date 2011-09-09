@@ -6,56 +6,46 @@ using System.Windows.Forms;
 
 namespace Windawesome
 {
-	public class ShortcutsManager : IPlugin
+	public sealed class ShortcutsManager : IPlugin
 	{
-		private class Subscription
+		private sealed class Subscription
 		{
 			private readonly Keys key;
-
-			private readonly bool hasShift;
-			private readonly bool hasAlt;
-			private readonly bool hasWin;
-			private readonly bool hasControl;
-
-			private readonly KeyModifiers shift;
-			private readonly KeyModifiers alt;
-			private readonly KeyModifiers win;
-			private readonly KeyModifiers control;
+			private readonly KeyModifiers modifiers;
 
 			public Subscription(KeyModifiers modifiers, Keys key)
 			{
 				this.key = key;
-
-				shift = modifiers & KeyModifiers.Shift;
-				alt = modifiers & KeyModifiers.Alt;
-				win = modifiers & KeyModifiers.Win;
-				control = modifiers & KeyModifiers.Control;
-
-				hasShift = shift != KeyModifiers.None;
-				hasAlt = alt != KeyModifiers.None;
-				hasWin = win != KeyModifiers.None;
-				hasControl = control != KeyModifiers.None;
+				this.modifiers = modifiers;
 			}
 
-			public class SubscriptionEqualityComparer : IEqualityComparer<Subscription>
+			public sealed class SubscriptionEqualityComparer : IEqualityComparer<Subscription>
 			{
 				#region IEqualityComparer<Subscription> Members
 
 				bool IEqualityComparer<Subscription>.Equals(Subscription x, Subscription y)
 				{
-					if ((x.hasAlt || y.hasAlt) && (x.alt & y.alt) == 0)
+					var xAlt = x.modifiers & KeyModifiers.Alt;
+					var yAlt = y.modifiers & KeyModifiers.Alt;
+					if ((xAlt != KeyModifiers.None || yAlt != KeyModifiers.None) && (xAlt & yAlt) == 0)
 					{
 						return false;
 					}
-					if ((x.hasControl || y.hasControl) && (x.control & y.control) == 0)
+					var xControl = x.modifiers & KeyModifiers.Control;
+					var yControl = y.modifiers & KeyModifiers.Control;
+					if ((xControl != KeyModifiers.None || yControl != KeyModifiers.None) && (xControl & yControl) == 0)
 					{
 						return false;
 					}
-					if ((x.hasShift || y.hasShift) && (x.shift & y.shift) == 0)
+					var xShift = x.modifiers & KeyModifiers.Shift;
+					var yShift = y.modifiers & KeyModifiers.Shift;
+					if ((xShift != KeyModifiers.None || yShift != KeyModifiers.None) && (xShift & yShift) == 0)
 					{
 						return false;
 					}
-					if ((x.hasWin || y.hasWin) && (x.win & y.win) == 0)
+					var xWin = x.modifiers & KeyModifiers.Win;
+					var yWin = y.modifiers & KeyModifiers.Win;
+					if ((xWin != KeyModifiers.None || yWin != KeyModifiers.None) && (xWin & yWin) == 0)
 					{
 						return false;
 					}
@@ -65,19 +55,19 @@ namespace Windawesome
 				int IEqualityComparer<Subscription>.GetHashCode(Subscription obj)
 				{
 					var modifiers = 0;
-					if (obj.hasControl)
+					if ((obj.modifiers & KeyModifiers.Alt) != KeyModifiers.None)
 					{
 						modifiers += 1;
 					}
-					if (obj.hasAlt)
+					if ((obj.modifiers & KeyModifiers.Control) != KeyModifiers.None)
 					{
 						modifiers += 2;
 					}
-					if (obj.hasShift)
+					if ((obj.modifiers & KeyModifiers.Shift) != KeyModifiers.None)
 					{
 						modifiers += 4;
 					}
-					if (obj.hasWin)
+					if ((obj.modifiers & KeyModifiers.Win) != KeyModifiers.None)
 					{
 						modifiers += 8;
 					}
@@ -181,7 +171,7 @@ namespace Windawesome
 
 		private static IntPtr KeyboardHookProc(int nCode, UIntPtr wParam, IntPtr lParam)
 		{
-			if (nCode >= 0)
+			if (nCode == 0)
 			{
 				if (wParam == NativeMethods.WM_KEYDOWN || wParam == NativeMethods.WM_SYSKEYDOWN)
 				{

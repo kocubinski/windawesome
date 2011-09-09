@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace Windawesome
 {
@@ -318,6 +316,7 @@ namespace Windawesome
 
 			windowPlacement = originalWindowPlacement;
 			RestorePosition(false);
+			Show();
 		}
 	}
 }

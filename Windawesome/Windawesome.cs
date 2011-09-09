@@ -170,7 +170,7 @@ namespace Windawesome
 			config.Plugins.ForEach(p => p.InitializePlugin(this));
 
 			// add all windows to their respective workspaces
-			NativeMethods.EnumDesktopWindows(IntPtr.Zero, (hWnd, _) => (IsAppWindow(hWnd) && AddWindowToWorkspace(hWnd, finishedInitializing: false)) || true, IntPtr.Zero);
+			NativeMethods.EnumWindows((hWnd, _) => (IsAppWindow(hWnd) && AddWindowToWorkspace(hWnd, finishedInitializing: false)) || true, IntPtr.Zero);
 
 			// add a handler for when the screen resolution changes as well as
 			// a handler for the system shutting down/restarting
@@ -271,7 +271,7 @@ namespace Windawesome
 				Where(w => w.hideFromAltTabAndTaskbarWhenOnInactiveWorkspace).ForEach(w => w.ShowInAltTabAndTaskbar(false));
 
 			// initialize monitors and switch to the default starting workspaces
-			config.StartingWorkspaces.ForEach(w => w.Monitor.Initialize());
+			monitors.ForEach(m => m.Initialize());
 			Monitor.ShowHideWindowsTaskbar(CurrentWorkspace.ShowWindowsTaskbar);
 			SetWorkspaceTopManagedWindowAsForeground(CurrentWorkspace);
 			CurrentWorkspace.IsCurrentWorkspace = true;
@@ -296,16 +296,7 @@ namespace Windawesome
 			monitors.ForEach(m => m.Dispose());
 			Monitor.StaticDispose();
 
-			var winPosInfo = NativeMethods.BeginDeferWindowPos(applications.Values.Count);
-			foreach (var window in applications.Values.Select(l => l.First.Value.Item2))
-			{
-				window.RevertToInitialValues();
-				winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, window.hWnd, IntPtr.Zero, 0, 0, 0, 0,
-					NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE |
-					NativeMethods.SWP.SWP_NOZORDER | NativeMethods.SWP.SWP_NOOWNERZORDER | NativeMethods.SWP.SWP_SHOWWINDOW);
-				window.ShowPopupsAndRedraw();
-			}
-			NativeMethods.EndDeferWindowPos(winPosInfo);
+			applications.Values.ForEach(l => l.First.Value.Item2.RevertToInitialValues());
 
 			// dispose of plugins and bars
 			config.Plugins.ForEach(p => p.Dispose());
@@ -553,7 +544,7 @@ namespace Windawesome
 			applications.Keys.Unless(NativeMethods.IsWindow).ToArray().ForEach(w => RemoveApplicationFromAllWorkspaces(w, true));
 
 			// add any application that was not added for some reason when it was created
-			NativeMethods.EnumDesktopWindows(IntPtr.Zero, (hWnd, _) =>
+			NativeMethods.EnumWindows((hWnd, _) =>
 				(IsAppWindow(hWnd) && !applications.ContainsKey(hWnd) && AddWindowToWorkspace(hWnd)) || true, IntPtr.Zero);
 		}
 
@@ -816,9 +807,34 @@ namespace Windawesome
 			NativeMethods.SetCursorPos((bounds.Left + bounds.Right) / 2, (bounds.Top + bounds.Bottom) / 2);
 		}
 
+		private bool ApplicationsTryGetValue(IntPtr hWnd, out LinkedList<Tuple<Workspace, Window>> list)
+		{
+			do
+			{
+				if (applications.TryGetValue(hWnd, out list))
+				{
+					return true;
+				}
+				hWnd = NativeMethods.GetWindow(hWnd, NativeMethods.GW.GW_OWNER);
+			}
+			while (hWnd != IntPtr.Zero);
+			return false;
+		}
+
 		#endregion
 
 		#region API
+
+		public static IntPtr GetTopOwnerWindow(IntPtr hWnd)
+		{
+			var resultHWnd = hWnd;
+			while (hWnd != IntPtr.Zero)
+			{
+				resultHWnd = hWnd;
+				hWnd = NativeMethods.GetWindow(hWnd, NativeMethods.GW.GW_OWNER);
+			}
+			return resultHWnd;
+		}
 
 		public static bool WindowIsNotHung(Window window)
 		{
@@ -1417,41 +1433,48 @@ namespace Windawesome
 
 		private void OnWindowActivated(IntPtr hWnd)
 		{
+			// TODO: when switching from a workspace to another, both containing a shared window,
+			// and the shared window is the active window, Windows sends a HSHELL_WINDOWACTIVATED
+			// for the shared window after the switch (even if it is not the top window in the
+			// workspace being switched to), which causes a wrong reordering in Z order
+
 			if (!hiddenApplications.Contains(hWnd))
 			{
-				if (hWnd != NativeMethods.shellWindow &&
-					!CurrentWorkspace.Monitor.temporarilyShownWindows.Contains(hWnd))
+				if (hWnd != NativeMethods.shellWindow && !CurrentWorkspace.Monitor.temporarilyShownWindows.Contains(hWnd))
 				{
 					LinkedList<Tuple<Workspace, Window>> list;
-					if (!applications.TryGetValue(hWnd, out list)) // if a new window has shown
+					if (!ApplicationsTryGetValue(hWnd, out list)) // if a new window has shown
 					{
 						if (IsAppWindow(hWnd))
 						{
 							RefreshApplicationsHash();
 						}
 					}
-					else if (!CurrentWorkspace.ContainsWindow(hWnd))
+					else
 					{
-						Workspace workspace;
-						if (monitors.Length > 1 && (workspace = list.Select(t => t.Item1).
-							FirstOrDefault(ws => ws.IsWorkspaceVisible && ws.ContainsWindow(hWnd))) != null)
+						if (!CurrentWorkspace.ContainsWindow(hWnd))
 						{
-							// the window is actually visible on another monitor
-							// (e.g. when the user has ALT-TABbed to the window across monitors)
-							SwitchToWorkspace(workspace.id, false);
+							Workspace workspace;
+							if (monitors.Length > 1 && (workspace = list.Select(t => t.Item1).
+								FirstOrDefault(ws => ws.IsWorkspaceVisible && ws.ContainsWindow(hWnd))) != null)
+							{
+								// the window is actually visible on another monitor
+								// (e.g. when the user has ALT-TABbed to the window across monitors)
+								SwitchToWorkspace(workspace.id, false);
+							}
+							else
+							{
+								OnHiddenWindowShown(hWnd, list.First.Value);
+							}
 						}
-						else
-						{
-							OnHiddenWindowShown(hWnd, list.First.Value);
-						}
+
+						CurrentWorkspace.WindowActivated(list.First.Value.Item2.hWnd);
 					}
 				}
-
-				// TODO: when switching from a workspace to another, both containing a shared window,
-				// and the shared window is the active window, Windows sends a HSHELL_WINDOWACTIVATED
-				// for the shared window after the switch (even if it is not the top window in the
-				// workspace being switched to), which causes a wrong reordering in Z order
-				CurrentWorkspace.WindowActivated(hWnd);
+				else
+				{
+					CurrentWorkspace.WindowActivated(hWnd);
+				}
 			}
 		}
 
@@ -1499,7 +1522,7 @@ namespace Windawesome
 						}
 						break;
 					case NativeMethods.ShellEvents.HSHELL_FLASH:
-						if (applications.TryGetValue(m.LParam, out list))
+						if (ApplicationsTryGetValue(m.LParam, out list))
 						{
 							DoWindowFlashing(list);
 						}

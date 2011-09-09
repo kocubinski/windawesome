@@ -102,7 +102,7 @@ inAltTabAndTaskbar - whether the window is SHOWN, HIDDEN or AS_IS in Windows' ta
 windowBorders - whether the window's border is SHOWN, HIDDEN or AS_IS (the last one means that Windawesome will not do anything to the border - do NOT use that if the window is shared, i.e. visible on two or more workspaces, if on any of the others it is not AS_IS). Defaults to AS_IS
 redrawOnShow - whether the window should be redrawed when shown. Some windows (e.g. Excel) have a problem when hidden and then shown again. Defaults to false
 activateLastActivePopup - whether Windawesome should activate the last active popup of the window, instead of the window itself. This is normally what you want as most windows that a top-level window creates are popups and they should be above the main window. Defaults to true
-hideFromAltTabAndTaskbarWhenOnInactiveWorkspace - if true, hides the window from the Alt-Tab menu and the Windows Taskbar when the application is visible on some Workspace but it is not the active one (which can happen only with multiple monitors). Defaults to true
+hideFromAltTabAndTaskbarWhenOnInactiveWorkspace - if true, hides the window from the Alt-Tab menu and the Windows Taskbar when the application is visible on some Workspace but it is not the active one (which can happen only with multiple monitors). Defaults to false
 
 ====================================================================
 

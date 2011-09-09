@@ -1,16 +1,7 @@
 from System import IntPtr
 from System.Linq import Enumerable
-from Windawesome import ProgramRule, State, OnWindowShownAction, OnWindowCreatedOnCurrentWorkspaceAction, NativeMethods
+from Windawesome import Windawesome, ProgramRule, State, OnWindowShownAction, OnWindowCreatedOnCurrentWorkspaceAction, NativeMethods
 from Windawesome.NativeMethods import WS, WS_EX
-
-def TApplicationCustomMatchingFunction(hWnd):
-	if NativeMethods.GetWindowExStyleLongPtr.Invoke(hWnd).HasFlag(NativeMethods.WS_EX.WS_EX_TOOLWINDOW):
-		return False
-	oldHWnd = hWnd
-	while hWnd != IntPtr.Zero:
-		oldHWnd = hWnd
-		hWnd = NativeMethods.GetWindow(hWnd, NativeMethods.GW.GW_OWNER)
-	return NativeMethods.GetWindowClassName(oldHWnd) == "TApplication"
 
 config.ProgramRules = [
 	ProgramRule(
@@ -186,7 +177,8 @@ config.ProgramRules = [
 		rules = [ProgramRule.Rule(isFloating = True)]
 	),
 	ProgramRule(
-		customMatchingFunction = TApplicationCustomMatchingFunction,
+		exStyleNotContains = WS_EX.WS_EX_TOOLWINDOW,
+		customMatchingFunction = lambda hWnd: NativeMethods.GetWindowClassName(Windawesome.GetTopOwnerWindow(hWnd)) == "TApplication",
 		rules = [ProgramRule.Rule(showInTabs = False)]
 	),
 	ProgramRule() # an all-catching rule in the end to manage all other windows
