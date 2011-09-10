@@ -1469,6 +1469,7 @@ namespace Windawesome
 					}
 					else
 					{
+						hWnd = list.First.Value.Item2.hWnd;
 						if (!CurrentWorkspace.ContainsWindow(hWnd))
 						{
 							Workspace workspace;
@@ -1484,9 +1485,6 @@ namespace Windawesome
 								OnHiddenWindowShown(hWnd, list.First.Value);
 							}
 						}
-
-						CurrentWorkspace.WindowActivated(list.First.Value.Item2.hWnd);
-						return ;
 					}
 				}
 

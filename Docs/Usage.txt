@@ -18,11 +18,11 @@ If you've run Windawesome, you'll probably notice that you don't know how to exi
 ====================================================================
 
 Terminology:
-Window - a window
+Window - a window (sometimes I use Windows as in "Microsoft Windows" and sometimes as the plural of Window - it should be pretty obvious from the context)
 IBar - a vertical bar that is docked at the top or the bottom of the screen
 Bar - an implementation of IBar using Windows Forms
 Monitor - a physical monitor. Every Monitor can have zero or more IBars and every IBar has exactly one Monitor. Every Monitor can have zero or more Workspaces and every Workspace has exactly one Monitor
-Workspace - what you see at any point is zero or one Workspaces per monitor. Every Workspace can have zero or more Windows, and every Window can be on zero or more Workspaces. Every Workspace can have zero or more IBars (chosen from the IBars that correspond to the Workspace's Monitor) and every IBar can be on zero or more Workspaces (but exactly once on each)
+Workspace - what you see at any point is zero or one Workspace per monitor. Every Workspace can have zero or more Windows, and every Window can be on zero or more Workspaces. Every Workspace can have zero or more IBars (chosen from the IBars that correspond to the Workspace's Monitor) and every IBar can be on zero or more Workspaces (but exactly once on each)
 Layout - a Layout is the way Windows are managed on a Workspace. Every Workspace has exactly one Layout
 Widget - something that is shown in a Bar. Every Widget instance should be on at most one Bar and every Bar can have zero or more Widgets
 Plugin - just something that is loaded in the beginning and can do various things
@@ -39,10 +39,10 @@ This is the global configuration unit of Windawesome. These instance variables a
 Plugins - an enumerable of IPlugin objects
 Bars - an array of IBar objects
 Workspaces - an array of Workspace objects
-StartingWorkspaces - an enumerable of Workspaces that are going to be the starting ones on each Monitor. Each Monitor must have a StartingWorkspace
+StartingWorkspaces - an enumerable of Workspaces that are going to be the starting ones on each Monitor. Each Monitor must have exactly one StartingWorkspace
 ProgramRules - an enumerable of ProgramRule objects
-WindowBorderWidth - the thickness of the sizing border, in pixels. The default is 1 pixel
-WindowPaddedBorderWidth - the thickness of the padded border, in pixels. The default value is 4 pixels. Only in Vista or later
+WindowBorderWidth - the thickness of the sizing border, in pixels. Use -1 for "do not change". Defaults to -1. Windows' normal one is 1
+WindowPaddedBorderWidth - the thickness of the padded border, in pixels. Use -1 for "do not change". Defaults to -1. Windows' normal one is 4. Only in Vista or later
 ShowMinimizeMaximizeRestoreAnimations - whether to allow Windows to show animations when minimizing, maximizing or restoring an application. False by default
 HideMouseWhenTyping - whether to hide the mouse cursor when typing. False by default
 FocusFollowsMouse - whether focus follows the mouse - i.e. the focused window is always the one under the mouse. False by default
@@ -62,12 +62,11 @@ styleContains - the window styles that must be present in the window's style. De
 styleNotContains - the window styles that must NOT be present in the window's style. Defaults to 0
 exStyleContains - the extended window styles that must be present in the window's extended style. Defaults to 0
 exStyleNotContains - the extended window styles that must NOT be present in the window's extended style. Defaults to 0
-customMatchingFunction - a delegate of type "bool CustomMatchingFunction(IntPtr hWnd)" which is called after each rule that matches all of the above variables. It should return true if the rule is to be matched and false otherwise. The default one returns true if the window has no owner
+customMatchingFunction - a delegate of type "bool CustomMatchingFunction(IntPtr hWnd)" which is called after each rule that matches all of the above variables. It should return true if the rule is to be matched and false otherwise. The default one returns true if the window has no owner and hasn't got the WS_EX_TOOLWINDOW extended style
 
 isManaged - whether Windawesome should care about that window. Defaults to true
 tryAgainAfter - the time, in milliseconds, to wait before trying to match the rules again (if >= 0). Defaults to -1
 windowCreatedDelay - the time, in milliseconds, to wait before taking any action after the window has been created (if > 0). Windawesome will match the rules and then sleep. The default value is -1 which means that Windawesome will wait until the process is completely loaded. In most cases the default will work just fine
-handleOwnedWindows - if true, Windawesome will handle a window that is owned by this one. Useful for applications using the VCL framework as they use a window which owns the "real" window. Defaults to false
 hideOwnedPopups - if true, Windawesome will hide all popups that are owned of the window being hidden. Defaults to true
 redrawDesktopOnWindowCreated - if true, Windawesome will redraw the Desktop when this window is created. Useful if you have problems with that. I've seen it with mintty (the cygwin terminal emulator). Defaults to false
 showMenu - if true, the menu bar (if any) of a window is shown, otherwise - not. Note that actually this doesn't work for a lot of windows, because they don't have a menu in Window's sense. Defaults to true
@@ -87,7 +86,7 @@ onHiddenWindowShownAction - specifies what to do when a hidden window suddenly s
 showOnWorkspacesCount - if > 0, the window is going to be shown on that number workspaces, starting from the first one. So if showOnWorkspacesCount == number of workspaces, then the window is shown on all workspace. Note this is different than not managing the window. Defaults to 0
 rules - a list of Rule objects. Defaults to a list with one Rule with all the defaults for it
 
-Whenever a new window is created, Windawesome tries to match it with any program rule in config.programRules. "className" through "customMatchingFunction", including, must all match. The FIRST matching rule is used, if any. I personally put an "all-catching" rule at the end to manage all windows without specific rules. After that, if a window is not managed, Windawesome does nothing more - which means you will see the window on every workspace and as a normal, floating window.
+Whenever a new window is created, Windawesome tries to match it with any program rule in config.programRules. "className" through "customMatchingFunction", including, must all match. The FIRST matching rule is used, if any. I personally put an "all-catching" rule at the end to manage all windows without specific rules. After that, if a window is not managed, Windawesome does nothing more - which means you will see the window on every workspace and as a normal, floating window. Note that Windawesome will never switch to that window too.
 
 ====================================================================
 
@@ -95,7 +94,7 @@ Rule:
 Each rule governs the specific settings for a Window on a particular Workspace
 
 workspace - the Workspace ID to put the window on (starting from 1). 0 means the current Workspace. Defaults to 0
-isFloating - whether the window is floating, i.e. the layout shouldn't manage it. Defaults to false
+isFloating - whether the window is floating, i.e. the Layout shouldn't manage it. Defaults to false
 showInTabs - whether the window will show in Windawesome's Application Tabs Widget. Defaults to true
 titlebar - whether the window's titlebar is SHOWN, HIDDEN or AS_IS (the last one means that Windawesome will not do anything to the titlebar - do NOT use that if the window is shared, i.e. visible on two or more workspaces, if on any of the others it is not AS_IS). Defaults to AS_IS
 inAltTabAndTaskbar - whether the window is SHOWN, HIDDEN or AS_IS in Windows' taskbar and Alt-Tab menu. Defaults to AS_IS
@@ -125,11 +124,11 @@ Workspace:
 A workspace contains Windows and Bars and is displaying the windows in a particular Layout.
 
 monitor - the Monitor that the Workspace initially belongs to
-layout - the layout to be used to position windows (make sure to use a new instance for each workspace)
-barsAtTop - a list of IBar objects to be visible at the top of this workspace (IBars can be shared between Workspaces on the same monitor). This list may contain bars from different monitors - when the Workspace is on a specific Monitor only the bars that are for that particular Monitor will be visible. Defaults to null (which means no bars)
-barsAtBottom - a list of IBar objects to be visible at the bottom of this workspace (IBars can be shared between Workspaces on the same monitor). This list may contain bars from different monitors - when the Workspace is on a specific Monitor only the bars that are for that particular Monitor will be visible. Defaults to null (which means no bars)
+layout - the Layout to be used to position windows (make sure to use a new instance for each workspace and a new one when you change it for a particular workspace)
+barsAtTop - a list of IBar objects to be visible at the top of this workspace (IBars can be shared between Workspaces on the same monitor, i.e. two or more workspaces could have the same instance of an IBar. This is actually strongly advised if possible). This list may contain bars from different monitors - when the Workspace is on a specific Monitor only the bars that are for that particular Monitor will be visible. Defaults to null (which means no bars)
+barsAtBottom - same as barsAtTop, except the bars are at the bottom of the screen
 name - a short, descriptive name that is going to be shown next to the workspace ID in the Workspaces Widget. Defaults to ""
-showWindowsTaskbar - a boolean to indicate whether to show the Windows taskbar initially on this workspace. Defaults to false
+showWindowsTaskbar - a boolean to indicate whether to show the Windows taskbar initially on this workspace. Only works for workspaces on the primary monitor which contains the Taskbar. Defaults to false
 repositionOnSwitchedTo - a boolean indicating whether to reposition all windows when this workspace has been switched to. Defaults to false
 
 ====================================================================
@@ -137,7 +136,7 @@ repositionOnSwitchedTo - a boolean indicating whether to reposition all windows 
 Layouts:
 The Layout is the way Windawesome manages Windows in Workspaces. There are a couple of Layouts that come by default:
 Full Screen - every Window is made to take the maximum possible area
-Floating - the same behaviour as Windows - applications can be moved around and resized
+Floating - the same behaviour as the default window manager in Windows - applications can be moved around and resized
 Tile - a tiling layout - means that Windows are made to take whole area of the Workspace while trying to display as much as possible of every one of them.
 
 Customizations:
@@ -192,16 +191,16 @@ LaptopBatteryMonitorWidget - accepts the text to show when the battery is chargi
 ====================================================================
 
 Plugins:
-WindowSubclassing - I tried to make a plugin which would subclass all windows and then catch movement, maximization, restoration and stuff like that on workspaces that shouldn't allow actions like that (e.g. full-screen). It works but Windows seems to have problems with that kind of things, so I would suggest you don't use it. It hasn't been updated in a long time either
+WindowSubclassing - DO NOT USE! I tried to make a plugin which would subclass all windows and then catch movement, maximization, restoration and stuff like that on workspaces that shouldn't allow actions like that (e.g. full-screen). It kind of works but Windows seems to have problems with that kind of things, so DO NOT USE IT. It hasn't been updated in a long time either
 
 LoggerPlugin - a plugin which logs in a file what windows are created/destroyed/minimized/activated/restored and what workspaces are activated. Useful if you have problems with some programs to see what window classes are created so you can ignore them in your config files.
 
-ShortcutsManager - allows you to use keyboard shortcuts. If you use only non-left or right modifier keys (Control, Alt, etc), it uses RegisterHotKey function which will fail if there is already a global shortcut with this key and these modifiers. If, however, you have one or more shortcuts that have a left or right-only modifier (LControl, RAlt, etc), then it registers a low-level keyboard hook which will work fine with colliding mappings if you return false from your handler. I do suggest, however, that you use only non-left/right shortcuts (Control, Shift, etc) and use non-colliding mappings.
+ShortcutsManager - allows you to use keyboard shortcuts. If you use only non-left or right modifier keys (Control, Alt, etc), it uses RegisterHotKey function which will fail if there is already a global shortcut with this key and these modifiers. If, however, you have one or more shortcuts that have a left or right-only modifier (LControl, RAlt, etc), then it registers a low-level keyboard hook which will work fine with colliding mappings. In that case, if you return true from your handler the previous mapping will not be executed. If you return false, it will be. I do suggest, however, that you use only non-left/right shortcuts (Control, Shift, etc) and use non-colliding mappings, as this is going to be MUCH faster
 
 ====================================================================
 
 Usage tips:
-- Windawesome will change the so called "working area" of Windows to take the maximum available space - this means, for example, that if the Windows Taskbar is not shown when you maximize a window, it will take the area of the Taskbar too. Whenever changing between workspaces, Windawesome will set the new workspace's working area according to its settings (how many bars are shown, where they are located, whether the Taskbar is shown). This is very useful, however changing the working area in Windows takes, for some reason, a *very* long time - like a second - which is *very* annoying. This means that having two or more workspaces with different settings for bar heights and Taskbar visibility will lead to constant changing of the working area when you switch between them. I would suggest that you have some bars (not necessarily the same) for each workspace, but with the same height, and hiding or showing the Windows Taskbar on all of them. This will make switching between workspaces instantaneous. Take a look at my configuration to see what I mean.
+- Windawesome will change the so called "working area" of Windows to take the maximum available space - this means, for example, that if the Windows Taskbar is not shown when you maximize a window, it will take the area of the Taskbar too. Whenever changing between workspaces, Windawesome will set the new workspace's working area according to its settings (how many bars are shown, where they are located, whether the Taskbar is shown). This is very useful, however changing the working area in Windows takes, for some reason, a *very* long time - like half a second - which is *very* annoying. This means that having two or more workspaces with different settings for bar heights and Taskbar visibility will lead to constant changing of the working area when you switch between them. I would suggest that you have some bars (not necessarily the same) for each workspace, but with the same height, and hiding or showing the Windows Taskbar on all of them. This will make switching between workspaces instantaneous. Take a look at my configuration to see what I mean.
 - I highly suggest you run Windawesome elevated (in Vista and above) as otherwise it's not going to be able to manage elevated windows, due to the UIPI changes since Vista. Which is very irritating, trust me. One more thing is that Windawesome (if not running elevated) will not be able to switch to the topmost window when changing workspaces if on the previous the active program was an elevated one. If you would like to run Windawesome, or any program, elevated without the UIC prompt, you can read how to do that here:
 http://maximumpcguides.com/windows-vista/run-a-program-with-administrative-privileges-without-uac-prompts/
 - If you are using Alt + number to switch between workspaces, I HIGHLY recommend using these two lines in an AutoHotkey script:

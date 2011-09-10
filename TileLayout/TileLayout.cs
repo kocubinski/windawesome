@@ -328,7 +328,7 @@ namespace Windawesome
 			if (this.windows.Count != managedWindows.Count() || !new HashSet<Window>(this.windows).Overlaps(managedWindows))
 			{
 				// restore any maximized windows - should not use SW_RESTORE as it activates the window
-				managedWindows.ForEach(w => NativeMethods.ShowWindowAsync(w.hWnd, NativeMethods.SW.SW_SHOWNOACTIVATE));
+				managedWindows.Where(w => NativeMethods.IsZoomed(w.hWnd)).ForEach(w => NativeMethods.ShowWindowAsync(w.hWnd, NativeMethods.SW.SW_SHOWNOACTIVATE));
 				System.Threading.Thread.Sleep(NativeMethods.minimizeRestoreDelay);
 
 				this.windows = new LinkedList<Window>(managedWindows);
