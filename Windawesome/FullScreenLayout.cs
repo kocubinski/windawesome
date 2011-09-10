@@ -16,8 +16,7 @@ namespace Windawesome
 				var hWindowsMonitor = NativeMethods.MonitorFromWindow(window.hWnd, NativeMethods.MFRF.MONITOR_MONITOR_DEFAULTTONULL);
 				var windowsMonitorInfo = NativeMethods.MONITORINFO.Default;
 				NativeMethods.GetMonitorInfo(hWindowsMonitor, ref windowsMonitorInfo);
-				var windowsMonitorBounds = Rectangle.FromLTRB(
-					windowsMonitorInfo.rcMonitor.left, windowsMonitorInfo.rcMonitor.top, windowsMonitorInfo.rcMonitor.right, windowsMonitorInfo.rcMonitor.bottom);
+				var windowsMonitorBounds = windowsMonitorInfo.rcMonitor.ToRectangle();
 
 				if (NativeMethods.IsZoomed(window.hWnd) && windowsMonitorBounds != newMonitorBounds)
 				{

@@ -205,46 +205,6 @@ namespace Windawesome
 		private static readonly int APPBARDATASize = Marshal.SizeOf(typeof(APPBARDATA));
 
 		[StructLayout(LayoutKind.Sequential)]
-		public struct RECT
-		{
-			public int left;
-			public int top;
-			public int right;
-			public int bottom;
-
-			public static RECT FromRectangle(Rectangle r)
-			{
-				return new RECT { bottom = r.Bottom, left = r.Left, right = r.Right, top = r.Top };
-			}
-
-			public Rectangle ToRectangle()
-			{
-				return Rectangle.FromLTRB(left, top, right, bottom);
-			}
-
-			public static bool operator ==(RECT x, RECT y)
-			{
-				return x.left == y.left && x.top == y.top && x.right == y.right && x.bottom == y.bottom;
-			}
-
-			public static bool operator !=(RECT x, RECT y)
-			{
-				return !(x == y);
-			}
-
-			public override bool Equals(object obj)
-			{
-				var other = obj as RECT?;
-				return other.HasValue && this == other.Value;
-			}
-
-			public override int GetHashCode()
-			{
-				return this.ToRectangle().GetHashCode();
-			}
-		}
-
-		[StructLayout(LayoutKind.Sequential)]
 		public struct APPBARDATA
 		{
 			public int cbSize;
@@ -914,6 +874,29 @@ namespace Windawesome
 		#endregion
 
 		// misc stuff
+
+		#region struct RECT
+
+		[StructLayout(LayoutKind.Sequential)]
+		public struct RECT
+		{
+			public int left;
+			public int top;
+			public int right;
+			public int bottom;
+
+			public static RECT FromRectangle(Rectangle r)
+			{
+				return new RECT { bottom = r.Bottom, left = r.Left, right = r.Right, top = r.Top };
+			}
+
+			public Rectangle ToRectangle()
+			{
+				return Rectangle.FromLTRB(left, top, right, bottom);
+			}
+		}
+
+		#endregion
 
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]

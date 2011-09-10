@@ -393,6 +393,8 @@ namespace Windawesome
 
 		internal void WindowActivated(IntPtr hWnd)
 		{
+			// TODO: if window A ownes window B and both are managed, they should be kept together in the Z order
+
 			MoveWindowToTop(hWnd);
 
 			DoWindowActivated(hWnd);

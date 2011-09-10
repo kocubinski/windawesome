@@ -268,8 +268,8 @@ namespace Windawesome
 		{
 			var monitorInfo = NativeMethods.MONITORINFO.Default;
 			NativeMethods.GetMonitorInfo(this.handle, ref monitorInfo);
-			Bounds = Rectangle.FromLTRB(monitorInfo.rcMonitor.left, monitorInfo.rcMonitor.top, monitorInfo.rcMonitor.right, monitorInfo.rcMonitor.bottom);
-			WorkingArea = Rectangle.FromLTRB(monitorInfo.rcWork.left, monitorInfo.rcWork.top, monitorInfo.rcWork.right, monitorInfo.rcWork.bottom);
+			Bounds = monitorInfo.rcMonitor.ToRectangle();
+			WorkingArea = monitorInfo.rcWork.ToRectangle();
 		}
 
 		internal void SetStartingWorkspace(Workspace startingWorkspace)
