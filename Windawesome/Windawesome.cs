@@ -172,8 +172,9 @@ namespace Windawesome
 			// add all windows to their respective workspaces
 			NativeMethods.EnumWindows((hWnd, _) => (IsAppWindow(hWnd) && AddWindowToWorkspace(hWnd, finishedInitializing: false)) || true, IntPtr.Zero);
 
-			// add a handler for when the screen resolution changes as well as
+			// add a handler for when the working area or screen rosolution changes as well as
 			// a handler for the system shutting down/restarting
+			SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
 			SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
 			SystemEvents.SessionEnded += OnSessionEnded;
 
@@ -279,6 +280,7 @@ namespace Windawesome
 
 		public void Quit()
 		{
+			SystemEvents.UserPreferenceChanged -= OnUserPreferenceChanged;
 			SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
 			SystemEvents.SessionEnded -= OnSessionEnded;
 
@@ -358,10 +360,22 @@ namespace Windawesome
 
 		#region Helpers
 
+		private void OnUserPreferenceChanged(object sender, UserPreferenceChangedEventArgs e)
+		{
+			if (e.Category == UserPreferenceCategory.Desktop)
+			{
+				OnDisplaySettingsChanged(sender, e);
+			}
+		}
+
 		private void OnDisplaySettingsChanged(object sender, EventArgs e)
 		{
 			config.Workspaces.ForEach(ws => ws.hasChanges = true);
-			monitors.ForEach(m => m.CurrentVisibleWorkspace.Reposition());
+			foreach (var monitor in monitors)
+			{
+				monitor.SetBoundsAndWorkingArea();
+				monitor.CurrentVisibleWorkspace.Reposition();
+			}
 		}
 
 		private void OnSessionEnded(object sender, SessionEndedEventArgs e)
@@ -802,14 +816,14 @@ namespace Windawesome
 			ForceForegroundWindow(window);
 		}
 
-		private static void MoveMouseToMiddleOf(NativeMethods.RECT bounds)
+		private static void MoveMouseToMiddleOf(Rectangle bounds)
 		{
-			NativeMethods.SetCursorPos((bounds.left + bounds.right) / 2, (bounds.top + bounds.bottom) / 2);
+			NativeMethods.SetCursorPos((bounds.Left + bounds.Right) / 2, (bounds.Top + bounds.Bottom) / 2);
 		}
 
 		private bool ApplicationsTryGetValue(IntPtr hWnd, out LinkedList<Tuple<Workspace, Window>> list)
 		{
-			// return DoForSelfAndOwnersWhile(hWnd, h => !applications.TryGetValue(hWnd, out list))
+			// return DoForSelfAndOwnersWhile(hWnd, h => !applications.TryGetValue(hWnd, out list));
 			list = null;
 			while (hWnd != IntPtr.Zero && !applications.TryGetValue(hWnd, out list))
 			{

@@ -13,20 +13,8 @@ namespace Windawesome
 		public readonly Screen screen;
 		public Workspace CurrentVisibleWorkspace { get; private set; }
 		public IEnumerable<Workspace> Workspaces { get { return workspaces.Keys; } }
-
-		public NativeMethods.MONITORINFO MonitorInfo
-		{
-			get
-			{
-				var monitorInfo = NativeMethods.MONITORINFO.Default;
-				NativeMethods.GetMonitorInfo(this.handle, ref monitorInfo);
-				return monitorInfo;
-			}
-		}
-
-		public NativeMethods.RECT Bounds { get { return MonitorInfo.rcMonitor; } }
-
-		public NativeMethods.RECT WorkingArea { get { return MonitorInfo.rcWork; } }
+		public Rectangle Bounds { get; private set; }
+		public Rectangle WorkingArea { get; private set; }
 
 		public static readonly IntPtr taskbarHandle;
 		public static readonly IntPtr startButtonHandle;
@@ -83,18 +71,17 @@ namespace Windawesome
 			public bool SetPosition(Monitor monitor)
 			{
 				this.monitor = monitor;
-				var bounds = monitor.Bounds;
 
-				var appBarData = new NativeMethods.APPBARDATA(this.Handle, uEdge: edge, rc: new NativeMethods.RECT { left = bounds.left, right = bounds.right });
+				var appBarData = new NativeMethods.APPBARDATA(this.Handle, uEdge: edge, rc: new NativeMethods.RECT { left = monitor.Bounds.Left, right = monitor.Bounds.Right });
 
 				if (edge == NativeMethods.ABE.ABE_TOP)
 				{
-					appBarData.rc.top = bounds.top;
+					appBarData.rc.top = monitor.Bounds.Top;
 					appBarData.rc.bottom = appBarData.rc.top + Height;
 				}
 				else
 				{
-					appBarData.rc.bottom = bounds.bottom;
+					appBarData.rc.bottom = monitor.Bounds.Bottom;
 					appBarData.rc.top = appBarData.rc.bottom - Height;
 				}
 
@@ -257,6 +244,7 @@ namespace Windawesome
 			this.screen = Screen.AllScreens[monitorIndex];
 			var rect = NativeMethods.RECT.FromRectangle(this.screen.Bounds);
 			this.handle = NativeMethods.MonitorFromRect(ref rect, NativeMethods.MFRF.MONITOR_MONITOR_DEFAULTTONULL);
+			SetBoundsAndWorkingArea();
 		}
 
 		internal void Dispose()
@@ -274,6 +262,14 @@ namespace Windawesome
 			{
 				ShowHideWindowsTaskbar(true);
 			}
+		}
+
+		internal void SetBoundsAndWorkingArea()
+		{
+			var monitorInfo = NativeMethods.MONITORINFO.Default;
+			NativeMethods.GetMonitorInfo(this.handle, ref monitorInfo);
+			Bounds = Rectangle.FromLTRB(monitorInfo.rcMonitor.left, monitorInfo.rcMonitor.top, monitorInfo.rcMonitor.right, monitorInfo.rcMonitor.bottom);
+			WorkingArea = Rectangle.FromLTRB(monitorInfo.rcWork.left, monitorInfo.rcWork.top, monitorInfo.rcWork.right, monitorInfo.rcWork.bottom);
 		}
 
 		internal void SetStartingWorkspace(Workspace startingWorkspace)
@@ -337,8 +333,6 @@ namespace Windawesome
 
 		internal static void ShowHideWindowsTaskbar(bool showWindowsTaskbar)
 		{
-			// TODO: the first time the Taskbar is toggled, the working area doesn't change?
-
 			var appBarData = new NativeMethods.APPBARDATA(taskbarHandle);
 			var state = (NativeMethods.ABS) (uint) NativeMethods.SHAppBarMessage(NativeMethods.ABM.ABM_GETSTATE, ref appBarData);
 

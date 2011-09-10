@@ -1,4 +1,5 @@
 ﻿
+using System.Drawing;
 namespace Windawesome
 {
 	public class FullScreenLayout : ILayout
@@ -9,15 +10,16 @@ namespace Windawesome
 		{
 			if (Windawesome.WindowIsNotHung(window))
 			{
-				var newMonitorBoundsAndWorkingArea = workspace.Monitor.MonitorInfo;
-				var newMonitorBounds = newMonitorBoundsAndWorkingArea.rcMonitor;
-				var newMonitorWorkingArea = newMonitorBoundsAndWorkingArea.rcWork;
+				var newMonitorBounds = workspace.Monitor.Bounds;
+				var newMonitorWorkingArea = workspace.Monitor.WorkingArea;
 
 				var hWindowsMonitor = NativeMethods.MonitorFromWindow(window.hWnd, NativeMethods.MFRF.MONITOR_MONITOR_DEFAULTTONULL);
 				var windowsMonitorInfo = NativeMethods.MONITORINFO.Default;
 				NativeMethods.GetMonitorInfo(hWindowsMonitor, ref windowsMonitorInfo);
+				var windowsMonitorBounds = Rectangle.FromLTRB(
+					windowsMonitorInfo.rcMonitor.left, windowsMonitorInfo.rcMonitor.top, windowsMonitorInfo.rcMonitor.right, windowsMonitorInfo.rcMonitor.bottom);
 
-				if (NativeMethods.IsZoomed(window.hWnd) && windowsMonitorInfo.rcMonitor != newMonitorBounds)
+				if (NativeMethods.IsZoomed(window.hWnd) && windowsMonitorBounds != newMonitorBounds)
 				{
 					// restore if program is maximized and should be on a different monitor
 					NativeMethods.ShowWindow(window.hWnd, NativeMethods.SW.SW_SHOWNOACTIVATE); // should not use SW_RESTORE as it activates the window
@@ -27,28 +29,28 @@ namespace Windawesome
 				var winPlacement = NativeMethods.WINDOWPLACEMENT.Default;
 				NativeMethods.GetWindowPlacement(window.hWnd, ref winPlacement);
 
-				winPlacement.MaxPosition.X = newMonitorBounds.left;
-				winPlacement.MaxPosition.Y = newMonitorBounds.top;
+				winPlacement.MaxPosition.X = newMonitorBounds.Left;
+				winPlacement.MaxPosition.Y = newMonitorBounds.Top;
 
 				var ws = NativeMethods.GetWindowStyleLongPtr(window.hWnd);
 				if (ws.HasFlag(NativeMethods.WS.WS_CAPTION | NativeMethods.WS.WS_MAXIMIZEBOX))
 				{
-					if (windowsMonitorInfo.rcMonitor != newMonitorBounds)
+					if (windowsMonitorBounds != newMonitorBounds)
 					{
-						winPlacement.NormalPosition.left += newMonitorBounds.left - windowsMonitorInfo.rcMonitor.left; // these are in working area coordinates
-						winPlacement.NormalPosition.right += newMonitorBounds.right - windowsMonitorInfo.rcMonitor.right;
-						winPlacement.NormalPosition.top += newMonitorBounds.top - windowsMonitorInfo.rcMonitor.top;
-						winPlacement.NormalPosition.bottom += newMonitorBounds.bottom - windowsMonitorInfo.rcMonitor.bottom;
+						winPlacement.NormalPosition.left += newMonitorBounds.Left - windowsMonitorBounds.Left; // these are in working area coordinates
+						winPlacement.NormalPosition.right += newMonitorBounds.Right - windowsMonitorBounds.Right;
+						winPlacement.NormalPosition.top += newMonitorBounds.Top - windowsMonitorBounds.Top;
+						winPlacement.NormalPosition.bottom += newMonitorBounds.Bottom - windowsMonitorBounds.Bottom;
 					}
 
 					winPlacement.ShowCmd = NativeMethods.SW.SW_SHOWMAXIMIZED;
 				}
 				else
 				{
-					winPlacement.NormalPosition.left = newMonitorBounds.left; // these are in working area coordinates
-					winPlacement.NormalPosition.right = newMonitorBounds.left + newMonitorWorkingArea.right - newMonitorWorkingArea.left;
-					winPlacement.NormalPosition.top = newMonitorBounds.top;
-					winPlacement.NormalPosition.bottom = newMonitorBounds.top + newMonitorWorkingArea.bottom - newMonitorWorkingArea.top;
+					winPlacement.NormalPosition.left = newMonitorBounds.Left; // these are in working area coordinates
+					winPlacement.NormalPosition.right = newMonitorBounds.Left + newMonitorWorkingArea.Width;
+					winPlacement.NormalPosition.top = newMonitorBounds.Top;
+					winPlacement.NormalPosition.bottom = newMonitorBounds.Top + newMonitorWorkingArea.Height;
 
 					winPlacement.ShowCmd = NativeMethods.SW.SW_SHOWNOACTIVATE;
 				}
