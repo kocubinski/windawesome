@@ -216,7 +216,7 @@ namespace Windawesome
 							modifiersPressed |= KeyModifiers.RWin;
 						}
 
-						if (hasKeyOnlySubscriptions || modifiersPressed != KeyModifiers.None)
+						if (modifiersPressed != KeyModifiers.None || hasKeyOnlySubscriptions)
 						{
 							KeyboardEventHandler handlers;
 							if (subscriptions.TryGetValue(new Subscription(modifiersPressed, key), out handlers))

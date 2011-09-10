@@ -9,9 +9,24 @@ namespace Windawesome
 	public class Monitor
 	{
 		public readonly int monitorIndex;
+		public readonly IntPtr handle;
 		public readonly Screen screen;
 		public Workspace CurrentVisibleWorkspace { get; private set; }
 		public IEnumerable<Workspace> Workspaces { get { return workspaces.Keys; } }
+
+		public NativeMethods.MONITORINFO MonitorInfo
+		{
+			get
+			{
+				var monitorInfo = NativeMethods.MONITORINFO.Default;
+				NativeMethods.GetMonitorInfo(this.handle, ref monitorInfo);
+				return monitorInfo;
+			}
+		}
+
+		public NativeMethods.RECT Bounds { get { return MonitorInfo.rcMonitor; } }
+
+		public NativeMethods.RECT WorkingArea { get { return MonitorInfo.rcWork; } }
 
 		public static readonly IntPtr taskbarHandle;
 		public static readonly IntPtr startButtonHandle;
@@ -28,7 +43,7 @@ namespace Windawesome
 		{
 			public readonly int Height;
 
-			private Screen screen;
+			private Monitor monitor;
 			private NativeMethods.RECT rect;
 			private bool visible;
 			private IEnumerable<IBar> bars;
@@ -65,20 +80,21 @@ namespace Windawesome
 				DestroyHandle();
 			}
 
-			public bool SetPosition(Screen screen)
+			public bool SetPosition(Monitor monitor)
 			{
-				this.screen = screen;
+				this.monitor = monitor;
+				var bounds = monitor.Bounds;
 
-				var appBarData = new NativeMethods.APPBARDATA(this.Handle, uEdge: edge, rc: new NativeMethods.RECT { left = screen.Bounds.Left, right = screen.Bounds.Right });
+				var appBarData = new NativeMethods.APPBARDATA(this.Handle, uEdge: edge, rc: new NativeMethods.RECT { left = bounds.left, right = bounds.right });
 
 				if (edge == NativeMethods.ABE.ABE_TOP)
 				{
-					appBarData.rc.top = screen.Bounds.Top;
+					appBarData.rc.top = bounds.top;
 					appBarData.rc.bottom = appBarData.rc.top + Height;
 				}
 				else
 				{
-					appBarData.rc.bottom = screen.Bounds.Bottom;
+					appBarData.rc.bottom = bounds.bottom;
 					appBarData.rc.top = appBarData.rc.bottom - Height;
 				}
 
@@ -201,7 +217,7 @@ namespace Windawesome
 								}
 								break;
 							case NativeMethods.ABN.ABN_POSCHANGED:
-								if (SetPosition(screen))
+								if (SetPosition(monitor))
 								{
 									var winPosInfo = NativeMethods.BeginDeferWindowPos(bars.Count());
 									NativeMethods.EndDeferWindowPos(PositionBars(winPosInfo, bars));
@@ -239,6 +255,8 @@ namespace Windawesome
 
 			this.monitorIndex = monitorIndex;
 			this.screen = Screen.AllScreens[monitorIndex];
+			var rect = NativeMethods.RECT.FromRectangle(this.screen.Bounds);
+			this.handle = NativeMethods.MonitorFromRect(ref rect, NativeMethods.MFRF.MONITOR_MONITOR_DEFAULTTONULL);
 		}
 
 		internal void Dispose()
@@ -441,13 +459,13 @@ namespace Windawesome
 					hideForm.Hide();
 					if (showForm != null)
 					{
-						showForm.SetPosition(screen);
+						showForm.SetPosition(this);
 					}
 				}
 			}
 			else if (showForm != null)
 			{
-				showForm.SetPosition(screen);
+				showForm.SetPosition(this);
 			}
 		}
 	}

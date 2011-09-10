@@ -89,11 +89,11 @@ namespace Windawesome
 		{
 			if (isShown)
 			{
-				Panel panel;
+				Panel panel = null;
 				var workspaceId = bar.Monitor.CurrentVisibleWorkspace.id - 1;
 				var applications = applicationPanels[workspaceId];
 
-				if (applications.TryGetValue(hWnd, out panel))
+				if (Windawesome.DoForSelfAndOwnersWhile(hWnd, h => !applications.TryGetValue(h, out panel)))
 				{
 					if (panel == currentlyHighlightedPanel)
 					{

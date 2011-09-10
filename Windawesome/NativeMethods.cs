@@ -211,6 +211,37 @@ namespace Windawesome
 			public int top;
 			public int right;
 			public int bottom;
+
+			public static RECT FromRectangle(Rectangle r)
+			{
+				return new RECT { bottom = r.Bottom, left = r.Left, right = r.Right, top = r.Top };
+			}
+
+			public Rectangle ToRectangle()
+			{
+				return Rectangle.FromLTRB(left, top, right, bottom);
+			}
+
+			public static bool operator ==(RECT x, RECT y)
+			{
+				return x.left == y.left && x.top == y.top && x.right == y.right && x.bottom == y.bottom;
+			}
+
+			public static bool operator !=(RECT x, RECT y)
+			{
+				return !(x == y);
+			}
+
+			public override bool Equals(object obj)
+			{
+				var other = obj as RECT?;
+				return other.HasValue && this == other.Value;
+			}
+
+			public override int GetHashCode()
+			{
+				return this.ToRectangle().GetHashCode();
+			}
 		}
 
 		[StructLayout(LayoutKind.Sequential)]
@@ -1729,6 +1760,68 @@ namespace Windawesome
 			public int iPaddedBorderWidth;
 
 			public static NONCLIENTMETRICS Default { get { return new NONCLIENTMETRICS { cbSize = NONCLIENTMETRICSSize }; } }
+		}
+
+		#endregion
+
+		#region GetMonitorInfo/MonitorFromRect/MonitorFromWindow
+
+		[DllImport("user32.dll")]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		public static extern bool GetMonitorInfo(IntPtr hMonitor, [In, Out] ref MONITORINFO lpmi);
+
+		public enum MONITORINFOF : uint
+		{
+			MONITORINFOF_PRIMARY = 1
+		}
+
+		private static readonly int MONITORINFOSize = Marshal.SizeOf(typeof(MONITORINFO));
+
+		[StructLayout(LayoutKind.Sequential)]
+		public struct MONITORINFO
+		{
+			/// <summary>
+			/// The size, in bytes, of the structure. Set this member to sizeof(MONITORINFO) (40) before calling the GetMonitorInfo function.
+			/// Doing so lets the function determine the type of structure you are passing to it.
+			/// </summary>
+			public int cbSize;
+
+			/// <summary>
+			/// A RECT structure that specifies the display monitor rectangle, expressed in virtual-screen coordinates.
+			/// Note that if the monitor is not the primary display monitor, some of the rectangle's coordinates may be negative values.
+			/// </summary>
+			public RECT rcMonitor;
+
+			/// <summary>
+			/// A RECT structure that specifies the work area rectangle of the display monitor that can be used by applications,
+			/// expressed in virtual-screen coordinates. Windows uses this rectangle to maximize an application on the monitor.
+			/// The rest of the area in rcMonitor contains system windows such as the task bar and side bars.
+			/// Note that if the monitor is not the primary display monitor, some of the rectangle's coordinates may be negative values.
+			/// </summary>
+			public RECT rcWork;
+
+			/// <summary>
+			/// The attributes of the display monitor.
+			///
+			/// This member can be the following value:
+			///   1 : MONITORINFOF_PRIMARY
+			/// </summary>
+			public MONITORINFOF dwFlags;
+
+			public static MONITORINFO Default { get { return new MONITORINFO { cbSize = MONITORINFOSize }; } }
+		}
+
+		[DllImport("user32.dll")]
+		public static extern IntPtr MonitorFromRect([In] ref RECT lprc, MFRF dwFlags);
+
+		[DllImport("user32.dll")]
+		public static extern IntPtr MonitorFromWindow(IntPtr hwnd, MFRF dwFlags);
+
+		public enum MFRF : uint
+		{
+			MONITOR_MONITOR_DEFAULTTONULL = 0x00000000,
+			MONITOR_MONITOR_DEFAULTTOPRIMARY = 0x00000001,
+			MONITOR_DEFAULTTONEAREST = 0x00000002
 		}
 
 		#endregion

@@ -802,28 +802,34 @@ namespace Windawesome
 			ForceForegroundWindow(window);
 		}
 
-		private static void MoveMouseToMiddleOf(Rectangle bounds)
+		private static void MoveMouseToMiddleOf(NativeMethods.RECT bounds)
 		{
-			NativeMethods.SetCursorPos((bounds.Left + bounds.Right) / 2, (bounds.Top + bounds.Bottom) / 2);
+			NativeMethods.SetCursorPos((bounds.left + bounds.right) / 2, (bounds.top + bounds.bottom) / 2);
 		}
 
 		private bool ApplicationsTryGetValue(IntPtr hWnd, out LinkedList<Tuple<Workspace, Window>> list)
 		{
-			do
+			// return DoForSelfAndOwnersWhile(hWnd, h => !applications.TryGetValue(hWnd, out list))
+			list = null;
+			while (hWnd != IntPtr.Zero && !applications.TryGetValue(hWnd, out list))
 			{
-				if (applications.TryGetValue(hWnd, out list))
-				{
-					return true;
-				}
 				hWnd = NativeMethods.GetWindow(hWnd, NativeMethods.GW.GW_OWNER);
 			}
-			while (hWnd != IntPtr.Zero);
-			return false;
+			return list != null;
 		}
 
 		#endregion
 
 		#region API
+
+		public static bool DoForSelfAndOwnersWhile(IntPtr hWnd, Predicate<IntPtr> action)
+		{
+			while (hWnd != IntPtr.Zero && action(hWnd))
+			{
+				hWnd = NativeMethods.GetWindow(hWnd, NativeMethods.GW.GW_OWNER);
+			}
+			return hWnd != IntPtr.Zero;
+		}
 
 		public static IntPtr GetTopOwnerWindow(IntPtr hWnd)
 		{
@@ -1082,7 +1088,7 @@ namespace Windawesome
 
 						if (config.MoveMouseOverMonitorsOnSwitch)
 						{
-							MoveMouseToMiddleOf(newWorkspace.Monitor.screen.Bounds);
+							MoveMouseToMiddleOf(newWorkspace.Monitor.Bounds);
 						}
 
 						// remove windows from ALT-TAB menu and Taskbar
@@ -1163,7 +1169,7 @@ namespace Windawesome
 
 				if (CurrentWorkspace == workspace && config.MoveMouseOverMonitorsOnSwitch)
 				{
-					MoveMouseToMiddleOf(workspace.Monitor.screen.Bounds);
+					MoveMouseToMiddleOf(workspace.Monitor.Bounds);
 				}
 
 				// reposition the windows on the workspace
@@ -1445,10 +1451,7 @@ namespace Windawesome
 					LinkedList<Tuple<Workspace, Window>> list;
 					if (!ApplicationsTryGetValue(hWnd, out list)) // if a new window has shown
 					{
-						if (IsAppWindow(hWnd))
-						{
-							RefreshApplicationsHash();
-						}
+						RefreshApplicationsHash();
 					}
 					else
 					{
@@ -1469,12 +1472,11 @@ namespace Windawesome
 						}
 
 						CurrentWorkspace.WindowActivated(list.First.Value.Item2.hWnd);
+						return ;
 					}
 				}
-				else
-				{
-					CurrentWorkspace.WindowActivated(hWnd);
-				}
+
+				CurrentWorkspace.WindowActivated(hWnd);
 			}
 		}
 

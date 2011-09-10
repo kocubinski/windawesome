@@ -266,7 +266,7 @@ namespace Windawesome
 
 		private void Reposition()
 		{
-			var workingArea = workspace.Monitor.screen.WorkingArea;
+			var workingArea = workspace.Monitor.WorkingArea.ToRectangle();
 			var winPosInfo = NativeMethods.BeginDeferWindowPos(this.windows.Count);
 			winPosInfo = PositionAreaWindows(winPosInfo, workingArea, true);
 			winPosInfo = PositionAreaWindows(winPosInfo, workingArea, false);
