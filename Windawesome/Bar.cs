@@ -155,7 +155,14 @@ namespace Windawesome
 			rightAlignedWidgets.ForEach(w => w.InitializeWidget(this));
 			middleAlignedWidgets.ForEach(w => w.InitializeWidget(this));
 
-			PlaceControls();
+			// get initial controls
+			this.form.SuspendLayout();
+
+			this.leftAlignedWidgets.SelectMany(widget => widget.GetInitialControls(true)).ForEach(this.form.Controls.Add);
+			this.rightAlignedWidgets.SelectMany(widget => widget.GetInitialControls(false)).ForEach(this.form.Controls.Add);
+			this.middleAlignedWidgets.SelectMany(widget => widget.GetInitialControls()).ForEach(this.form.Controls.Add);
+
+			this.form.ResumeLayout();
 		}
 
 		void IBar.Dispose()
@@ -182,11 +189,11 @@ namespace Windawesome
 
 		public Monitor Monitor { get { return this.monitor; } }
 
-		void IBar.OnSizeChanging(Size newSize)
+		void IBar.OnClientSizeChanging(Rectangle newRect)
 		{
-			if (this.form.Size != newSize)
+			if (this.form.ClientRectangle != newRect)
 			{
-				ResizeWidgets(newSize);
+				ResizeWidgets(newRect);
 			}
 		}
 
@@ -286,7 +293,8 @@ namespace Windawesome
 					HelpButton = false,
 					TopLevel = true,
 					WindowState = FormWindowState.Normal,
-					TopMost = true
+					TopMost = true,
+					ClientSize = new Size(0, 0)
 				};
 
 			newForm.VisibleChanged += this.OnFormVisibleChanged;
@@ -294,10 +302,10 @@ namespace Windawesome
 			return newForm;
 		}
 
-		private void ResizeWidgets(Size newSize)
+		private void ResizeWidgets(Rectangle newRect)
 		{
-			RepositionLeftAlignedWidgets(0, this.form.ClientRectangle.X);
-			RepositionRightAlignedWidgets(rightAlignedWidgets.Length - 1, newSize.Width);
+			RepositionLeftAlignedWidgets(0, newRect.X);
+			RepositionRightAlignedWidgets(rightAlignedWidgets.Length - 1, newRect.Right);
 			RepositionMiddleAlignedWidgets();
 		}
 
@@ -352,40 +360,6 @@ namespace Windawesome
 					x += eachWidth;
 				}
 			}
-		}
-
-		private void PlaceControls()
-		{
-			this.form.SuspendLayout();
-
-			var x = this.form.ClientRectangle.X;
-			foreach (var controls in this.leftAlignedWidgets.Select(widget => widget.GetControls(x, -1)))
-			{
-				controls.ForEach(this.form.Controls.Add);
-				x = controls.FirstOrDefault() != null ? controls.Max(c => c.Right) : x;
-			}
-			rightmostLeftAlign = x;
-
-			x = this.form.ClientRectangle.Right;
-			foreach (var controls in this.rightAlignedWidgets.Reverse().Select(widget => widget.GetControls(-1, x)))
-			{
-				controls.ForEach(this.form.Controls.Add);
-				x = controls.FirstOrDefault() != null ? controls.Min(c => c.Left) : x;
-			}
-			leftmostRightAlign = x;
-
-			if (middleAlignedWidgets.Length > 0)
-			{
-				var eachWidth = (leftmostRightAlign - rightmostLeftAlign) / middleAlignedWidgets.Length;
-				x = rightmostLeftAlign;
-				foreach (var controls in this.middleAlignedWidgets.Select(widget => widget.GetControls(x, x + eachWidth)))
-				{
-					controls.ForEach(this.form.Controls.Add);
-					x += eachWidth;
-				}
-			}
-
-			this.form.ResumeLayout();
 		}
 
 		public Label CreateLabel(string text, int xLocation, int width = -1)

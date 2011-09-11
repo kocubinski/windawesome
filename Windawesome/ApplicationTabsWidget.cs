@@ -295,11 +295,8 @@ namespace Windawesome
 			}
 		}
 
-		IEnumerable<Control> IWidget.GetControls(int left, int right)
+		IEnumerable<Control> ISpanWidget.GetInitialControls()
 		{
-			this.left = left;
-			this.right = right;
-
 			return Enumerable.Empty<Control>();
 		}
 

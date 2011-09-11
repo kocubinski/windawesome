@@ -823,7 +823,7 @@ namespace Windawesome
 
 		private bool ApplicationsTryGetValue(IntPtr hWnd, out LinkedList<Tuple<Workspace, Window>> list)
 		{
-			// return DoForSelfAndOwnersWhile(hWnd, h => !applications.TryGetValue(hWnd, out list));
+			// return DoForSelfAndOwnersWhile(hWnd, h => !applications.TryGetValue(h, out list));
 			list = null;
 			while (hWnd != IntPtr.Zero && !applications.TryGetValue(hWnd, out list))
 			{
@@ -1555,22 +1555,22 @@ namespace Windawesome
 				}
 				forceForegroundWindow = IntPtr.Zero;
 			}
-			else if (messageHandlers.TryGetValue(m.Msg, out messageDelegate))
+			else
 			{
 				var res = false;
-				foreach (HandleMessageDelegate handler in messageDelegate.GetInvocationList())
+
+				if (messageHandlers.TryGetValue(m.Msg, out messageDelegate))
 				{
-					res |= handler(ref m);
+					foreach (HandleMessageDelegate handler in messageDelegate.GetInvocationList())
+					{
+						res |= handler(ref m);
+					}
 				}
 
 				if (!res)
 				{
 					base.WndProc(ref m);
 				}
-			}
-			else
-			{
-				base.WndProc(ref m);
 			}
 		}
 

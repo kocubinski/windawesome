@@ -24,11 +24,6 @@ namespace Windawesome
 		public readonly IntPtr menu;
 		public readonly bool hideFromAltTabAndTaskbarWhenOnInactiveWorkspace;
 
-		private readonly NativeMethods.WS titlebarStyle;
-
-		private readonly NativeMethods.WS borderStyle;
-		private readonly NativeMethods.WS_EX borderExStyle;
-
 		private readonly NativeMethods.WS originalStyle;
 		private readonly NativeMethods.WS_EX originalExStyle;
 
@@ -58,19 +53,8 @@ namespace Windawesome
 			this.menu = menu;
 			this.hideFromAltTabAndTaskbarWhenOnInactiveWorkspace = rule.hideFromAltTabAndTaskbarWhenOnInactiveWorkspace;
 
-			this.originalExStyle = originalExStyle;
-
 			this.originalStyle = originalStyle;
-
-			titlebarStyle = originalStyle &
-				(NativeMethods.WS.WS_CAPTION | NativeMethods.WS.WS_MINIMIZEBOX |
-				NativeMethods.WS.WS_MAXIMIZEBOX | NativeMethods.WS.WS_SYSMENU);
-
-			borderStyle = originalStyle & NativeMethods.WS.WS_SIZEBOX;
-
-			borderExStyle = originalExStyle &
-				(NativeMethods.WS_EX.WS_EX_DLGMODALFRAME | NativeMethods.WS_EX.WS_EX_CLIENTEDGE |
-				NativeMethods.WS_EX.WS_EX_STATICEDGE | NativeMethods.WS_EX.WS_EX_WINDOWEDGE);
+			this.originalExStyle = originalExStyle;
 
 			windowPlacement = NativeMethods.WINDOWPLACEMENT.Default;
 			SavePosition();
@@ -98,12 +82,7 @@ namespace Windawesome
 			onHiddenWindowShownAction = window.onHiddenWindowShownAction;
 			menu = window.menu;
 			this.hideFromAltTabAndTaskbarWhenOnInactiveWorkspace = window.hideFromAltTabAndTaskbarWhenOnInactiveWorkspace;
-
-			titlebarStyle = window.titlebarStyle;
-
-			borderStyle = window.borderStyle;
-			borderExStyle = window.borderExStyle;
-
+			
 			windowPlacement = window.windowPlacement;
 			originalWindowPlacement = window.originalWindowPlacement;
 		}
@@ -125,6 +104,16 @@ namespace Windawesome
 			var exStyle = NativeMethods.GetWindowExStyleLongPtr(hWnd);
 			var prevStyle = style;
 			var prevExStyle = exStyle;
+
+			var titlebarStyle = originalStyle &
+				(NativeMethods.WS.WS_CAPTION | NativeMethods.WS.WS_MINIMIZEBOX |
+				NativeMethods.WS.WS_MAXIMIZEBOX | NativeMethods.WS.WS_SYSMENU);
+
+			var borderStyle = originalStyle & NativeMethods.WS.WS_SIZEBOX;
+
+			var borderExStyle = originalExStyle &
+				(NativeMethods.WS_EX.WS_EX_DLGMODALFRAME | NativeMethods.WS_EX.WS_EX_CLIENTEDGE |
+				NativeMethods.WS_EX.WS_EX_STATICEDGE | NativeMethods.WS_EX.WS_EX_WINDOWEDGE);
 
 			if (this.InAltTabAndTaskbar != State.AS_IS)
 			{

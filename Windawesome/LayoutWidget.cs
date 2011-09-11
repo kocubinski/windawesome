@@ -64,11 +64,9 @@ namespace Windawesome
 			}
 		}
 
-		IEnumerable<Control> IWidget.GetControls(int left, int right)
+		IEnumerable<Control> IFixedWidthWidget.GetInitialControls(bool isLeft)
 		{
-			isLeft = right == -1;
-
-			RepositionControls(left, right);
+			this.isLeft = isLeft;
 
 			return new Control[] { layoutLabel };
 		}

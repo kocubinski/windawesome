@@ -1,5 +1,5 @@
-﻿
-using System.Drawing;
+﻿using System.Drawing;
+
 namespace Windawesome
 {
 	public class FullScreenLayout : ILayout

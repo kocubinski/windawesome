@@ -448,19 +448,35 @@ namespace Windawesome
 			DoWorkspaceApplicationRemoved(this, window);
 		}
 
-		public bool ContainsWindow(IntPtr hWnd)
-		{
-			return windows.Any(w => w.hWnd == hWnd);
-		}
-
 		public int GetWindowsCount()
 		{
 			return windows.Count;
 		}
 
+		internal LinkedList<Window> GetWindows()
+		{
+			return windows;
+		}
+
+		public bool ContainsWindow(IntPtr hWnd)
+		{
+			return windows.Any(w => w.hWnd == hWnd);
+		}
+
 		public Window GetWindow(IntPtr hWnd)
 		{
 			return windows.FirstOrDefault(w => w.hWnd == hWnd);
+		}
+
+		public IEnumerable<Window> GetManagedWindows()
+		{
+			return windows.Where(w => !w.IsMinimized && !w.IsFloating);
+		}
+
+		public Window GetTopmostWindow()
+		{
+			var window = windows.FirstOrDefault();
+			return (window != null && !window.IsMinimized) ? window : null;
 		}
 
 		internal void ToggleWindowFloating(IntPtr hWnd)
@@ -584,12 +600,6 @@ namespace Windawesome
 			return null;
 		}
 
-		public Window GetTopmostWindow()
-		{
-			var window = windows.FirstOrDefault();
-			return (window != null && !window.IsMinimized) ? window : null;
-		}
-
 		internal void AddToSharedWindows(Window window)
 		{
 			sharedWindowsCount++;
@@ -599,16 +609,6 @@ namespace Windawesome
 		{
 			RestoreSharedWindowState(window, !IsWorkspaceVisible);
 			sharedWindowsCount--;
-		}
-
-		internal LinkedList<Window> GetWindows()
-		{
-			return windows;
-		}
-
-		public IEnumerable<Window> GetManagedWindows()
-		{
-			return windows.Where(w => !w.IsMinimized && !w.IsFloating);
 		}
 	}
 }

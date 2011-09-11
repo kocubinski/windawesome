@@ -143,14 +143,14 @@ namespace Windawesome
 						currentY += bar.GetBarHeight();
 					}
 
+					bar.OnClientSizeChanging(barRect.ToRectangle());
+
 					NativeMethods.AdjustWindowRectEx(ref barRect, NativeMethods.GetWindowStyleLongPtr(bar.Handle),
 						NativeMethods.GetMenu(bar.Handle) != IntPtr.Zero, NativeMethods.GetWindowExStyleLongPtr(bar.Handle));
 
 					var newSize = new Size(barRect.right - barRect.left, barRect.bottom - barRect.top);
 					winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, bar.Handle, NativeMethods.HWND_TOPMOST, barRect.left, barRect.top,
 						newSize.Width, newSize.Height, NativeMethods.SWP.SWP_NOACTIVATE);
-
-					bar.OnSizeChanging(newSize);
 				}
 
 				isTopMost = true;

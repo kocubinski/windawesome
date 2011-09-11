@@ -318,11 +318,9 @@ namespace Windawesome
 			this.bar = bar;
 		}
 
-		IEnumerable<Control> IWidget.GetControls(int left, int right)
+		IEnumerable<Control> IFixedWidthWidget.GetInitialControls(bool isLeft)
 		{
-			isLeft = right == -1;
-
-			this.RepositionControls(left, right);
+			this.isLeft = isLeft;
 
 			return GetPictureBoxes();
 		}

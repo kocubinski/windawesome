@@ -6,19 +6,19 @@ class DateTimeWidget
 	include System::Windows::Forms
 	include System::Linq
 
-	def initialize string, backColor = nil, foreColor = nil, updateTime = 30000, click = nil
-		@backgroundColor = backColor || Color.from_argb(0xC0, 0xC0, 0xC0)
-		@foregroundColor = foreColor || Color.from_argb(0x00, 0x00, 0x00)
+	def initialize string, back_color = nil, fore_color = nil, update_time = 30000, click = nil
+		@background_color = back_color || Color.from_argb(0xC0, 0xC0, 0xC0)
+		@foreground_color = fore_color || Color.from_argb(0x00, 0x00, 0x00)
 		@string = string
 		@click = click
 
-		@updateTimer = Timer.new
-		@updateTimer.interval = updateTime
-		@updateTimer.tick do |s, ea|
-			oldWidth = @label.width
+		@update_timer = Timer.new
+		@update_timer.interval = update_time
+		@update_timer.tick do |s, ea|
+			old_width = @label.width
 			@label.text = " " + DateTime.now.to_string(@string) + " "
 			@label.width = TextRenderer.measure_text(@label.text, @label.font).width
-			if oldWidth != @label.width
+			if old_width != @label.width
 				self.reposition_controls @left, @right
 				@bar.do_fixed_width_widget_width_changed self
 			end
@@ -32,23 +32,21 @@ class DateTimeWidget
 
 		@label = bar.create_label " " + DateTime.now.to_string(@string) + " ", 0
 		@label.text_align = ContentAlignment.middle_center
-		@label.back_color = @backgroundColor
-		@label.fore_color = @foregroundColor
+		@label.back_color = @background_color
+		@label.fore_color = @foreground_color
 		@label.click.add @click if @click
 
-		@updateTimer.start
+		@update_timer.start
 	end
 
-	def get_controls left, right
-		@isLeft = right == -1
-
-		self.reposition_controls left, right
+	def get_initial_controls is_left
+		@is_left = is_left
 
 		Enumerable.repeat @label, 1
 	end
 
 	def reposition_controls left, right
-		if @isLeft
+		if @is_left
 			@left = left
 			@label.location = Point.new left, 0
 			@right = @label.right
