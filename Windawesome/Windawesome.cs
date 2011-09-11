@@ -487,9 +487,9 @@ namespace Windawesome
 					// is set to be transparent
 					// On Windows XP SP3
 					NativeMethods.RedrawWindow(IntPtr.Zero, IntPtr.Zero, IntPtr.Zero,
-						NativeMethods.RedrawWindowFlags.RDW_ALLCHILDREN |
-						NativeMethods.RedrawWindowFlags.RDW_ERASE |
-						NativeMethods.RedrawWindowFlags.RDW_INVALIDATE);
+						NativeMethods.RDW.RDW_ALLCHILDREN |
+						NativeMethods.RDW.RDW_ERASE |
+						NativeMethods.RDW.RDW_INVALIDATE);
 				}
 
 				var list = new LinkedList<Tuple<Workspace, Window>>();

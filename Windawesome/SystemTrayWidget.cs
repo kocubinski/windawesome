@@ -134,7 +134,7 @@ namespace Windawesome
 
 				if (trayData.dwHz == 0x34753423) // some Microsoft magic number to indicate a system tray message
 				{
-					if ((trayData.nid.uFlags.HasFlag(NativeMethods.IconDataMembers.NIF_ICON)) && trayData.dwMessage != NativeMethods.NIM.NIM_DELETE)
+					if ((trayData.nid.uFlags.HasFlag(NativeMethods.NIF.NIF_ICON)) && trayData.dwMessage != NativeMethods.NIM.NIM_DELETE)
 					{
 						trayData.nid.hIcon = NativeMethods.CopyIcon((IntPtr) trayData.nid.hIcon).ToInt32();
 					}
@@ -154,7 +154,7 @@ namespace Windawesome
 							break;
 					}
 
-					if ((trayData.nid.uFlags.HasFlag(NativeMethods.IconDataMembers.NIF_ICON)) && trayData.dwMessage != NativeMethods.NIM.NIM_DELETE)
+					if ((trayData.nid.uFlags.HasFlag(NativeMethods.NIF.NIF_ICON)) && trayData.dwMessage != NativeMethods.NIM.NIM_DELETE)
 					{
 						NativeMethods.DestroyIcon((IntPtr) trayData.nid.hIcon);
 					}
@@ -204,7 +204,7 @@ namespace Windawesome
 
 		private static bool TrayIconVisible(SystemTray.TrayIcon trayIcon)
 		{
-			return !trayIcon.state.HasFlag(NativeMethods.IconState.NIS_HIDDEN);
+			return !trayIcon.state.HasFlag(NativeMethods.NIS.NIS_HIDDEN);
 		}
 
 		private static void TrayIconAdded(NativeMethods.NOTIFYICONDATA iconData)
@@ -239,21 +239,21 @@ namespace Windawesome
 			var trayIcon = prevIconData.Item1;
 
 			// updates the message callback
-			if ((iconData.uFlags.HasFlag(NativeMethods.IconDataMembers.NIF_MESSAGE)) &&
+			if ((iconData.uFlags.HasFlag(NativeMethods.NIF.NIF_MESSAGE)) &&
 				iconData.uCallbackMessage != trayIcon.callbackMessage)
 			{
 				trayIcon.callbackMessage = iconData.uCallbackMessage;
 			}
 
 			// updates the message tip
-			if ((iconData.uFlags.HasFlag(NativeMethods.IconDataMembers.NIF_TIP)) && iconData.szTip != trayIcon.tooltip)
+			if ((iconData.uFlags.HasFlag(NativeMethods.NIF.NIF_TIP)) && iconData.szTip != trayIcon.tooltip)
 			{
 				trayIcon.tooltip = iconData.szTip;
 				prevIconData.Item3.SetToolTip(pictureBox, trayIcon.tooltip);
 			}
 
 			// updates the icon
-			if ((iconData.uFlags.HasFlag(NativeMethods.IconDataMembers.NIF_ICON)) &&
+			if ((iconData.uFlags.HasFlag(NativeMethods.NIF.NIF_ICON)) &&
 				(IntPtr) iconData.hIcon != trayIcon.iconHandle && iconData.hIcon != 0)
 			{
 				trayIcon.iconHandle = (IntPtr) iconData.hIcon;
@@ -261,7 +261,7 @@ namespace Windawesome
 			}
 
 			// updates the state
-			if ((iconData.uFlags.HasFlag(NativeMethods.IconDataMembers.NIF_STATE)) &&
+			if ((iconData.uFlags.HasFlag(NativeMethods.NIF.NIF_STATE)) &&
 				(iconData.dwState & iconData.dwStateMask) != trayIcon.state)
 			{
 				trayIcon.state = iconData.dwState & iconData.dwStateMask;
@@ -298,11 +298,11 @@ namespace Windawesome
 			{
 				if (Windawesome.isAtLeast7)
 				{
-					NativeMethods.ChangeWindowMessageFilterEx(windawesome.Handle, NativeMethods.WM_COPYDATA, NativeMethods.MSGFLT_ADD, IntPtr.Zero);
+					NativeMethods.ChangeWindowMessageFilterEx(windawesome.Handle, NativeMethods.WM_COPYDATA, NativeMethods.MSGFLTEx.MSGFLT_ALLOW, IntPtr.Zero);
 				}
 				else
 				{
-					NativeMethods.ChangeWindowMessageFilter(NativeMethods.WM_COPYDATA, NativeMethods.MSGFLT_ADD);
+					NativeMethods.ChangeWindowMessageFilter(NativeMethods.WM_COPYDATA, NativeMethods.MSGFLT.MSGFLT_ADD);
 				}
 			}
 
@@ -369,6 +369,19 @@ namespace Windawesome
 
 			// cleans the resources taken by the system tray manager
 			SystemTray.Dispose();
+
+			// remove the message filters
+			if (Windawesome.isRunningElevated)
+			{
+				if (Windawesome.isAtLeast7)
+				{
+					NativeMethods.ChangeWindowMessageFilterEx(Windawesome.HandleStatic, NativeMethods.WM_COPYDATA, NativeMethods.MSGFLTEx.MSGFLT_RESET, IntPtr.Zero);
+				}
+				else
+				{
+					NativeMethods.ChangeWindowMessageFilter(NativeMethods.WM_COPYDATA, NativeMethods.MSGFLT.MSGFLT_REMOVE);
+				}
+			}
 		}
 
 		void IWidget.Dispose()
@@ -394,7 +407,7 @@ namespace Windawesome
 			internal static readonly IntPtr trayHandle;
 			internal static readonly IntPtr hiddenTrayHandle;
 
-			private static readonly int TBBUTTONSize;
+			private static readonly IntPtr TBBUTTONSize;
 			private static readonly IntPtr explorerProcessHandle;
 			private static readonly IntPtr buttonMemory;
 			private static readonly StringBuilder sb;
@@ -407,7 +420,7 @@ namespace Windawesome
 					hiddenTrayHandle = FindHiddenTrayHandle();
 				}
 
-				TBBUTTONSize = Marshal.SizeOf(
+				TBBUTTONSize = (IntPtr) Marshal.SizeOf(
 					Environment.Is64BitOperatingSystem ?
 						typeof(NativeMethods.TBBUTTON64.ButtonData) :
 						typeof(NativeMethods.TBBUTTON32.ButtonData));
@@ -419,14 +432,16 @@ namespace Windawesome
 				explorerProcessHandle = NativeMethods.OpenProcess(NativeMethods.PROCESS_VM_OPERATION | NativeMethods.PROCESS_VM_READ, false, explorerPId);
 				if (explorerProcessHandle == IntPtr.Zero)
 				{
-					throw new Exception("Could not open explorer.exe process with PROCESS_VM_OPERATION | PROCESS_VM_READ permissions");
+					throw new Exception("System Tray Widget: Could not open explorer.exe process with PROCESS_VM_OPERATION | PROCESS_VM_READ permissions! " +
+						"Try restarting the computer to fix this or not using the Widget if all else fails");
 				}
 
 				buttonMemory = NativeMethods.VirtualAllocEx(explorerProcessHandle, IntPtr.Zero, TBBUTTONSize, NativeMethods.MEM_COMMIT, NativeMethods.PAGE_READWRITE);
 				if (buttonMemory == IntPtr.Zero)
 				{
 					NativeMethods.CloseHandle(explorerProcessHandle);
-					throw new Exception("Could not VirtualAllocEx some memory in explorer.exe");
+					throw new Exception("System Tray Widget: Could not VirtualAllocEx some memory in explorer.exe! " +
+						"Try restarting the computer to fix this or not using the Widget if all else fails");
 				}
 			}
 
@@ -436,7 +451,7 @@ namespace Windawesome
 				{
 					if (buttonMemory != IntPtr.Zero)
 					{
-						NativeMethods.VirtualFreeEx(explorerProcessHandle, buttonMemory, 0, NativeMethods.MEM_RELEASE);
+						NativeMethods.VirtualFreeEx(explorerProcessHandle, buttonMemory, IntPtr.Zero, NativeMethods.MEM_RELEASE);
 					}
 					NativeMethods.CloseHandle(explorerProcessHandle);
 				}
@@ -486,7 +501,7 @@ namespace Windawesome
 				public uint id;
 				public IntPtr iconHandle;
 				public string tooltip;
-				public NativeMethods.IconState state;
+				public NativeMethods.NIS state;
 
 				public TrayIcon()
 				{
@@ -498,13 +513,16 @@ namespace Windawesome
 			{
 				IntPtr buttonsCountIntPtr;
 
-				NativeMethods.SendMessageTimeout(
+				if (NativeMethods.SendMessageTimeout(
 					trayHandle,
 					TB_BUTTONCOUNT,
 					UIntPtr.Zero,
 					IntPtr.Zero,
 					NativeMethods.SMTO.SMTO_BLOCK | NativeMethods.SMTO.SMTO_NOTIMEOUTIFNOTHUNG | NativeMethods.SMTO.SMTO_ABORTIFHUNG,
-					1000, out buttonsCountIntPtr);
+					1000, out buttonsCountIntPtr) == IntPtr.Zero)
+				{
+					return -1;
+				}
 
 				return buttonsCountIntPtr.ToInt32();
 			}
@@ -512,17 +530,19 @@ namespace Windawesome
 			private static bool GetButtonData<TTrayIconData>(IntPtr trayHandle, TTrayIconData data, int i)
 				where TTrayIconData : TrayIconData
 			{
-				NativeMethods.SendMessageTimeout(
+				if (NativeMethods.SendMessageTimeout(
 					trayHandle,
 					TB_GETBUTTON,
 					(UIntPtr) i,
 					buttonMemory,
 					NativeMethods.SMTO.SMTO_BLOCK | NativeMethods.SMTO.SMTO_NOTIMEOUTIFNOTHUNG | NativeMethods.SMTO.SMTO_ABORTIFHUNG,
-					1000, IntPtr.Zero);
+					1000, IntPtr.Zero) == IntPtr.Zero)
+				{
+					return false;
+				}
 
-				uint numberOfBytesRead;
-				return data.button.Initialize(explorerProcessHandle, buttonMemory, out numberOfBytesRead) &&
-					data.trayData.Initialize(explorerProcessHandle, data.button.dwData, out numberOfBytesRead);
+				return data.button.Initialize(explorerProcessHandle, buttonMemory) &&
+					data.trayData.Initialize(explorerProcessHandle, data.button.dwData);
 			}
 
 			internal static IEnumerable<TrayIcon> GetButtons(IntPtr trayHandle)
@@ -547,10 +567,8 @@ namespace Windawesome
 						continue;
 					}
 
-					uint numberOfBytesRead;
-
 					trayIcon = new TrayIcon();
-					if (NativeMethods.ReadProcessMemory(explorerProcessHandle, data.button.iString, sb, sb.Capacity, out numberOfBytesRead))
+					if (NativeMethods.ReadProcessMemory(explorerProcessHandle, data.button.iString, sb, (IntPtr) sb.Capacity, UIntPtr.Zero))
 					{
 						trayIcon.tooltip = sb.ToString();
 					}
@@ -559,10 +577,9 @@ namespace Windawesome
 					trayIcon.id = data.trayData.uID;
 					trayIcon.hWnd = data.trayData.hWnd;
 					trayIcon.iconHandle = data.trayData.hIcon;
-					trayIcon.state = 0;
 					if (data.button.fsState.HasFlag(NativeMethods.TBSTATE.TBSTATE_HIDDEN))
 					{
-						trayIcon.state |= NativeMethods.IconState.NIS_HIDDEN;
+						trayIcon.state |= NativeMethods.NIS.NIS_HIDDEN;
 					}
 
 					result.AddLast(trayIcon);

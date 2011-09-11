@@ -304,7 +304,7 @@ namespace Windawesome
 
 		private void ResizeWidgets(Rectangle newRect)
 		{
-			RepositionLeftAlignedWidgets(0, newRect.X);
+			RepositionLeftAlignedWidgets(0, newRect.Left);
 			RepositionRightAlignedWidgets(rightAlignedWidgets.Length - 1, newRect.Right);
 			RepositionMiddleAlignedWidgets();
 		}
@@ -371,7 +371,7 @@ namespace Windawesome
 			label.Text = text;
 			label.Font = font;
 			label.Size = new Size(width == -1 ? TextRenderer.MeasureText(label.Text, label.Font).Width : width, this.barHeight);
-			label.Location = new Point(xLocation, this.form.ClientRectangle.Y);
+			label.Location = new Point(xLocation, 0);
 			label.TextAlign = ContentAlignment.MiddleLeft; // TODO: this doesn't work when there are ellipsis
 			label.ResumeLayout();
 

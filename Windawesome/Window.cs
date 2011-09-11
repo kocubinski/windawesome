@@ -209,9 +209,9 @@ namespace Windawesome
 				NativeMethods.SWP.SWP_NOOWNERZORDER | NativeMethods.SWP.SWP_NOCOPYBITS);
 
 			NativeMethods.RedrawWindow(hWnd, IntPtr.Zero, IntPtr.Zero,
-				NativeMethods.RedrawWindowFlags.RDW_ALLCHILDREN |
-				NativeMethods.RedrawWindowFlags.RDW_ERASE |
-				NativeMethods.RedrawWindowFlags.RDW_INVALIDATE);
+				NativeMethods.RDW.RDW_ALLCHILDREN |
+				NativeMethods.RDW.RDW_ERASE |
+				NativeMethods.RDW.RDW_INVALIDATE);
 		}
 
 		internal void SavePosition()

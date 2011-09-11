@@ -264,7 +264,7 @@ namespace Windawesome
 		}
 
 		[DllImport("shell32.dll")]
-		public static extern UIntPtr SHAppBarMessage(ABM dwMessage, ref APPBARDATA pData);
+		public static extern UIntPtr SHAppBarMessage(ABM dwMessage, [In, Out] ref APPBARDATA pData);
 
 		#endregion
 
@@ -275,13 +275,23 @@ namespace Windawesome
 
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool ChangeWindowMessageFilter(uint message, uint dwFlag);
+		public static extern bool ChangeWindowMessageFilter(uint message, MSGFLT dwFlag);
 
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool ChangeWindowMessageFilterEx(IntPtr hWnd, uint message, uint action, [Optional] IntPtr str);
+		public static extern bool ChangeWindowMessageFilterEx(IntPtr hWnd, uint message, MSGFLTEx action, [Optional, In, Out] IntPtr str);
 
-		public const uint MSGFLT_ADD = 1;
+		public enum MSGFLT : uint
+		{
+			MSGFLT_ADD = 1,
+			MSGFLT_REMOVE = 2 
+		}
+
+		public enum MSGFLTEx : uint
+		{
+			MSGFLT_ALLOW = 1,
+			MSGFLT_RESET = 0
+		}
 
 		#endregion
 
@@ -323,9 +333,9 @@ namespace Windawesome
 
 		public static string GetWindowClassName(IntPtr hWnd)
 		{
-			var classNameSB = new StringBuilder(257);
-			GetClassName(hWnd, classNameSB, classNameSB.Capacity);
-			return classNameSB.ToString();
+			var sb = new StringBuilder(257);
+			GetClassName(hWnd, sb, sb.Capacity);
+			return sb.ToString();
 		}
 
 		[DllImport("user32.dll", CharSet = CharSet.Auto)]
@@ -681,7 +691,7 @@ namespace Windawesome
 		#region RedrawWindow
 
 		[Flags()]
-		public enum RedrawWindowFlags : uint
+		public enum RDW : uint
 		{
 			/// <summary>
 			/// Invalidates the rectangle or region that you specify in lprcUpdate or hrgnUpdate.
@@ -731,7 +741,7 @@ namespace Windawesome
 		}
 
 		[DllImport("user32.dll")]
-		public static extern bool RedrawWindow(IntPtr hWnd, IntPtr lprcUpdate, IntPtr hrgnUpdate, RedrawWindowFlags flags);
+		public static extern bool RedrawWindow(IntPtr hWnd, IntPtr lprcUpdate, IntPtr hrgnUpdate, RDW flags);
 
 		#endregion
 
@@ -777,7 +787,7 @@ namespace Windawesome
 		public const uint SHGFI_SMALLICON = 0x1;
 
 		[DllImport("shell32.dll", CharSet = CharSet.Auto)]
-		public static extern UIntPtr SHGetFileInfo([MarshalAs(UnmanagedType.LPTStr)] string pszPath, uint dwFileAttributes, ref SHFILEINFO psfi, int cbSizeFileInfo, uint uFlags);
+		public static extern UIntPtr SHGetFileInfo([MarshalAs(UnmanagedType.LPTStr)] string pszPath, uint dwFileAttributes, [In, Out] ref SHFILEINFO psfi, int cbSizeFileInfo, uint uFlags);
 
 		#endregion
 
@@ -1032,7 +1042,7 @@ namespace Windawesome
 		/// hide the icon.
 		/// </summary>
 		[Flags]
-		public enum IconState : uint
+		public enum NIS : uint
 		{
 			/// <summary>
 			/// The icon is visible.
@@ -1055,7 +1065,7 @@ namespace Windawesome
 		/// to the ToolTip as to how it should display.
 		/// </summary>
 		[Flags]
-		public enum IconDataMembers : uint
+		public enum NIF : uint
 		{
 			/// <summary>
 			/// The message ID is set.
@@ -1070,7 +1080,7 @@ namespace Windawesome
 			/// </summary>
 			NIF_TIP = 0x04,
 			/// <summary>
-			/// State information (<see cref="IconState"/>) is set. This
+			/// State information (<see cref="NIS"/>) is set. This
 			/// applies to both <see cref="NOTIFYICONDATA.dwState"/> and
 			/// <see cref="NOTIFYICONDATA.dwStateMask"/>.
 			/// </summary>
@@ -1117,7 +1127,7 @@ namespace Windawesome
 		/// A struct that is submitted in order to configure
 		/// the taskbar icon. Provides various members that
 		/// can be configured partially, according to the
-		/// values of the <see cref="IconDataMembers"/>
+		/// values of the <see cref="NIF"/>
 		/// that were defined.
 		/// </summary>
 		[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
@@ -1148,7 +1158,7 @@ namespace Windawesome
 			/// Flags that indicate which of the other members contain valid data. This member can be
 			/// a combination of the NIF_XXX constants.
 			/// </summary>
-			public IconDataMembers uFlags;
+			public NIF uFlags;
 
 			/// <summary>
 			/// Application-defined message identifier. The system uses this identifier to send
@@ -1174,15 +1184,15 @@ namespace Windawesome
 			/// <summary>
 			/// State of the icon. Remember to also set the <see cref="dwStateMask"/>.
 			/// </summary>
-			public IconState dwState;
+			public NIS dwState;
 
 			/// <summary>
 			/// A value that specifies which bits of the state member are retrieved or modified.
-			/// For example, setting this member to <see cref="IconState.NIS_HIDDEN"/>
+			/// For example, setting this member to <see cref="NIS.NIS_HIDDEN"/>
 			/// causes only the item's hidden
 			/// state to be retrieved.
 			/// </summary>
-			public IconState dwStateMask;
+			public NIS dwStateMask;
 
 			/// <summary>
 			/// String with the text for a balloon ToolTip. It can have a maximum of 255 characters.
@@ -1271,7 +1281,7 @@ namespace Windawesome
 			byte fsStyle { get; set; }
 			IntPtr dwData { get; set; }
 			IntPtr iString { get; set; }
-			bool Initialize(IntPtr explorerProcessHandle, IntPtr buttonMemory, out uint numberOfBytesRead);
+			bool Initialize(IntPtr explorerProcessHandle, IntPtr buttonMemory);
 		}
 
 		// TBBUTTON for 32-bit Windows
@@ -1332,11 +1342,11 @@ namespace Windawesome
 				set { data.iString = value; }
 			}
 
-			unsafe public bool Initialize(IntPtr explorerProcessHandle, IntPtr buttonMemory, out uint numberOfBytesRead)
+			unsafe public bool Initialize(IntPtr explorerProcessHandle, IntPtr buttonMemory)
 			{
 				fixed (void* ptr = &this.data)
 				{
-					return ReadProcessMemory(explorerProcessHandle, buttonMemory, ptr, sizeof(ButtonData), out numberOfBytesRead);
+					return ReadProcessMemory(explorerProcessHandle, buttonMemory, ptr, (IntPtr) sizeof(ButtonData), UIntPtr.Zero);
 				}
 			}
 		}
@@ -1344,7 +1354,7 @@ namespace Windawesome
 		// TBBUTTON for 64-bit Windows
 		public class TBBUTTON64 : ITBBUTTON
 		{
-			[StructLayout(LayoutKind.Explicit, CharSet = CharSet.Auto, Size = 32)]
+			[StructLayout(LayoutKind.Explicit, Size = 32)]
 			public struct ButtonData
 			{
 				[FieldOffset(0)]
@@ -1399,11 +1409,11 @@ namespace Windawesome
 				set { data.iString = value; }
 			}
 
-			unsafe public bool Initialize(IntPtr explorerProcessHandle, IntPtr buttonMemory, out uint numberOfBytesRead)
+			unsafe public bool Initialize(IntPtr explorerProcessHandle, IntPtr buttonMemory)
 			{
 				fixed (void* ptr = &this.data)
 				{
-					return ReadProcessMemory(explorerProcessHandle, buttonMemory, ptr, sizeof(ButtonData), out numberOfBytesRead);
+					return ReadProcessMemory(explorerProcessHandle, buttonMemory, ptr, (IntPtr) sizeof(ButtonData), UIntPtr.Zero);
 				}
 			}
 		}
@@ -1413,21 +1423,20 @@ namespace Windawesome
 			IntPtr hWnd { get; set; }
 			uint uID { get; set; }
 			uint uCallbackMessage { get; set; }
-			IconDataMembers uFlags { get; set; }
+			NIF uFlags { get; set; }
 			uint dwUnknown { get; set; }
 			IntPtr hIcon { get; set; }
 			IntPtr lpszTip { get; set; } // String[64]
-			IconState dwState { get; set; }
-			uint dwStateMask { get; set; }
-			bool Initialize(IntPtr explorerProcessHandle, IntPtr dwData, out uint numberOfBytesRead);
+			NIS dwState { get; set; }
+			NIS dwStateMask { get; set; }
+			bool Initialize(IntPtr explorerProcessHandle, IntPtr dwData);
 		}
 
 		// TRAYDATA for 32-bit Windows
-
 		public class TRAYDATA32 : ITRAYDATA
 		{
-			[StructLayout(LayoutKind.Explicit, CharSet = CharSet.Unicode, Size = 36)]
-			public struct TrayData
+			[StructLayout(LayoutKind.Explicit, Size = 36)]
+			private struct TrayData
 			{
 				[FieldOffset(0)]
 				public IntPtr hWnd;
@@ -1436,7 +1445,7 @@ namespace Windawesome
 				[FieldOffset(8)]
 				public uint uCallbackMessage;
 				[FieldOffset(12)]
-				public IconDataMembers uFlags;
+				public NIF uFlags;
 				[FieldOffset(16)]
 				public uint dwUnknown;
 				[FieldOffset(20)]
@@ -1444,9 +1453,9 @@ namespace Windawesome
 				[FieldOffset(24)]
 				public IntPtr lpszTip; // String[64]
 				[FieldOffset(28)]
-				public IconState dwState;
+				public NIS dwState;
 				[FieldOffset(32)]
-				public uint dwStateMask;
+				public NIS dwStateMask;
 				//[MarshalAs(UnmanagedType.ByValTStr, SizeConst = 256)]
 				//public string lpszInfo;
 				//public uint dwUnion;
@@ -1475,7 +1484,7 @@ namespace Windawesome
 				set { data.uCallbackMessage = value; }
 			}
 
-			public IconDataMembers uFlags
+			public NIF uFlags
 			{
 				get { return data.uFlags; }
 				set { data.uFlags = value; }
@@ -1499,23 +1508,23 @@ namespace Windawesome
 				set { data.lpszTip = value; }
 			}
 
-			public IconState dwState
+			public NIS dwState
 			{
 				get { return data.dwState; }
 				set { data.dwState = value; }
 			}
 
-			public uint dwStateMask
+			public NIS dwStateMask
 			{
 				get { return data.dwStateMask; }
 				set { data.dwStateMask = value; }
 			}
 
-			unsafe public bool Initialize(IntPtr explorerProcessHandle, IntPtr dwData, out uint numberOfBytesRead)
+			unsafe public bool Initialize(IntPtr explorerProcessHandle, IntPtr dwData)
 			{
 				fixed (void* ptr = &this.data)
 				{
-					return ReadProcessMemory(explorerProcessHandle, dwData, ptr, sizeof(TrayData), out numberOfBytesRead);
+					return ReadProcessMemory(explorerProcessHandle, dwData, ptr, (IntPtr) sizeof(TrayData), UIntPtr.Zero);
 				}
 			}
 		}
@@ -1523,8 +1532,8 @@ namespace Windawesome
 		// TRAYDATA for 64-bit Windows
 		public class TRAYDATA64 : ITRAYDATA
 		{
-			[StructLayout(LayoutKind.Explicit, CharSet = CharSet.Unicode, Size = 52)]
-			public struct TrayData
+			[StructLayout(LayoutKind.Explicit, Size = 52)]
+			private struct TrayData
 			{
 				[FieldOffset(0)]
 				public IntPtr hWnd;
@@ -1533,7 +1542,7 @@ namespace Windawesome
 				[FieldOffset(12)]
 				public uint uCallbackMessage;
 				[FieldOffset(16)]
-				public IconDataMembers uFlags;
+				public NIF uFlags;
 				[FieldOffset(20)]
 				public uint dwUnknown;
 				[FieldOffset(24)]
@@ -1541,9 +1550,9 @@ namespace Windawesome
 				[FieldOffset(32)]
 				public IntPtr lpszTip; // String[64]
 				[FieldOffset(40)]
-				public IconState dwState;
+				public NIS dwState;
 				[FieldOffset(48)]
-				public uint dwStateMask;
+				public NIS dwStateMask;
 				//[MarshalAs(UnmanagedType.ByValTStr, SizeConst = 256)]
 				//public char lpszInfo;
 				//public uint dwUnion;
@@ -1571,7 +1580,7 @@ namespace Windawesome
 				set { data.uCallbackMessage = value; }
 			}
 
-			public IconDataMembers uFlags
+			public NIF uFlags
 			{
 				get { return data.uFlags; }
 				set { data.uFlags = value; }
@@ -1595,23 +1604,23 @@ namespace Windawesome
 				set { data.lpszTip = value; }
 			}
 
-			public IconState dwState
+			public NIS dwState
 			{
 				get { return data.dwState; }
 				set { data.dwState = value; }
 			}
 
-			public uint dwStateMask
+			public NIS dwStateMask
 			{
 				get { return data.dwStateMask; }
 				set { data.dwStateMask = value; }
 			}
 
-			unsafe public bool Initialize(IntPtr explorerProcessHandle, IntPtr dwData, out uint numberOfBytesRead)
+			unsafe public bool Initialize(IntPtr explorerProcessHandle, IntPtr dwData)
 			{
 				fixed (void* ptr = &this.data)
 				{
-					return ReadProcessMemory(explorerProcessHandle, dwData, ptr, sizeof(TrayData), out numberOfBytesRead);
+					return ReadProcessMemory(explorerProcessHandle, dwData, ptr, (IntPtr) sizeof(TrayData), UIntPtr.Zero);
 				}
 			}
 		}
@@ -1637,19 +1646,19 @@ namespace Windawesome
 		public static extern Int32 CloseHandle(IntPtr hObject);
 
 		[DllImport("kernel32.dll")]
-		public static extern IntPtr VirtualAllocEx(IntPtr hProcess, [Optional] IntPtr lpAddress, int dwSize, uint flAllocationType, uint flProtect);
+		public static extern IntPtr VirtualAllocEx(IntPtr hProcess, [Optional] IntPtr lpAddress, IntPtr dwSize, uint flAllocationType, uint flProtect);
 
 		[DllImport("kernel32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool VirtualFreeEx(IntPtr hProcess, IntPtr lpAddress, uint dwSize, uint dwFreeType);
+		public static extern bool VirtualFreeEx(IntPtr hProcess, IntPtr lpAddress, IntPtr dwSize, uint dwFreeType);
 
 		[DllImport("kernel32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
-		unsafe public static extern bool ReadProcessMemory(IntPtr hProcess, IntPtr lpBaseAddress, [Out] void* lpBuffer, int nSize, [Out] out uint lpNumberOfBytesRead);
+		unsafe public static extern bool ReadProcessMemory(IntPtr hProcess, IntPtr lpBaseAddress, [Out] void* lpBuffer, IntPtr nSize, [Out] UIntPtr lpNumberOfBytesRead);
 
 		[DllImport("kernel32.dll", CharSet = CharSet.Auto)]
 		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool ReadProcessMemory(IntPtr hProcess, IntPtr lpBaseAddress, [Out] StringBuilder lpBuffer, int nSize, [Out] out uint lpNumberOfBytesRead);
+		public static extern bool ReadProcessMemory(IntPtr hProcess, IntPtr lpBaseAddress, [Out] StringBuilder lpBuffer, IntPtr nSize, [Out] UIntPtr lpNumberOfBytesRead);
 
 		#endregion
 
