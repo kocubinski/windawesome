@@ -172,7 +172,7 @@ namespace Windawesome
 
 			// show/hide from Taskbar
 			NativeMethods.PostMessage(Windawesome.taskbarButtonsWindowHandle, NativeMethods.WM_SHELLHOOKMESSAGE,
-				(UIntPtr) (show ? NativeMethods.ShellEvents.HSHELL_WINDOWCREATED : NativeMethods.ShellEvents.HSHELL_WINDOWDESTROYED), hWnd);
+				(UIntPtr) (uint) (show ? NativeMethods.ShellEvents.HSHELL_WINDOWCREATED : NativeMethods.ShellEvents.HSHELL_WINDOWDESTROYED), hWnd);
 		}
 
 		internal void ToggleShowHideTitlebar()

@@ -153,7 +153,7 @@ namespace Windawesome
 			}
 		}
 
-		private static void DoWorkspaceMonitorChanged(Workspace workspace, Monitor oldMonitor, Monitor newMonitor)
+		internal static void DoWorkspaceMonitorChanged(Workspace workspace, Monitor oldMonitor, Monitor newMonitor)
 		{
 			if (WorkspaceMonitorChanged != null)
 			{
@@ -600,7 +600,7 @@ namespace Windawesome
 			return null;
 		}
 
-		internal void AddToSharedWindows(Window window)
+		internal void AddToSharedWindows()
 		{
 			sharedWindowsCount++;
 		}

@@ -956,7 +956,7 @@ namespace Windawesome
 
 					var list = applications[window.hWnd];
 					list.AddFirst(new Tuple<Workspace, Window>(newWorkspace, newWindow));
-					list.Where(t => ++t.Item2.WorkspacesCount == 2).ForEach(t => t.Item1.AddToSharedWindows(t.Item2));
+					list.Where(t => ++t.Item2.WorkspacesCount == 2).ForEach(t => t.Item1.AddToSharedWindows());
 
 					FollowWindow(oldWorkspace, newWorkspace, follow, window);
 				}
@@ -1188,6 +1188,8 @@ namespace Windawesome
 
 				// reposition the windows on the workspace
 				workspace.Reposition();
+
+				Workspace.DoWorkspaceMonitorChanged(workspace, oldMonitor, newMonitor);
 			}
 		}
 

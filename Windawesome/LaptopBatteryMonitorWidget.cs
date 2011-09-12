@@ -51,7 +51,7 @@ namespace Windawesome
 
 			var oldWidth = label.Width;
 			label.Text = (powerStatus.PowerLineStatus == PowerLineStatus.Offline ?
-				textForNotCharging : textForCharging) + prefix + (powerStatus.BatteryLifePercent * 100).ToString() + postfix;
+				textForNotCharging : textForCharging) + prefix + (powerStatus.BatteryLifePercent * 100) + postfix;
 
 			label.Width = TextRenderer.MeasureText(label.Text, label.Font).Width;
 			if (oldWidth != label.Width)
@@ -71,7 +71,7 @@ namespace Windawesome
 
 			var powerStatus = SystemInformation.PowerStatus;
 			label = bar.CreateLabel((powerStatus.PowerLineStatus == PowerLineStatus.Offline ?
-				textForNotCharging : textForCharging) + prefix + (powerStatus.BatteryLifePercent * 100).ToString() + postfix, 0);
+				textForNotCharging : textForCharging) + prefix + (powerStatus.BatteryLifePercent * 100) + postfix, 0);
 			label.BackColor = backgroundColor;
 			label.TextAlign = ContentAlignment.MiddleCenter;
 			switch (powerStatus.BatteryChargeStatus)
@@ -87,7 +87,7 @@ namespace Windawesome
 					break;
 				case BatteryChargeStatus.NoSystemBattery:
 					label.ForeColor = Color.Black;
-					label.Text = "NO BAT";
+					label.Text = @"NO BAT";
 					return ;
 			}
 

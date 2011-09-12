@@ -29,7 +29,7 @@ namespace Windawesome
 
 		private sealed class AppBarNativeWindow : NativeWindow
 		{
-			public readonly int Height;
+			public readonly int height;
 
 			private Monitor monitor;
 			private NativeMethods.RECT rect;
@@ -43,7 +43,7 @@ namespace Windawesome
 
 			public AppBarNativeWindow(int barHeight, bool topBar)
 			{
-				this.Height = barHeight;
+				this.height = barHeight;
 				visible = false;
 				isTopMost = false;
 				edge = topBar ? NativeMethods.ABE.ABE_TOP : NativeMethods.ABE.ABE_BOTTOM;
@@ -77,23 +77,23 @@ namespace Windawesome
 				if (edge == NativeMethods.ABE.ABE_TOP)
 				{
 					appBarData.rc.top = monitor.Bounds.Top;
-					appBarData.rc.bottom = appBarData.rc.top + Height;
+					appBarData.rc.bottom = appBarData.rc.top + this.height;
 				}
 				else
 				{
 					appBarData.rc.bottom = monitor.Bounds.Bottom;
-					appBarData.rc.top = appBarData.rc.bottom - Height;
+					appBarData.rc.top = appBarData.rc.bottom - this.height;
 				}
 
 				NativeMethods.SHAppBarMessage(NativeMethods.ABM.ABM_QUERYPOS, ref appBarData);
 
 				if (edge == NativeMethods.ABE.ABE_TOP)
 				{
-					appBarData.rc.bottom = appBarData.rc.top + Height;
+					appBarData.rc.bottom = appBarData.rc.top + this.height;
 				}
 				else
 				{
-					appBarData.rc.top = appBarData.rc.bottom - Height;
+					appBarData.rc.top = appBarData.rc.bottom - this.height;
 				}
 
 				NativeMethods.SHAppBarMessage(NativeMethods.ABM.ABM_SETPOS, ref appBarData);
@@ -372,7 +372,7 @@ namespace Windawesome
 			AppBarNativeWindow appBarTopWindow;
 			var topBarsHeight = workspaceBarsAtTop.Sum(bar => bar.GetBarHeight());
 			var matchingAppBar = workspaces.Values.Select(t => t.Item2).FirstOrDefault(ab =>
-				(ab == null && topBarsHeight == 0) || (ab != null && topBarsHeight == ab.Height));
+				(ab == null && topBarsHeight == 0) || (ab != null && topBarsHeight == ab.height));
 			if (matchingAppBar != null || topBarsHeight == 0)
 			{
 				appBarTopWindow = matchingAppBar;
@@ -385,7 +385,7 @@ namespace Windawesome
 			AppBarNativeWindow appBarBottomWindow;
 			var bottomBarsHeight = workspaceBarsAtBottom.Sum(bar => bar.GetBarHeight());
 			matchingAppBar = workspaces.Values.Select(t => t.Item3).FirstOrDefault(uniqueAppBar =>
-				(uniqueAppBar == null && bottomBarsHeight == 0) || (uniqueAppBar != null && bottomBarsHeight == uniqueAppBar.Height));
+				(uniqueAppBar == null && bottomBarsHeight == 0) || (uniqueAppBar != null && bottomBarsHeight == uniqueAppBar.height));
 			if (matchingAppBar != null || bottomBarsHeight == 0)
 			{
 				appBarBottomWindow = matchingAppBar;
