@@ -14,7 +14,7 @@ namespace Windawesome
 
 		int GetBarHeight();
 
-		void OnClientSizeChanging(Rectangle newRect);
+		void OnWidthChanging(int newWidth);
 
 		void Show();
 		void Hide();

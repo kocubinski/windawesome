@@ -1,11 +1,11 @@
-from System import IntPtr
 from System.Linq import Enumerable
 from Windawesome import Windawesome, ProgramRule, State, OnWindowShownAction, OnWindowCreatedOnCurrentWorkspaceAction, NativeMethods
 from Windawesome.NativeMethods import WS, WS_EX
 
 config.ProgramRules = [
 	ProgramRule(
-		className = "^cygwin/x X rl$",
+		className = "^cygwin/x X rl*$",
+		windowCreatedDelay = 500,
 		rules = [ProgramRule.Rule(workspace = 5)]
 	),
 	ProgramRule(
@@ -40,6 +40,10 @@ config.ProgramRules = [
 	),
 	ProgramRule(
 		className = "^CabinetWClass$", # Windows Explorer
+		rules = [ProgramRule.Rule(workspace = 1)]
+	),
+	ProgramRule(
+		className = "^ExploreWClass$", # Windows Explorer
 		rules = [ProgramRule.Rule(workspace = 1)]
 	),
 	ProgramRule(
@@ -169,7 +173,7 @@ config.ProgramRules = [
 		rules = [ProgramRule.Rule(isFloating = True)] # should be floating
 	),
 	ProgramRule(
-		styleContains = WS.WS_POPUP, # this captures class Shell_TrayWnd (the Windows Tasbar) and class Progman (the desktop window)
+		styleContains = WS.WS_POPUP,
 		isManaged = False
 	),
 	ProgramRule(

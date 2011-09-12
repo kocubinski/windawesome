@@ -189,11 +189,11 @@ namespace Windawesome
 
 		public Monitor Monitor { get { return this.monitor; } }
 
-		void IBar.OnClientSizeChanging(Rectangle newRect)
+		void IBar.OnWidthChanging(int newWidth)
 		{
-			if (this.form.ClientRectangle != newRect)
+			if (this.form.ClientSize.Width != newWidth)
 			{
-				ResizeWidgets(newRect);
+				ResizeWidgets(newWidth);
 			}
 		}
 
@@ -302,10 +302,10 @@ namespace Windawesome
 			return newForm;
 		}
 
-		private void ResizeWidgets(Rectangle newRect)
+		private void ResizeWidgets(int newWidth)
 		{
-			RepositionLeftAlignedWidgets(0, newRect.Left);
-			RepositionRightAlignedWidgets(rightAlignedWidgets.Length - 1, newRect.Right);
+			RepositionLeftAlignedWidgets(0, 0);
+			RepositionRightAlignedWidgets(rightAlignedWidgets.Length - 1, newWidth);
 			RepositionMiddleAlignedWidgets();
 		}
 

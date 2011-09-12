@@ -143,7 +143,7 @@ namespace Windawesome
 						currentY += bar.GetBarHeight();
 					}
 
-					bar.OnClientSizeChanging(barRect.ToRectangle());
+					bar.OnWidthChanging(barRect.right - barRect.left);
 
 					NativeMethods.AdjustWindowRectEx(ref barRect, NativeMethods.GetWindowStyleLongPtr(bar.Handle),
 						NativeMethods.GetMenu(bar.Handle) != IntPtr.Zero, NativeMethods.GetWindowExStyleLongPtr(bar.Handle));
