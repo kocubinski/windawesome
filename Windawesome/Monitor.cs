@@ -203,7 +203,7 @@ namespace Windawesome
 								}
 								break;
 							case NativeMethods.ABN.ABN_POSCHANGED:
-								// ABN_POSCHANGED could be called before the Monitor is notified of the change
+								// ABN_POSCHANGED could be sent before the Monitor is notified of the change
 								// of the working area in Windawesome::OnDisplaySettingsChanged
 								monitor.SetBoundsAndWorkingArea();
 								if (SetPosition(monitor))

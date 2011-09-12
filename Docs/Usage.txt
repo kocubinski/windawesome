@@ -136,7 +136,7 @@ repositionOnSwitchedTo - a boolean indicating whether to reposition all windows 
 Layouts:
 The Layout is the way Windawesome manages Windows in Workspaces. There are a couple of Layouts that come by default:
 Full Screen - every Window is made to take the maximum possible area
-Floating - the same behaviour as the default window manager in Windows - applications can be moved around and resized
+Floating - the same behaviour as the default window manager in Windows - applications can be moved around and resized. They will NOT be moved to the monitor that the workspace is on
 Tile - a tiling layout - means that Windows are made to take whole area of the Workspace while trying to display as much as possible of every one of them.
 
 Customizations:
