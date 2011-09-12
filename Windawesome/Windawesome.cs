@@ -583,10 +583,10 @@ namespace Windawesome
 
 		private void ForceForegroundWindow(IntPtr hWnd)
 		{
-			if (WindowIsNotHung(hWnd))
+			var foregroundWindow = NativeMethods.GetForegroundWindow();
+			if (foregroundWindow != hWnd)
 			{
-				var foregroundWindow = NativeMethods.GetForegroundWindow();
-				if (foregroundWindow != hWnd)
+				if (WindowIsNotHung(hWnd))
 				{
 					var successfullyChanged = false;
 					if (foregroundWindow == IntPtr.Zero)

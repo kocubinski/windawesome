@@ -148,9 +148,8 @@ namespace Windawesome
 					NativeMethods.AdjustWindowRectEx(ref barRect, NativeMethods.GetWindowStyleLongPtr(bar.Handle),
 						NativeMethods.GetMenu(bar.Handle) != IntPtr.Zero, NativeMethods.GetWindowExStyleLongPtr(bar.Handle));
 
-					var newSize = new Size(barRect.right - barRect.left, barRect.bottom - barRect.top);
 					winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, bar.Handle, NativeMethods.HWND_TOPMOST, barRect.left, barRect.top,
-						newSize.Width, newSize.Height, NativeMethods.SWP.SWP_NOACTIVATE);
+						barRect.right - barRect.left, barRect.bottom - barRect.top, NativeMethods.SWP.SWP_NOACTIVATE);
 				}
 
 				isTopMost = true;
@@ -204,6 +203,9 @@ namespace Windawesome
 								}
 								break;
 							case NativeMethods.ABN.ABN_POSCHANGED:
+								// ABN_POSCHANGED could be called before the Monitor is notified of the change
+								// of the working area in Windawesome::OnDisplaySettingsChanged
+								monitor.SetBoundsAndWorkingArea();
 								if (SetPosition(monitor))
 								{
 									var winPosInfo = NativeMethods.BeginDeferWindowPos(bars.Count());
