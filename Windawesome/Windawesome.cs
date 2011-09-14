@@ -523,7 +523,7 @@ namespace Windawesome
 			switch (programRule.onWindowCreatedOnCurrentWorkspaceAction)
 			{
 				case OnWindowCreatedOnCurrentWorkspaceAction.ActivateWindow:
-					ActivateWindow(hWnd, hWnd, NativeMethods.IsIconic(hWnd));
+					ActivateWindow(hWnd);
 					break;
 				case OnWindowCreatedOnCurrentWorkspaceAction.MoveToBottom:
 					var topmost = CurrentWorkspace.GetTopmostWindow();
@@ -536,7 +536,7 @@ namespace Windawesome
 					}
 					else
 					{
-						ActivateWindow(hWnd, hWnd, NativeMethods.IsIconic(hWnd));
+						ActivateWindow(hWnd);
 					}
 					break;
 			}
@@ -795,7 +795,7 @@ namespace Windawesome
 			var window = CurrentWorkspace.GetWindow(hWnd);
 			if (window != null)
 			{
-				ActivateWindow(hWnd, window, window.IsMinimized);
+				ActivateWindow(window);
 
 				return true;
 			}
@@ -803,8 +803,7 @@ namespace Windawesome
 			return false;
 		}
 
-		// there is a dynamic here because this could be either a Window or an IntPtr
-		private void ActivateWindow(IntPtr hWnd, dynamic window, bool isMinimized)
+		private void RestoreIfMinimized(IntPtr hWnd, bool isMinimized)
 		{
 			if (isMinimized)
 			{
@@ -812,7 +811,17 @@ namespace Windawesome
 				NativeMethods.ShowWindowAsync(hWnd, NativeMethods.SW.SW_RESTORE);
 				System.Threading.Thread.Sleep(NativeMethods.minimizeRestoreDelay);
 			}
+		}
 
+		private void ActivateWindow(IntPtr hWnd)
+		{
+			RestoreIfMinimized(hWnd, NativeMethods.IsIconic(hWnd));
+			ForceForegroundWindow(hWnd);
+		}
+
+		private void ActivateWindow(Window window)
+		{
+			RestoreIfMinimized(window.hWnd, window.IsMinimized);
 			ForceForegroundWindow(window);
 		}
 
@@ -1083,14 +1092,24 @@ namespace Windawesome
 				{
 					if (CurrentWorkspace.Monitor != newWorkspace.Monitor)
 					{
-						var showWindows = newWorkspace.GetWindows();
-						if (showWindows.Count > 1 && CurrentWorkspace.GetWindowsCount() > 0)
+						var oldWorkspaceWindows = CurrentWorkspace.GetWindows();
+						var newWorkspaceWindows = newWorkspace.GetWindows();
+						if (oldWorkspaceWindows.Count > 0 || (newWorkspaceWindows.Count > 1 && CurrentWorkspace.GetWindowsCount() > 0))
 						{
+							// move to bottom of Z-order all windows from the old workspace and
 							// restore the Z-order of the new workspace
-							var winPosInfo = NativeMethods.BeginDeferWindowPos(showWindows.Count);
+							var winPosInfo = NativeMethods.BeginDeferWindowPos(oldWorkspaceWindows.Count + newWorkspaceWindows.Count);
 
-							var previousHWnd = NativeMethods.HWND_TOP;
-							foreach (var window in showWindows.Where(WindowIsNotHung))
+							var previousHWnd = NativeMethods.HWND_BOTTOM;
+							foreach (var window in oldWorkspaceWindows.Where(WindowIsNotHung))
+							{
+								winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, window.hWnd, previousHWnd, 0, 0, 0, 0,
+									NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
+								previousHWnd = window.hWnd;
+							}
+							
+							previousHWnd = NativeMethods.HWND_TOP;
+							foreach (var window in newWorkspaceWindows.Where(WindowIsNotHung))
 							{
 								winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, window.hWnd, previousHWnd, 0, 0, 0, 0,
 									NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
@@ -1516,7 +1535,6 @@ namespace Windawesome
 
 		protected override void WndProc(ref Message m)
 		{
-			HandleMessageDelegate messageDelegate;
 			if (m.Msg == NativeMethods.WM_SHELLHOOKMESSAGE)
 			{
 				LinkedList<Tuple<Workspace, Window>> list;
@@ -1561,6 +1579,7 @@ namespace Windawesome
 			{
 				var res = false;
 
+				HandleMessageDelegate messageDelegate;
 				if (messageHandlers.TryGetValue(m.Msg, out messageDelegate))
 				{
 					foreach (HandleMessageDelegate handler in messageDelegate.GetInvocationList())
