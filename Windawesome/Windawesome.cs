@@ -757,7 +757,7 @@ namespace Windawesome
 		private void ShowHideWindows(Workspace oldWorkspace, Workspace newWorkspace, bool setForeground)
 		{
 			var showWindows = newWorkspace.GetWindows();
-			var hideWindows = oldWorkspace.GetWindows().Except(showWindows);
+			var hideWindows = oldWorkspace.sharedWindowsCount > 0 ? oldWorkspace.GetWindows().Except(showWindows) : oldWorkspace.GetWindows();
 
 			var winPosInfo = NativeMethods.BeginDeferWindowPos(showWindows.Count + oldWorkspace.GetWindows().Count);
 
@@ -771,7 +771,8 @@ namespace Windawesome
 				window.ShowPopupsAndRedraw();
 			}
 
-			foreach (var window in hideWindows.Where(WindowIsNotHung))
+			// if the window is not visible we shouldn't add it to hiddenApplications as EVENT_OBJECT_HIDE won't be sent
+			foreach (var window in hideWindows.Where(w => WindowIsNotHung(w) && NativeMethods.IsWindowVisible(w.hWnd)))
 			{
 				hiddenApplications.Add(window.hWnd);
 				window.HidePopups();
@@ -965,7 +966,7 @@ namespace Windawesome
 
 					var list = applications[window.hWnd];
 					list.AddFirst(new Tuple<Workspace, Window>(newWorkspace, newWindow));
-					list.Where(t => ++t.Item2.WorkspacesCount == 2).ForEach(t => t.Item1.AddToSharedWindows());
+					list.Where(t => ++t.Item2.WorkspacesCount == 2).ForEach(t => t.Item1.sharedWindowsCount++);
 
 					FollowWindow(oldWorkspace, newWorkspace, follow, window);
 				}
@@ -1092,28 +1093,29 @@ namespace Windawesome
 				{
 					if (CurrentWorkspace.Monitor != newWorkspace.Monitor)
 					{
-						var oldWorkspaceWindows = CurrentWorkspace.GetWindows();
-						var newWorkspaceWindows = newWorkspace.GetWindows();
-						if (oldWorkspaceWindows.Count > 0 || (newWorkspaceWindows.Count > 1 && CurrentWorkspace.GetWindowsCount() > 0))
+						if (CurrentWorkspace.GetWindowsCount() > 0)
 						{
 							// move to bottom of Z-order all windows from the old workspace and
 							// restore the Z-order of the new workspace
-							var winPosInfo = NativeMethods.BeginDeferWindowPos(oldWorkspaceWindows.Count + newWorkspaceWindows.Count);
+							var winPosInfo = NativeMethods.BeginDeferWindowPos(CurrentWorkspace.GetWindowsCount() + newWorkspace.GetWindowsCount());
 
 							var previousHWnd = NativeMethods.HWND_BOTTOM;
-							foreach (var window in oldWorkspaceWindows.Where(WindowIsNotHung))
+							foreach (var window in CurrentWorkspace.GetWindows().Where(WindowIsNotHung))
 							{
 								winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, window.hWnd, previousHWnd, 0, 0, 0, 0,
 									NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
 								previousHWnd = window.hWnd;
 							}
-							
-							previousHWnd = NativeMethods.HWND_TOP;
-							foreach (var window in newWorkspaceWindows.Where(WindowIsNotHung))
+
+							if (newWorkspace.GetWindowsCount() > 1)
 							{
-								winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, window.hWnd, previousHWnd, 0, 0, 0, 0,
-									NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
-								previousHWnd = window.hWnd;
+								previousHWnd = NativeMethods.HWND_TOP;
+								foreach (var window in newWorkspace.GetWindows().Where(WindowIsNotHung))
+								{
+									winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, window.hWnd, previousHWnd, 0, 0, 0, 0,
+										NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
+									previousHWnd = window.hWnd;
+								}
 							}
 
 							NativeMethods.EndDeferWindowPos(winPosInfo);
