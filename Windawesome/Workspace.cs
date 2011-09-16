@@ -244,13 +244,14 @@ namespace Windawesome
 				windows.Where(w => w.WorkspacesCount > 1).ForEach(w => RestoreSharedWindowState(w, false));
 			}
 
+			IsWorkspaceVisible = true;
+
 			if (NeedsToReposition())
 			{
 				// Repositions if there is/are new/deleted windows
 				Reposition();
 			}
 
-			IsWorkspaceVisible = true;
 			DoWorkspaceShown(this);
 		}
 
@@ -287,8 +288,11 @@ namespace Windawesome
 
 		public void Reposition()
 		{
-			Layout.Reposition();
-			hasChanges = false;
+			hasChanges = !IsWorkspaceVisible;
+			if (IsWorkspaceVisible)
+			{
+				Layout.Reposition();
+			}
 		}
 
 		public void ChangeLayout(ILayout layout)

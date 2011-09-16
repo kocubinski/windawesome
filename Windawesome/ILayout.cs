@@ -17,8 +17,15 @@ namespace Windawesome
 		 */
 		bool ShouldSaveAndRestoreSharedWindowsPosition();
 
+		/*
+		 * This is guaranteed to be called only when the workspace is visible
+		 */
 		void Reposition();
 
+		/*
+		 * The next four functions can be called when the workspace is visible, as well
+		 * as invisible
+		 */
 		void WindowMinimized(Window window);
 
 		void WindowRestored(Window window);

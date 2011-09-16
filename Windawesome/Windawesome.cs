@@ -373,12 +373,8 @@ namespace Windawesome
 
 		private void OnDisplaySettingsChanged(object sender, EventArgs e)
 		{
-			config.Workspaces.ForEach(ws => ws.hasChanges = true);
-			foreach (var monitor in monitors)
-			{
-				monitor.SetBoundsAndWorkingArea();
-				monitor.CurrentVisibleWorkspace.Reposition();
-			}
+			monitors.ForEach(m => m.SetBoundsAndWorkingArea());
+			config.Workspaces.ForEach(ws => ws.Reposition());
 		}
 
 		private void OnSessionEnded(object sender, SessionEndedEventArgs e)
@@ -903,13 +899,10 @@ namespace Windawesome
 
 			RefreshApplicationsHash();
 
-			// repositions all windows in all workspaces and redraw all windows in visible workspaces
-			config.Workspaces.ForEach(ws => ws.hasChanges = true);
-			foreach (var monitor in monitors)
-			{
-				monitor.CurrentVisibleWorkspace.Reposition();
-				monitor.CurrentVisibleWorkspace.windows.ForEach(w => w.Redraw());
-			}
+			// set monitor bounds, repositions all windows in all workspaces and redraw all windows in visible workspaces
+			monitors.ForEach(m => m.SetBoundsAndWorkingArea());
+			config.Workspaces.ForEach(ws => ws.Reposition());
+			monitors.ForEach(m => m.CurrentVisibleWorkspace.windows.ForEach(w => w.Redraw()));
 
 			// refresh bars
 			config.Bars.ForEach(b => b.Refresh());

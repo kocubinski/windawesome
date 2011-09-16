@@ -114,7 +114,7 @@ namespace Windawesome
 
 		void ILayout.WindowRestored(Window window)
 		{
-			MaximizeWindow(window);
+			(this as ILayout).WindowCreated(window);
 		}
 
 		void ILayout.WindowCreated(Window window)

@@ -266,11 +266,14 @@ namespace Windawesome
 
 		private void Reposition()
 		{
-			var workingArea = workspace.Monitor.WorkingArea;
-			var winPosInfo = NativeMethods.BeginDeferWindowPos(this.windows.Count);
-			winPosInfo = PositionAreaWindows(winPosInfo, workingArea, true);
-			winPosInfo = PositionAreaWindows(winPosInfo, workingArea, false);
-			NativeMethods.EndDeferWindowPos(winPosInfo);
+			if (this.windows.Count > 0)
+			{
+				var workingArea = workspace.Monitor.WorkingArea;
+				var winPosInfo = NativeMethods.BeginDeferWindowPos(this.windows.Count);
+				winPosInfo = PositionAreaWindows(winPosInfo, workingArea, true);
+				winPosInfo = PositionAreaWindows(winPosInfo, workingArea, false);
+				NativeMethods.EndDeferWindowPos(winPosInfo);
+			}
 
 			Workspace.DoLayoutUpdated();
 		}
@@ -329,7 +332,7 @@ namespace Windawesome
 		void ILayout.Reposition()
 		{
 			var managedWindows = workspace.GetManagedWindows();
-			if (this.windows.Count != managedWindows.Count() || !new HashSet<Window>(this.windows).Overlaps(managedWindows))
+			if (this.windows.Count != managedWindows.Count() || (this.windows.Count > 0 && !new HashSet<Window>(this.windows).Overlaps(managedWindows)))
 			{
 				// restore any maximized windows - should not use SW_RESTORE as it activates the window
 				managedWindows.Where(w => NativeMethods.IsZoomed(w.hWnd)).ForEach(w => NativeMethods.ShowWindowAsync(w.hWnd, NativeMethods.SW.SW_SHOWNOACTIVATE));
