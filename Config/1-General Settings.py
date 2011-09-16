@@ -1,11 +1,11 @@
 from System.Drawing import Font, Color
 from System.Linq import Enumerable
 from Windawesome import ILayout, TileLayout, FullScreenLayout, FloatingLayout, IPlugin, Workspace
-from Windawesome import Bar, LayoutWidget, WorkspacesWidget, ApplicationTabsWidget, SystemTrayWidget, CpuMonitorWidget
+from Windawesome import Bar, LayoutWidget, WorkspacesWidget, ApplicationTabsWidget, SystemTrayWidget, CpuMonitorWidget, LaptopBatteryMonitorWidget
 from Windawesome import LoggerPlugin, ShortcutsManager
 from Windawesome.NativeMethods import MOD
 from System import Tuple
-from System.Windows.Forms import Keys, Screen
+from System.Windows.Forms import Keys
 
 def onLayoutLabelClick():
 	if windawesome.CurrentWorkspace.Layout.LayoutName() == "Full Screen":
@@ -21,12 +21,13 @@ config.WindowPaddedBorderWidth = 0
 config.UniqueHotkey = Tuple[MOD, Keys](MOD.MOD_ALT, Keys.D0)
 
 config.Bars = Enumerable.ToArray[Bar]([
-	Bar(windawesome.monitors[0],
+	Bar(windawesome.monitors[i],
 		[WorkspacesWidget(), LayoutWidget(onClick = onLayoutLabelClick)],
 		[SystemTrayWidget(), DateTimeWidget("ddd, d-MMM"), DateTimeWidget("h:mm tt", Color.FromArgb(0xA8, 0xA8, 0xA8))],
 		[ApplicationTabsWidget()]
-	)
-])
+	) for i in range(windawesome.monitors.Length)])
+
+index = 1 if windawesome.monitors.Length == 2 else 0
 
 config.Workspaces = Enumerable.ToArray[Workspace]([
 	Workspace(windawesome.monitors[0], FloatingLayout(), [config.Bars[0]], name = 'main'),
@@ -36,11 +37,14 @@ config.Workspaces = Enumerable.ToArray[Workspace]([
 	Workspace(windawesome.monitors[0], FullScreenLayout(), [config.Bars[0]]),
 	Workspace(windawesome.monitors[0], FullScreenLayout(), [config.Bars[0]]),
 	Workspace(windawesome.monitors[0], FullScreenLayout(), [config.Bars[0]]),
-	Workspace(windawesome.monitors[0], FullScreenLayout(), [config.Bars[0]], name = 'mail'),
-	Workspace(windawesome.monitors[0], FullScreenLayout(), [config.Bars[0]], name = 'BC')
+	Workspace(windawesome.monitors[index], FullScreenLayout(), [config.Bars[index]], name = 'mail'),
+	Workspace(windawesome.monitors[index], FullScreenLayout(), [config.Bars[index]], name = 'BC')
 ])
 
-config.StartingWorkspaces = [config.Workspaces[0]]
+if windawesome.monitors.Length == 2:
+	config.StartingWorkspaces = [config.Workspaces[0], config.Workspaces[7]]
+else if windawesome.monitors.Length == 1:
+	config.StartingWorkspaces = [config.Workspaces[0]]
 
 config.Plugins = [
 	#LoggerPlugin(logWorkspaceSwitching = True, logWindowMinimization = True, logWindowRestoration = True,

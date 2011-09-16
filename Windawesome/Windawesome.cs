@@ -261,14 +261,14 @@ namespace Windawesome
 			var windowsToHide = new HashSet<Window>();
 			foreach (var workspace in config.Workspaces)
 			{
-				workspace.GetWindows().ForEach(w => windowsToHide.Add(w));
+				workspace.windows.ForEach(w => windowsToHide.Add(w));
 				workspace.Initialize();
 			}
-			windowsToHide.ExceptWith(config.StartingWorkspaces.SelectMany(ws => ws.GetWindows()));
+			windowsToHide.ExceptWith(config.StartingWorkspaces.SelectMany(ws => ws.windows));
 			windowsToHide.ForEach(HideWindow);
 
 			// remove windows from ALT-TAB menu and Taskbar
-			config.StartingWorkspaces.Where(ws => ws != CurrentWorkspace).SelectMany(ws => ws.GetWindows()).
+			config.StartingWorkspaces.Where(ws => ws != CurrentWorkspace).SelectMany(ws => ws.windows).
 				Where(w => w.hideFromAltTabAndTaskbarWhenOnInactiveWorkspace).ForEach(w => w.ShowInAltTabAndTaskbar(false));
 
 			// initialize monitors and switch to the default starting workspaces
@@ -750,17 +750,18 @@ namespace Windawesome
 
 		private void HideWindow(Window window)
 		{
-			hiddenApplications.Add(window.hWnd);
-			window.Hide();
+			if (NativeMethods.IsWindowVisible(window.hWnd))
+			{
+				hiddenApplications.Add(window.hWnd);
+				window.Hide();
+			}
 		}
 
 		private void ShowHideWindows(Workspace oldWorkspace, Workspace newWorkspace, bool setForeground)
 		{
-			var showWindows = newWorkspace.GetWindows();
-			var hideWindows = oldWorkspace.sharedWindowsCount > 0 ? oldWorkspace.GetWindows().Except(showWindows) : oldWorkspace.GetWindows();
+			var winPosInfo = NativeMethods.BeginDeferWindowPos(newWorkspace.GetWindowsCount() + oldWorkspace.GetWindowsCount());
 
-			var winPosInfo = NativeMethods.BeginDeferWindowPos(showWindows.Count + oldWorkspace.GetWindows().Count);
-
+			var showWindows = newWorkspace.windows;
 			var newTopmostWindow = newWorkspace.GetTopmostWindow();
 			foreach (var window in showWindows.Where(WindowIsNotHung))
 			{
@@ -771,6 +772,7 @@ namespace Windawesome
 				window.ShowPopupsAndRedraw();
 			}
 
+			var hideWindows = oldWorkspace.sharedWindowsCount > 0 ? oldWorkspace.windows.Except(showWindows) : oldWorkspace.windows;
 			// if the window is not visible we shouldn't add it to hiddenApplications as EVENT_OBJECT_HIDE won't be sent
 			foreach (var window in hideWindows.Where(w => WindowIsNotHung(w) && NativeMethods.IsWindowVisible(w.hWnd)))
 			{
@@ -903,7 +905,7 @@ namespace Windawesome
 			foreach (var monitor in monitors)
 			{
 				monitor.CurrentVisibleWorkspace.Reposition();
-				monitor.CurrentVisibleWorkspace.GetWindows().ForEach(w => w.Redraw());
+				monitor.CurrentVisibleWorkspace.windows.ForEach(w => w.Redraw());
 			}
 
 			// refresh bars
@@ -1100,7 +1102,7 @@ namespace Windawesome
 							var winPosInfo = NativeMethods.BeginDeferWindowPos(CurrentWorkspace.GetWindowsCount() + newWorkspace.GetWindowsCount());
 
 							var previousHWnd = NativeMethods.HWND_BOTTOM;
-							foreach (var window in CurrentWorkspace.GetWindows().Where(WindowIsNotHung))
+							foreach (var window in CurrentWorkspace.windows.Where(WindowIsNotHung))
 							{
 								winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, window.hWnd, previousHWnd, 0, 0, 0, 0,
 									NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
@@ -1110,7 +1112,7 @@ namespace Windawesome
 							if (newWorkspace.GetWindowsCount() > 1)
 							{
 								previousHWnd = NativeMethods.HWND_TOP;
-								foreach (var window in newWorkspace.GetWindows().Where(WindowIsNotHung))
+								foreach (var window in newWorkspace.windows.Where(WindowIsNotHung))
 								{
 									winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, window.hWnd, previousHWnd, 0, 0, 0, 0,
 										NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
@@ -1129,14 +1131,14 @@ namespace Windawesome
 						// remove windows from ALT-TAB menu and Taskbar
 						if (CurrentWorkspace.hideFromAltTabWhenOnInactiveWorkspaceCount > 0)
 						{
-							CurrentWorkspace.GetWindows().Where(w => w.hideFromAltTabAndTaskbarWhenOnInactiveWorkspace).ForEach(w => w.ShowInAltTabAndTaskbar(false));
+							CurrentWorkspace.windows.Where(w => w.hideFromAltTabAndTaskbarWhenOnInactiveWorkspace).ForEach(w => w.ShowInAltTabAndTaskbar(false));
 						}
 					}
 
 					// add windows to ALT-TAB menu and Taskbar
 					if (newWorkspace.hideFromAltTabWhenOnInactiveWorkspaceCount > 0)
 					{
-						newWorkspace.GetWindows().Where(w => w.hideFromAltTabAndTaskbarWhenOnInactiveWorkspace).ForEach(w => w.ShowInAltTabAndTaskbar(true));
+						newWorkspace.windows.Where(w => w.hideFromAltTabAndTaskbarWhenOnInactiveWorkspace).ForEach(w => w.ShowInAltTabAndTaskbar(true));
 					}
 				}
 
@@ -1163,7 +1165,7 @@ namespace Windawesome
 					// remove windows from ALT-TAB menu and Taskbar
 					if (CurrentWorkspace.hideFromAltTabWhenOnInactiveWorkspaceCount > 0)
 					{
-						CurrentWorkspace.GetWindows().Where(w => w.hideFromAltTabAndTaskbarWhenOnInactiveWorkspace).ForEach(w => w.ShowInAltTabAndTaskbar(false));
+						CurrentWorkspace.windows.Where(w => w.hideFromAltTabAndTaskbarWhenOnInactiveWorkspace).ForEach(w => w.ShowInAltTabAndTaskbar(false));
 					}
 				}
 
@@ -1195,7 +1197,7 @@ namespace Windawesome
 					// add windows to ALT-TAB menu and Taskbar
 					if (workspace.hideFromAltTabWhenOnInactiveWorkspaceCount > 0)
 					{
-						workspace.GetWindows().Where(w => w.hideFromAltTabAndTaskbarWhenOnInactiveWorkspace).ForEach(w => w.ShowInAltTabAndTaskbar(true));
+						workspace.windows.Where(w => w.hideFromAltTabAndTaskbarWhenOnInactiveWorkspace).ForEach(w => w.ShowInAltTabAndTaskbar(true));
 					}
 
 					PreviousWorkspace = CurrentWorkspace;
@@ -1574,6 +1576,7 @@ namespace Windawesome
 				if (!TrySetForegroundWindow(forceForegroundWindow))
 				{
 					SendHotkey(altTabHotkey);
+					// TODO: sometimes class "#32771" (WinSwitch) is still visible after this - fix!
 				}
 				forceForegroundWindow = IntPtr.Zero;
 			}

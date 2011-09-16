@@ -39,8 +39,7 @@ namespace Windawesome
 		internal bool hasChanges;
 		internal int hideFromAltTabWhenOnInactiveWorkspaceCount;
 		internal int sharedWindowsCount;
-
-		private readonly LinkedList<Window> windows; // all windows, sorted in Z-order, topmost window first
+		internal readonly LinkedList<Window> windows; // all windows, sorted in Z-order, topmost window first
 
 		private static int count;
 
@@ -450,11 +449,6 @@ namespace Windawesome
 		public int GetWindowsCount()
 		{
 			return windows.Count;
-		}
-
-		internal LinkedList<Window> GetWindows()
-		{
-			return windows;
 		}
 
 		public bool ContainsWindow(IntPtr hWnd)
