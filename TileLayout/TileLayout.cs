@@ -322,6 +322,10 @@ namespace Windawesome
 			this.workspace = workspace;
 		}
 
+		void ILayout.Dispose()
+		{
+		}
+
 		void ILayout.Reposition()
 		{
 			var managedWindows = workspace.GetManagedWindows();

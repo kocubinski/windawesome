@@ -19,6 +19,10 @@ namespace Windawesome
 		{
 		}
 
+		void ILayout.Dispose()
+		{
+		}
+
 		bool ILayout.ShouldSaveAndRestoreSharedWindowsPosition()
 		{
 			return true;

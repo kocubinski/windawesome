@@ -9,6 +9,8 @@ namespace Windawesome
 
 		void Initialize(Workspace workspace);
 
+		void Dispose();
+
 		/*
 		 * Should return whether Windawesome should restore a shared window's position if there
 		 * are no changes to the workspace. If there are, Reposition will be called anyway

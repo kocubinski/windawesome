@@ -295,6 +295,7 @@ namespace Windawesome
 		{
 			if (layout.LayoutName() != this.Layout.LayoutName())
 			{
+				this.Layout.Dispose();
 				layout.Initialize(this);
 				var oldLayout = this.Layout;
 				this.Layout = layout;

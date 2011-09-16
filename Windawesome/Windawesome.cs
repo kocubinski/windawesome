@@ -294,6 +294,9 @@ namespace Windawesome
 			NativeMethods.UnregisterHotKey(this.Handle, (ushort) getForegroundPrivilageAtom);
 			NativeMethods.GlobalDeleteAtom((ushort) getForegroundPrivilageAtom);
 
+			// dispose of Layouts
+			config.Workspaces.ForEach(ws => ws.Layout.Dispose());
+
 			// roll back any changes to Windows
 			monitors.ForEach(m => m.Dispose());
 			Monitor.StaticDispose();

@@ -88,6 +88,15 @@ namespace Windawesome
 			Workspace.WorkspaceApplicationRemoved += OnWorkspaceApplicationAddedOrRemoved;
 		}
 
+		void ILayout.Dispose()
+		{
+			workspace.WindowTitlebarToggled -= MaximizeWindow;
+			workspace.WindowBorderToggled -= MaximizeWindow;
+
+			Workspace.WorkspaceApplicationAdded -= OnWorkspaceApplicationAddedOrRemoved;
+			Workspace.WorkspaceApplicationRemoved -= OnWorkspaceApplicationAddedOrRemoved;
+		}
+
 		bool ILayout.ShouldSaveAndRestoreSharedWindowsPosition()
 		{
 			return false;
