@@ -320,17 +320,18 @@ namespace Windawesome
 			var oldWorkspace = workspaces[CurrentVisibleWorkspace];
 			var newWorkspace = workspaces[workspace];
 
+			var oldCurrentVisibleWorkspace = CurrentVisibleWorkspace;
+			CurrentVisibleWorkspace = workspace;
+
+			workspace.SwitchTo();
+
 			// hides the Bars for the old workspace and shows the new ones
 			if (newWorkspace.Item1 != oldWorkspace.Item1)
 			{
 				ShowHideBars(oldWorkspace.Item2, oldWorkspace.Item3,
 					newWorkspace.Item2, newWorkspace.Item3,
-					CurrentVisibleWorkspace, workspace);
+					oldCurrentVisibleWorkspace, workspace);
 			}
-
-			CurrentVisibleWorkspace = workspace;
-
-			workspace.SwitchTo();
 		}
 
 		internal static void ShowHideWindowsTaskbar(bool showWindowsTaskbar)

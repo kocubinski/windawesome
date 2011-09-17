@@ -200,11 +200,13 @@ namespace Windawesome
 		void IBar.Show()
 		{
 			this.form.Show();
+			DoBarShown();
 		}
 
 		void IBar.Hide()
 		{
 			this.form.Hide();
+			DoBarHidden();
 		}
 
 		void IBar.Refresh()
@@ -259,18 +261,6 @@ namespace Windawesome
 			this.form.ResumeLayout();
 		}
 
-		private void OnFormVisibleChanged(object sender, EventArgs e)
-		{
-			if (this.form.Visible)
-			{
-				DoBarShown();
-			}
-			else
-			{
-				DoBarHidden();
-			}
-		}
-
 		#endregion
 
 		private NonActivatableForm CreateForm()
@@ -296,8 +286,6 @@ namespace Windawesome
 					TopMost = true,
 					ClientSize = new Size(0, 0)
 				};
-
-			newForm.VisibleChanged += this.OnFormVisibleChanged;
 
 			return newForm;
 		}

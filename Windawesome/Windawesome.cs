@@ -619,7 +619,7 @@ namespace Windawesome
 			{
 			}
 
-			if (count == tryCount)
+			if (count == 5)
 			{
 				return false;
 			}
@@ -1021,6 +1021,8 @@ namespace Windawesome
 				{
 					// the window was on the current workspace, so activate another one
 					SetWorkspaceTopManagedWindowAsForeground(CurrentWorkspace);
+					// TODO: this doesn't always work when closing the last window of a workspace
+					// and another one is visible on another monitor
 				}
 				var window = list.First.Value.Item2;
 				if (!window.ShowMenu && window.menu != IntPtr.Zero)
@@ -1569,7 +1571,7 @@ namespace Windawesome
 			}
 			else if (m.Msg == NativeMethods.WM_HOTKEY && m.WParam == this.getForegroundPrivilageAtom)
 			{
-				if (!TrySetForegroundWindow(forceForegroundWindow))
+				if (!TrySetForegroundWindow(forceForegroundWindow) && forceForegroundWindow != NativeMethods.shellWindow)
 				{
 					SendHotkey(altTabHotkey);
 					// TODO: sometimes class "#32771" (WinSwitch) is still visible after this - fix!

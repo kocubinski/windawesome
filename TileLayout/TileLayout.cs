@@ -356,16 +356,19 @@ namespace Windawesome
 
 		void ILayout.WindowCreated(Window window)
 		{
-			if (NativeMethods.IsZoomed(window.hWnd))
+			if (workspace.IsWorkspaceVisible || window.WorkspacesCount == 1)
 			{
-				// restore if maximized - should not use SW_RESTORE as it activates the window
-				NativeMethods.ShowWindowAsync(window.hWnd, NativeMethods.SW.SW_SHOWNOACTIVATE);
-				System.Threading.Thread.Sleep(NativeMethods.minimizeRestoreDelay);
-			}
-			this.windows.AddFirst(window);
-			if (workspace.IsWorkspaceVisible)
-			{
-				Reposition();
+				this.windows.AddFirst(window);
+				if (NativeMethods.IsZoomed(window.hWnd))
+				{
+					// restore if maximized - should not use SW_RESTORE as it activates the window
+					NativeMethods.ShowWindowAsync(window.hWnd, NativeMethods.SW.SW_SHOWNOACTIVATE);
+					System.Threading.Thread.Sleep(NativeMethods.minimizeRestoreDelay);
+				}
+				if (workspace.IsWorkspaceVisible)
+				{
+					Reposition();
+				}
 			}
 		}
 
