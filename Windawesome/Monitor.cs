@@ -27,6 +27,8 @@ namespace Windawesome
 		private static readonly NativeMethods.WinEventDelegate taskbarShownWinEventDelegate = TaskbarShownWinEventDelegate;
 		private static readonly IntPtr taskbarShownWinEventHook;
 
+		// TODO: when running under XP and a normal user account, but Windawesome is elevated, for example with SuRun,
+		// the AppBars don't resize the desktop working area
 		private sealed class AppBarNativeWindow : NativeWindow
 		{
 			public readonly int height;

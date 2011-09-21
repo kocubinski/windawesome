@@ -10,7 +10,6 @@ namespace Windawesome
 		private Bar bar;
 
 		private Label label;
-		private int left, right;
 		private bool isLeft;
 		private readonly PerformanceCounter counter;
 		private readonly Timer updateTimer;
@@ -33,13 +32,15 @@ namespace Windawesome
 
 		private void OnTimerTick(object sender, System.EventArgs e)
 		{
+			var oldLeft = label.Left;
+			var oldRight = label.Right;
 			var nextValue = counter.NextValue();
 
 			label.Text = prefix + nextValue.ToString("00") + postfix;
 
 			if (nextValue == 100)
 			{
-				this.RepositionControls(left, right);
+				this.RepositionControls(oldLeft, oldRight);
 				bar.DoFixedWidthWidgetWidthChanged(this);
 			}
 		}
@@ -73,26 +74,22 @@ namespace Windawesome
 		{
 			if (isLeft)
 			{
-				this.left = left;
 				label.Location = new Point(left, 0);
-				this.right = label.Right;
 			}
 			else
 			{
-				this.right = right;
 				label.Location = new Point(right - label.Width, 0);
-				this.left = label.Left;
 			}
 		}
 
 		int IWidget.GetLeft()
 		{
-			return left;
+			return label.Left;
 		}
 
 		int IWidget.GetRight()
 		{
-			return right;
+			return label.Right;
 		}
 
 		void IWidget.StaticDispose()

@@ -100,7 +100,7 @@ namespace Windawesome
 			isAtLeastVista = Environment.OSVersion.Version.Major >= 6;
 			isAtLeast7 = isAtLeastVista && Environment.OSVersion.Version.Minor >= 1;
 
-			isRunningElevated = isAtLeastVista && NativeMethods.IsUserAnAdmin();
+			isRunningElevated = NativeMethods.IsCurrentProcessElevatedInRespectToShell();
 
 			#region System Changes
 
@@ -434,6 +434,7 @@ namespace Windawesome
 					}
 					else
 					{
+						var hasVisibleWorkspaceRule = matchingRules.Any(r => config.Workspaces[r.workspace - 1].IsWorkspaceVisible);
 						switch (programRule.onWindowCreatedAction)
 						{
 							case OnWindowShownAction.SwitchToWindowsWorkspace:
@@ -449,11 +450,14 @@ namespace Windawesome
 									});
 								break;
 							case OnWindowShownAction.TemporarilyShowWindowOnCurrentWorkspace:
-								CurrentWorkspace.Monitor.temporarilyShownWindows.Add(hWnd);
-								OnWindowCreatedOnCurrentWorkspace(hWnd, programRule);
+								if (!hasVisibleWorkspaceRule)
+								{
+									CurrentWorkspace.Monitor.temporarilyShownWindows.Add(hWnd);
+									OnWindowCreatedOnCurrentWorkspace(hWnd, programRule);
+								}
 								break;
 							case OnWindowShownAction.HideWindow:
-								if (matchingRules.All(r => !config.Workspaces[r.workspace - 1].IsWorkspaceVisible))
+								if (!hasVisibleWorkspaceRule)
 								{
 									hiddenApplications.Add(hWnd);
 									NativeMethods.ShowWindow(hWnd, NativeMethods.SW.SW_HIDE);
@@ -470,6 +474,9 @@ namespace Windawesome
 							process.WaitForInputIdle(10000);
 						}
 						catch (InvalidOperationException)
+						{
+						}
+						catch (System.ComponentModel.Win32Exception)
 						{
 						}
 					}
@@ -608,6 +615,10 @@ namespace Windawesome
 						SendHotkey(config.UniqueHotkey);
 					}
 				}
+			}
+			else
+			{
+				NativeMethods.SetWindowPos(hWnd, NativeMethods.HWND_TOP, 0, 0, 0, 0, NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
 			}
 		}
 
@@ -843,6 +854,24 @@ namespace Windawesome
 			return list != null;
 		}
 
+		private static void MoveWindowsToTopOfZOrder(Workspace workspace)
+		{
+			if (workspace.GetWindowsCount() > 1)
+			{
+				var winPosInfo = NativeMethods.BeginDeferWindowPos(workspace.GetWindowsCount());
+
+				var previousHWnd = NativeMethods.HWND_TOP;
+				foreach (var window in workspace.windows.Where(WindowIsNotHung))
+				{
+					winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, window.hWnd, previousHWnd, 0, 0, 0, 0,
+						NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
+					previousHWnd = window.hWnd;
+				}
+
+				NativeMethods.EndDeferWindowPos(winPosInfo);
+			}
+		}
+
 		#endregion
 
 		#region API
@@ -1023,6 +1052,39 @@ namespace Windawesome
 					SetWorkspaceTopManagedWindowAsForeground(CurrentWorkspace);
 					// TODO: this doesn't always work when closing the last window of a workspace
 					// and another one is visible on another monitor
+
+					if (monitors.Length > 1 && CurrentWorkspace.GetWindowsCount() == 0)
+					{
+						// Windows sometimes activates for a second the topmost window on another monitor so it
+						// disrupts the Z order of other windows
+
+						NativeMethods.EnumWindows((h, _) =>
+							{
+								LinkedList<Tuple<Workspace, Window>> windowList;
+								if (IsAppWindow(h) && applications.TryGetValue(h, out windowList))
+								{
+									Tuple<Workspace, Window> tuple = windowList.First(t => t.Item1.IsWorkspaceVisible);
+									if (tuple.Item1.GetWindowsCount() > 1)
+									{
+										var secondZOrderWindow = tuple.Item1.windows.First.Next.Value.hWnd;
+										NativeMethods.SetWindowPos(tuple.Item2.hWnd, secondZOrderWindow, 0, 0, 0, 0,
+											NativeMethods.SWP.SWP_ASYNCWINDOWPOS | NativeMethods.SWP.SWP_NOACTIVATE |
+											NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
+										NativeMethods.SetWindowPos(secondZOrderWindow, tuple.Item2.hWnd, 0, 0, 0, 0,
+											NativeMethods.SWP.SWP_ASYNCWINDOWPOS | NativeMethods.SWP.SWP_NOACTIVATE |
+											NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
+									}
+									else
+									{
+										NativeMethods.SetWindowPos(tuple.Item2.hWnd, NativeMethods.HWND_BOTTOM, 0, 0, 0, 0,
+											NativeMethods.SWP.SWP_ASYNCWINDOWPOS | NativeMethods.SWP.SWP_NOACTIVATE |
+											NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
+									}
+									return false;
+								}
+								return true;
+							}, IntPtr.Zero);
+					}
 				}
 				var window = list.First.Value.Item2;
 				if (!window.ShowMenu && window.menu != IntPtr.Zero)
@@ -1093,33 +1155,7 @@ namespace Windawesome
 				{
 					if (CurrentWorkspace.Monitor != newWorkspace.Monitor)
 					{
-						if (CurrentWorkspace.GetWindowsCount() > 0)
-						{
-							// move to bottom of Z-order all windows from the old workspace and
-							// restore the Z-order of the new workspace
-							var winPosInfo = NativeMethods.BeginDeferWindowPos(CurrentWorkspace.GetWindowsCount() + newWorkspace.GetWindowsCount());
-
-							var previousHWnd = NativeMethods.HWND_BOTTOM;
-							foreach (var window in CurrentWorkspace.windows.Where(WindowIsNotHung))
-							{
-								winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, window.hWnd, previousHWnd, 0, 0, 0, 0,
-									NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
-								previousHWnd = window.hWnd;
-							}
-
-							if (newWorkspace.GetWindowsCount() > 1)
-							{
-								previousHWnd = NativeMethods.HWND_TOP;
-								foreach (var window in newWorkspace.windows.Where(WindowIsNotHung))
-								{
-									winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, window.hWnd, previousHWnd, 0, 0, 0, 0,
-										NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
-									previousHWnd = window.hWnd;
-								}
-							}
-
-							NativeMethods.EndDeferWindowPos(winPosInfo);
-						}
+						MoveWindowsToTopOfZOrder(newWorkspace);
 
 						if (config.MoveMouseOverMonitorsOnSwitch)
 						{
@@ -1496,12 +1532,17 @@ namespace Windawesome
 						if (!CurrentWorkspace.ContainsWindow(hWnd))
 						{
 							Workspace workspace;
-							if (monitors.Length > 1 && (workspace = list.Select(t => t.Item1).
-								FirstOrDefault(ws => ws.IsWorkspaceVisible && ws.ContainsWindow(hWnd))) != null)
+							if (monitors.Length > 1 && (workspace = list.Select(t => t.Item1).FirstOrDefault(ws => ws.IsWorkspaceVisible)) != null)
 							{
 								// the window is actually visible on another monitor
 								// (e.g. when the user has ALT-TABbed to the window across monitors)
+
 								SwitchToWorkspace(workspace.id, false);
+								SwitchToApplicationInCurrentWorkspace(hWnd);
+
+								// whenever changing to a window in a different Workspace on another
+								// monitor, which is not the topmost one, Z-order is not preserved correctly
+								PostAction(() => MoveWindowsToTopOfZOrder(workspace));
 							}
 							else
 							{

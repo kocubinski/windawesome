@@ -15,11 +15,13 @@ class DateTimeWidget
 		@update_timer = Timer.new
 		@update_timer.interval = update_time
 		@update_timer.tick do |s, ea|
+			old_left = @label.left
+			old_right = @label.right
 			old_width = @label.width
 			@label.text = " " + DateTime.now.to_string(@string) + " "
 			@label.width = TextRenderer.measure_text(@label.text, @label.font).width
 			if old_width != @label.width
-				self.reposition_controls @left, @right
+				self.reposition_controls old_left, old_right
 				@bar.do_fixed_width_widget_width_changed self
 			end
 		end
@@ -31,6 +33,7 @@ class DateTimeWidget
 		@bar = bar
 
 		@label = bar.create_label " " + DateTime.now.to_string(@string) + " ", 0
+		
 		@label.text_align = ContentAlignment.middle_center
 		@label.back_color = @background_color
 		@label.fore_color = @foreground_color
@@ -47,22 +50,18 @@ class DateTimeWidget
 
 	def reposition_controls left, right
 		if @is_left
-			@left = left
 			@label.location = Point.new left, 0
-			@right = @label.right
 		else
-			@right = right
 			@label.location = Point.new right - @label.width, 0
-			@left = @label.left
 		end
 	end
 
 	def get_left
-		@left
+		@label.left
 	end
 
 	def get_right
-		@right
+		@label.right
 	end
 
 	def static_dispose; end

@@ -12,7 +12,6 @@ namespace Windawesome
 		private readonly Color foregroundColor;
 		private readonly Action onClick;
 		private Bar bar;
-		private int left, right;
 		private bool isLeft;
 
 		public LayoutWidget(Color? backColor = null, Color? foreColor = null, Action onClick = null)
@@ -27,12 +26,14 @@ namespace Windawesome
 		{
 			if (workspace.Monitor == bar.Monitor && workspace.IsWorkspaceVisible)
 			{
+				var oldLeft = layoutLabel.Left;
+				var oldRight = layoutLabel.Right;
 				var oldWidth = layoutLabel.Width;
 				layoutLabel.Text = workspace.Layout.LayoutSymbol();
 				layoutLabel.Width = TextRenderer.MeasureText(layoutLabel.Text, layoutLabel.Font).Width;
 				if (layoutLabel.Width != oldWidth)
 				{
-					this.RepositionControls(left, right);
+					this.RepositionControls(oldLeft, oldRight);
 					bar.DoFixedWidthWidgetWidthChanged(this);
 				}
 			}
@@ -75,26 +76,22 @@ namespace Windawesome
 		{
 			if (isLeft)
 			{
-				this.left = left;
 				layoutLabel.Location = new Point(left, 0);
-				this.right = layoutLabel.Right;
 			}
 			else
 			{
-				this.right = right;
 				layoutLabel.Location = new Point(right - layoutLabel.Width, 0);
-				this.left = layoutLabel.Left;
 			}
 		}
 
 		int IWidget.GetLeft()
 		{
-			return left;
+			return layoutLabel.Left;
 		}
 
 		int IWidget.GetRight()
 		{
-			return right;
+			return layoutLabel.Right;
 		}
 
 		void IWidget.StaticDispose()

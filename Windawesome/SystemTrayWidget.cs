@@ -56,6 +56,8 @@ namespace Windawesome
 
 		private void GetIcons()
 		{
+			// theoretically one could broadcast a "TaskbarCreated" message so that windows resend their icons, but it doesn't work very well
+
 			foreach (var icon in SystemTray.GetButtons(SystemTray.trayHandle))
 			{
 				var pictureBox = CreatePictureBox(icon);
@@ -196,6 +198,7 @@ namespace Windawesome
 
 		private static ToolTip CreateToolTip(PictureBox pictureBox, string tip)
 		{
+			// TODO: whenever a picturebox is left or right-clicked, the tooltip stops showing for some time
 			var toolTip = new ToolTip { ShowAlways = true };
 			toolTip.SetToolTip(pictureBox, tip);
 
@@ -294,7 +297,7 @@ namespace Windawesome
 
 		void IWidget.StaticInitializeWidget(Windawesome windawesome)
 		{
-			if (Windawesome.isRunningElevated)
+			if (Windawesome.isAtLeastVista && Windawesome.isRunningElevated)
 			{
 				if (Windawesome.isAtLeast7)
 				{
@@ -371,7 +374,7 @@ namespace Windawesome
 			SystemTray.Dispose();
 
 			// remove the message filters
-			if (Windawesome.isRunningElevated)
+			if (Windawesome.isAtLeastVista && Windawesome.isRunningElevated)
 			{
 				if (Windawesome.isAtLeast7)
 				{

@@ -10,6 +10,8 @@ namespace Windawesome
 	{
 		private static Windawesome windawesome;
 
+		// TODO: may use a single panel for each workspace which contains all the panels for the applications
+		// when changing a workspace, only the parent panel must be shown/hidden
 		private Dictionary<IntPtr, Panel>[] applicationPanels; // hWnd -> Panel
 		private Panel currentlyHighlightedPanel;
 		private bool[] mustResize;
@@ -109,14 +111,14 @@ namespace Windawesome
 				// removes the current highlight
 				if (currentlyHighlightedPanel != null)
 				{
-					if (showSingleApplicationTab)
-					{
-						currentlyHighlightedPanel.Hide();
-					}
-					else
+					if (!showSingleApplicationTab)
 					{
 						currentlyHighlightedPanel.ForeColor = normalForegroundColor;
 						currentlyHighlightedPanel.BackColor = normalBackgroundColor;
+					}
+					else if (panel != null)
+					{
+						currentlyHighlightedPanel.Hide();
 					}
 				}
 
@@ -235,6 +237,10 @@ namespace Windawesome
 					if (!showSingleApplicationTab)
 					{
 						applicationPanels[workspaceId].Values.ForEach(p => p.Hide());
+					}
+					else if (currentlyHighlightedPanel != null)
+					{
+						currentlyHighlightedPanel.Hide();
 					}
 					OnWindowActivated(IntPtr.Zero);
 				}

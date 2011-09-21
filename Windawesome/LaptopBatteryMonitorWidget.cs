@@ -9,7 +9,6 @@ namespace Windawesome
 		private Bar bar;
 
 		private Label label;
-		private int left, right;
 		private bool isLeft;
 		private readonly Timer updateTimer;
 		private readonly string textForCharging;
@@ -49,6 +48,8 @@ namespace Windawesome
 					break;
 			}
 
+			var oldLeft = label.Left;
+			var oldRight = label.Right;
 			var oldWidth = label.Width;
 			label.Text = (powerStatus.PowerLineStatus == PowerLineStatus.Offline ?
 				textForNotCharging : textForCharging) + prefix + (powerStatus.BatteryLifePercent * 100) + postfix;
@@ -56,7 +57,7 @@ namespace Windawesome
 			label.Width = TextRenderer.MeasureText(label.Text, label.Font).Width;
 			if (oldWidth != label.Width)
 			{
-				this.RepositionControls(left, right);
+				this.RepositionControls(oldLeft, oldRight);
 				bar.DoFixedWidthWidgetWidthChanged(this);
 			}
 		}
@@ -106,26 +107,22 @@ namespace Windawesome
 		{
 			if (isLeft)
 			{
-				this.left = left;
 				label.Location = new Point(left, 0);
-				this.right = label.Right;
 			}
 			else
 			{
-				this.right = right;
 				label.Location = new Point(right - label.Width, 0);
-				this.left = label.Left;
 			}
 		}
 
 		int IWidget.GetLeft()
 		{
-			return left;
+			return label.Left;
 		}
 
 		int IWidget.GetRight()
 		{
-			return right;
+			return label.Right;
 		}
 
 		void IWidget.StaticDispose()

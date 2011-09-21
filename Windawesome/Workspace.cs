@@ -367,7 +367,7 @@ namespace Windawesome
 		internal void WindowMinimized(IntPtr hWnd)
 		{
 			var window = MoveWindowToBottom(hWnd);
-			if (window != null)
+			if (window != null && !window.IsMinimized)
 			{
 				window.IsMinimized = true;
 				if (!window.IsFloating)
@@ -382,7 +382,7 @@ namespace Windawesome
 		internal void WindowRestored(IntPtr hWnd)
 		{
 			var window = MoveWindowToTop(hWnd);
-			if (window != null)
+			if (window != null && window.IsMinimized)
 			{
 				window.IsMinimized = false;
 				if (!window.IsFloating)

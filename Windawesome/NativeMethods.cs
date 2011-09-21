@@ -5,6 +5,32 @@ using System.Text;
 
 namespace Windawesome
 {
+	using System.Management;
+using DWORD = UInt32;
+using HANDLE = IntPtr;
+using HDWP = IntPtr;
+using HHOOK = IntPtr;
+using HICON = IntPtr;
+using HINSTANCE = IntPtr;
+using HLOCAL = IntPtr;
+using HMENU = IntPtr;
+using HMODULE = IntPtr;
+using HMONITOR = IntPtr;
+using HSID = IntPtr;
+using HWINEVENTHOOK = IntPtr;
+using HWND = IntPtr;
+using LONG = Int32;
+using LPARAM = IntPtr; // INT_PTR
+using LPVOID = IntPtr;
+using LRESULT = IntPtr; // LONG_PTR
+using PVOID = IntPtr;
+using SIZE_T = IntPtr;
+using UINT = UInt32;
+using UINT_PTR = UIntPtr;
+using WPARAM = UIntPtr;
+	using System.Security.Principal;
+	using Microsoft.Win32; // UINT_PTR
+
 #if !DEBUG
 	[System.Security.SuppressUnmanagedCodeSecurity]
 #endif
@@ -54,20 +80,20 @@ namespace Windawesome
 
 		public const int WH_KEYBOARD_LL = 13;
 
-		public static readonly UIntPtr WM_KEYDOWN = (UIntPtr) 0x100;
-		public static readonly UIntPtr WM_SYSKEYDOWN = (UIntPtr) 0x104;
+		public static readonly WPARAM WM_KEYDOWN = (WPARAM) 0x100;
+		public static readonly WPARAM WM_SYSKEYDOWN = (WPARAM) 0x104;
 
-		public delegate IntPtr HookProc(int code, UIntPtr wParam, IntPtr lParam);
-
-		[DllImport("user32.dll")]
-		public static extern IntPtr SetWindowsHookEx(int hookType, [MarshalAs(UnmanagedType.FunctionPtr)] HookProc lpfn, IntPtr hMod, uint dwThreadId);
+		public delegate LRESULT HookProc(int code, WPARAM wParam, LPARAM lParam);
 
 		[DllImport("user32.dll")]
-		public static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode, UIntPtr wParam, IntPtr lParam);
+		public static extern HHOOK SetWindowsHookEx(int hookType, [MarshalAs(UnmanagedType.FunctionPtr)] HookProc lpfn, HINSTANCE hMod, DWORD dwThreadId);
+
+		[DllImport("user32.dll")]
+		public static extern LRESULT CallNextHookEx([Optional] HHOOK hhk, int nCode, WPARAM wParam, LPARAM lParam);
 
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool UnhookWindowsHookEx(IntPtr hhk);
+		public static extern bool UnhookWindowsHookEx(HHOOK hhk);
 
 		#endregion
 
@@ -75,13 +101,13 @@ namespace Windawesome
 
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool RegisterShellHookWindow(IntPtr hWnd);
+		public static extern bool RegisterShellHookWindow(HWND hWnd);
 
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool DeregisterShellHookWindow(IntPtr hWnd);
+		public static extern bool DeregisterShellHookWindow(HWND hWnd);
 
-		public static readonly uint WM_SHELLHOOKMESSAGE = RegisterWindowMessage("SHELLHOOK");
+		public static readonly UINT WM_SHELLHOOKMESSAGE = RegisterWindowMessage("SHELLHOOK");
 
 		public enum ShellEvents : uint
 		{
@@ -108,12 +134,12 @@ namespace Windawesome
 
 		#region SetWinEventHook/UnhookWinEvent
 
-		public delegate void WinEventDelegate(IntPtr hWinEventHook, EVENT eventType,
-			IntPtr hwnd, int idObject, int idChild, uint dwEventThread, uint dwmsEventTime);
+		public delegate void WinEventDelegate(HWINEVENTHOOK hWinEventHook, EVENT eventType,
+			HWND hwnd, LONG idObject, LONG idChild, DWORD dwEventThread, DWORD dwmsEventTime);
 
 		[DllImport("user32.dll")]
-		public static extern IntPtr SetWinEventHook(EVENT eventMin, EVENT eventMax, IntPtr hmodWinEventProc,
-			[MarshalAs(UnmanagedType.FunctionPtr)] WinEventDelegate lpfnWinEventProc, uint idProcess, uint idThread, WINEVENT dwFlags);
+		public static extern HWINEVENTHOOK SetWinEventHook(EVENT eventMin, EVENT eventMax, HMODULE hmodWinEventProc,
+			[MarshalAs(UnmanagedType.FunctionPtr)] WinEventDelegate lpfnWinEventProc, DWORD idProcess, DWORD idThread, WINEVENT dwFlags);
 
 		public enum EVENT : uint
 		{
@@ -125,8 +151,8 @@ namespace Windawesome
 			EVENT_SYSTEM_MINIMIZEEND = 0x17
 		}
 
-		public const int OBJID_WINDOW = 0x00000000;
-		public const int CHILDID_SELF = 0;
+		public const LONG OBJID_WINDOW = 0x00000000;
+		public const LONG CHILDID_SELF = 0;
 
 		[Flags]
 		public enum WINEVENT : uint
@@ -137,7 +163,7 @@ namespace Windawesome
 
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool UnhookWinEvent(IntPtr hWinEventHook);
+		public static extern bool UnhookWinEvent(HWINEVENTHOOK hWinEventHook);
 
 		#endregion
 
@@ -147,25 +173,25 @@ namespace Windawesome
 
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool SendNotifyMessage(IntPtr hWnd, uint Msg, UIntPtr wParam, IntPtr lParam);
+		public static extern bool SendNotifyMessage(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam);
 
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool ReplyMessage(IntPtr lResult);
+		public static extern bool ReplyMessage(LRESULT lResult);
 
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool PostMessage([Optional] IntPtr hWnd, uint Msg, UIntPtr wParam, IntPtr lParam);
+		public static extern bool PostMessage([Optional] HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam);
 
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool PostMessage([Optional] IntPtr hWnd, int Msg, IntPtr wParam, IntPtr lParam);
+		public static extern bool PostMessage([Optional] HWND hWnd, int Msg, IntPtr wParam, LPARAM lParam);
 
 		[DllImport("User32.dll")]
-		public static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint uMsg, UIntPtr wParam, IntPtr lParam, SMTO fuFlags, uint uTimeout, [Optional, Out] out IntPtr lpdwResult);
+		public static extern LRESULT SendMessageTimeout(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, SMTO fuFlags, UINT uTimeout, [Optional, Out] out IntPtr lpdwResult);
 
 		[DllImport("User32.dll", SetLastError = true)]
-		public static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint uMsg, UIntPtr wParam, IntPtr lParam, SMTO fuFlags, uint uTimeout, [Optional, Out] IntPtr lpdwResult);
+		public static extern LRESULT SendMessageTimeout(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, SMTO fuFlags, UINT uTimeout, [Optional, Out] IntPtr lpdwResult);
 
 		[Flags]
 		public enum SMTO : uint
@@ -177,26 +203,27 @@ namespace Windawesome
 			SMTO_ERRORONEXIT = 0x0020
 		}
 
+		public static readonly HWND HWND_BROADCAST = (HWND) 0xFFFF;
 		public const int WM_MOUSEACTIVATE = 0x0021;
 		public static readonly IntPtr MA_NOACTIVATE = (IntPtr) 0x0003;
-		public const uint WM_SYSCOMMAND = 0x0112;
-		public static readonly IntPtr WM_LBUTTONDBLCLK = (IntPtr) 0x0203;
-		public static readonly IntPtr WM_RBUTTONDBLCLK = (IntPtr) 0x0206;
-		public static readonly IntPtr WM_LBUTTONDOWN = (IntPtr) 0x0201;
-		public static readonly IntPtr WM_LBUTTONUP = (IntPtr) 0x0202;
-		public static readonly IntPtr WM_RBUTTONDOWN = (IntPtr) 0x204;
-		public static readonly IntPtr WM_RBUTTONUP = (IntPtr) 0x205;
-		public const uint WM_GETICON = 0x007f;
-		public const uint WM_QUERYDRAGICON = 0x0037;
-		public const uint WM_NULL = 0x0;
+		public const UINT WM_SYSCOMMAND = 0x0112;
+		public static readonly LPARAM WM_LBUTTONDBLCLK = (LPARAM) 0x0203;
+		public static readonly LPARAM WM_RBUTTONDBLCLK = (LPARAM) 0x0206;
+		public static readonly LPARAM WM_LBUTTONDOWN = (LPARAM) 0x0201;
+		public static readonly LPARAM WM_LBUTTONUP = (LPARAM) 0x0202;
+		public static readonly LPARAM WM_RBUTTONDOWN = (LPARAM) 0x204;
+		public static readonly LPARAM WM_RBUTTONUP = (LPARAM) 0x205;
+		public const UINT WM_GETICON = 0x007f;
+		public const UINT WM_QUERYDRAGICON = 0x0037;
+		public const UINT WM_NULL = 0x0;
 		public const int ERROR_TIMEOUT = 1460;
 
-		public static readonly UIntPtr SC_MINIMIZE = (UIntPtr) 0xF020;
-		public static readonly UIntPtr SC_MAXIMIZE = (UIntPtr) 0xF030;
-		public static readonly UIntPtr SC_RESTORE  = (UIntPtr) 0xF120;
-		public static readonly UIntPtr SC_CLOSE = (UIntPtr) 0xF060;
+		public static readonly WPARAM SC_MINIMIZE = (WPARAM) 0xF020;
+		public static readonly WPARAM SC_MAXIMIZE = (WPARAM) 0xF030;
+		public static readonly WPARAM SC_RESTORE = (WPARAM) 0xF120;
+		public static readonly WPARAM SC_CLOSE = (WPARAM) 0xF060;
 
-		public static readonly UIntPtr ICON_SMALL = UIntPtr.Zero;
+		public static readonly WPARAM ICON_SMALL = UIntPtr.Zero;
 
 		#endregion
 
@@ -208,13 +235,13 @@ namespace Windawesome
 		public struct APPBARDATA
 		{
 			public int cbSize;
-			public IntPtr hWnd;
-			public uint uCallbackMessage;
+			public HWND hWnd;
+			public UINT uCallbackMessage;
 			public ABE uEdge;
 			public RECT rc;
-			public IntPtr lParam;
+			public LPARAM lParam;
 
-			public APPBARDATA(IntPtr hWnd, uint uCallbackMessage = default(uint), ABE uEdge = default(ABE), RECT rc = default(RECT), IntPtr lParam = default(IntPtr))
+			public APPBARDATA(HWND hWnd, UINT uCallbackMessage = default(UINT), ABE uEdge = default(ABE), RECT rc = default(RECT), LPARAM lParam = default(LPARAM))
 			{
 				cbSize = APPBARDATASize;
 				this.hWnd = hWnd;
@@ -264,22 +291,22 @@ namespace Windawesome
 		}
 
 		[DllImport("shell32.dll")]
-		public static extern UIntPtr SHAppBarMessage(ABM dwMessage, [In, Out] ref APPBARDATA pData);
+		public static extern UINT_PTR SHAppBarMessage(ABM dwMessage, [In, Out] ref APPBARDATA pData);
 
 		#endregion
 
 		[DllImport("User32.dll", CharSet = CharSet.Auto)]
-		public static extern uint RegisterWindowMessage([MarshalAs(UnmanagedType.LPTStr)] string msg);
+		public static extern UINT RegisterWindowMessage([MarshalAs(UnmanagedType.LPTStr)] string msg);
 
 		#region ChangeWindowMessageFilter/ChangeWindowMessageFilterEx
 
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool ChangeWindowMessageFilter(uint message, MSGFLT dwFlag);
+		public static extern bool ChangeWindowMessageFilter(UINT message, MSGFLT dwFlag);
 
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool ChangeWindowMessageFilterEx(IntPtr hWnd, uint message, MSGFLTEx action, [Optional, In, Out] IntPtr str);
+		public static extern bool ChangeWindowMessageFilterEx(HWND hWnd, UINT message, MSGFLTEx action, [Optional, In, Out] IntPtr str);
 
 		public enum MSGFLT : uint
 		{
@@ -295,43 +322,43 @@ namespace Windawesome
 
 		#endregion
 
-		public const uint WM_USER = 0x0400;
+		public const UINT WM_USER = 0x0400;
 
 		// window stuff
 
-		public static readonly IntPtr HWND_MESSAGE = (IntPtr) (-3);
+		public static readonly HWND HWND_MESSAGE = (IntPtr) (-3);
 
 		public const int minimizeRestoreDelay = 300;
 
 		#region GetShellWindow
 
 		[DllImport("user32.dll")]
-		private static extern IntPtr GetShellWindow();
+		private static extern HWND GetShellWindow();
 
-		public static readonly IntPtr shellWindow = GetShellWindow();
+		public static readonly HWND shellWindow = GetShellWindow();
 
 		#endregion
 
 		#region EnumWindows
 
-		public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+		public delegate bool EnumWindowsProc(HWND hWnd, LPARAM lParam);
 
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool EnumWindows([MarshalAs(UnmanagedType.FunctionPtr)] EnumWindowsProc lpfn, IntPtr lParam);
+		public static extern bool EnumWindows([MarshalAs(UnmanagedType.FunctionPtr)] EnumWindowsProc lpfn, LPARAM lParam);
 
 		#endregion
 
 		#region GetWindowText/GetClassName
 
-		public static string GetText(IntPtr hWnd)
+		public static string GetText(HWND hWnd)
 		{
 			var sb = new StringBuilder(256);
 			GetWindowText(hWnd, sb, sb.Capacity);
 			return sb.ToString();
 		}
 
-		public static string GetWindowClassName(IntPtr hWnd)
+		public static string GetWindowClassName(HWND hWnd)
 		{
 			var sb = new StringBuilder(257);
 			GetClassName(hWnd, sb, sb.Capacity);
@@ -339,23 +366,23 @@ namespace Windawesome
 		}
 
 		[DllImport("user32.dll", CharSet = CharSet.Auto)]
-		private static extern int GetWindowText(IntPtr hWnd, [Out] StringBuilder lpString, int nMaxCount);
+		private static extern int GetWindowText(HWND hWnd, [Out] StringBuilder lpString, int nMaxCount);
 
 		[DllImport("user32.dll", CharSet = CharSet.Auto)]
-		private static extern int GetClassName(IntPtr hWnd, [Out] StringBuilder lpClassName, int nMaxCount);
+		private static extern int GetClassName(HWND hWnd, [Out] StringBuilder lpClassName, int nMaxCount);
 
 		#endregion
 
 		#region GetClassLongPtr
 
-		public delegate IntPtr GetClassLongPtrDelegate(IntPtr hWnd, int nIndex);
+		public delegate IntPtr GetClassLongPtrDelegate(HWND hWnd, int nIndex);
 		public static readonly GetClassLongPtrDelegate GetClassLongPtr;
 
 		[DllImport("user32.dll", EntryPoint = "GetClassLong")]
-		private static extern IntPtr GetClassLong32(IntPtr hWnd, int nIndex);
+		private static extern IntPtr GetClassLong32(HWND hWnd, int nIndex);
 
 		[DllImport("user32.dll", EntryPoint = "GetClassLongPtr")]
-		private static extern IntPtr GetClassLongPtr64(IntPtr hWnd, int nIndex);
+		private static extern IntPtr GetClassLongPtr64(HWND hWnd, int nIndex);
 
 		public const int GCL_HICONSM = -34;
 
@@ -365,45 +392,45 @@ namespace Windawesome
 
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool IsIconic(IntPtr hWnd);
+		public static extern bool IsIconic(HWND hWnd);
 
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool IsZoomed(IntPtr hWnd);
+		public static extern bool IsZoomed(HWND hWnd);
 
 		#endregion
 
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool IsWindowVisible(IntPtr hWnd);
+		public static extern bool IsWindowVisible(HWND hWnd);
 
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool IsWindow([Optional] IntPtr hWnd);
+		public static extern bool IsWindow([Optional] HWND hWnd);
 
 		#region GetMenu/SetMenu/DestroyMenu
 
 		[DllImport("user32.dll")]
-		public static extern IntPtr GetMenu(IntPtr hWnd);
+		public static extern HMENU GetMenu(HWND hWnd);
 
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool SetMenu(IntPtr hWnd, [Optional] IntPtr hMenu);
+		public static extern bool SetMenu(HWND hWnd, [Optional] HMENU hMenu);
 
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool DestroyMenu(IntPtr hMenu);
+		public static extern bool DestroyMenu(HWND hMenu);
 
 		#endregion
 
 		#region GetWindow
 
 		[DllImport("user32.dll")]
-		public static extern IntPtr GetWindow(IntPtr hWnd, GW uCmd);
+		public static extern HWND GetWindow(HWND hWnd, GW uCmd);
 
 		public enum GW : uint
 		{
-			GW_OWNER = 4
+			GW_OWNER = 4,
 		}
 
 		#endregion
@@ -411,50 +438,50 @@ namespace Windawesome
 		#region FindWindow/FindWindowEx
 
 		[DllImport("user32.dll", CharSet = CharSet.Auto)]
-		public static extern IntPtr FindWindow([Optional, MarshalAs(UnmanagedType.LPTStr)] string className, [Optional, MarshalAs(UnmanagedType.LPTStr)] string windowText);
+		public static extern HWND FindWindow([Optional, MarshalAs(UnmanagedType.LPTStr)] string className, [Optional, MarshalAs(UnmanagedType.LPTStr)] string windowText);
 
 		[DllImport("user32.dll", CharSet = CharSet.Auto)]
-		public static extern IntPtr FindWindowEx([Optional] IntPtr hwndParent, [Optional] IntPtr hwndChildAfter, [Optional, MarshalAs(UnmanagedType.LPTStr)] string lpszClass, [Optional, MarshalAs(UnmanagedType.LPTStr)] string lpszWindow);
+		public static extern HWND FindWindowEx([Optional] HWND hwndParent, [Optional] HWND hwndChildAfter, [Optional, MarshalAs(UnmanagedType.LPTStr)] string lpszClass, [Optional, MarshalAs(UnmanagedType.LPTStr)] string lpszWindow);
 
 		#endregion
 
 		#region GetWindowLongPtr/SetWindowLongPtr
 
-		public delegate UIntPtr SetWindowStyleLongPtrDelegate(IntPtr hWnd, WS dwNewLong);
+		public delegate UIntPtr SetWindowStyleLongPtrDelegate(HWND hWnd, WS dwNewLong);
 		public static readonly SetWindowStyleLongPtrDelegate SetWindowStyleLongPtr;
 
-		public delegate UIntPtr SetWindowExStyleLongPtrDelegate(IntPtr hWnd, WS_EX dwNewLong);
+		public delegate UIntPtr SetWindowExStyleLongPtrDelegate(HWND hWnd, WS_EX dwNewLong);
 		public static readonly SetWindowExStyleLongPtrDelegate SetWindowExStyleLongPtr;
 
-		public delegate WS GetWindowStyleLongPtrDelegate(IntPtr hWnd);
+		public delegate WS GetWindowStyleLongPtrDelegate(HWND hWnd);
 		public static readonly GetWindowStyleLongPtrDelegate GetWindowStyleLongPtr;
 
-		public delegate WS_EX GetWindowExStyleLongPtrDelegate(IntPtr hWnd);
+		public delegate WS_EX GetWindowExStyleLongPtrDelegate(HWND hWnd);
 		public static readonly GetWindowExStyleLongPtrDelegate GetWindowExStyleLongPtr;
 
 		[DllImport("user32.dll", EntryPoint = "SetWindowLong")]
-		private static extern UIntPtr SetWindowLong32(IntPtr hWnd, int nIndex, WS dwNewLong);
+		private static extern UIntPtr SetWindowLong32(HWND hWnd, int nIndex, WS dwNewLong);
 
 		[DllImport("user32.dll", EntryPoint = "SetWindowLongPtr")]
-		private static extern UIntPtr SetWindowLongPtr64(IntPtr hWnd, int nIndex, WS dwNewLong);
+		private static extern UIntPtr SetWindowLongPtr64(HWND hWnd, int nIndex, WS dwNewLong);
 
 		[DllImport("user32.dll", EntryPoint = "SetWindowLong")]
-		private static extern UIntPtr SetWindowLong32(IntPtr hWnd, int nIndex, WS_EX dwNewLong);
+		private static extern UIntPtr SetWindowLong32(HWND hWnd, int nIndex, WS_EX dwNewLong);
 
 		[DllImport("user32.dll", EntryPoint = "SetWindowLongPtr")]
-		private static extern UIntPtr SetWindowLongPtr64(IntPtr hWnd, int nIndex, WS_EX dwNewLong);
+		private static extern UIntPtr SetWindowLongPtr64(HWND hWnd, int nIndex, WS_EX dwNewLong);
 
 		[DllImport("user32.dll", EntryPoint = "GetWindowLong")]
-		private static extern WS GetWindowLong32WS(IntPtr hWnd, int nIndex);
+		private static extern WS GetWindowLong32WS(HWND hWnd, int nIndex);
 
 		[DllImport("user32.dll", EntryPoint = "GetWindowLongPtr")]
-		private static extern WS GetWindowLongPtr64WS(IntPtr hWnd, int nIndex);
+		private static extern WS GetWindowLongPtr64WS(HWND hWnd, int nIndex);
 
 		[DllImport("user32.dll", EntryPoint = "GetWindowLong")]
-		private static extern WS_EX GetWindowLong32WS_EX(IntPtr hWnd, int nIndex);
+		private static extern WS_EX GetWindowLong32WS_EX(HWND hWnd, int nIndex);
 
 		[DllImport("user32.dll", EntryPoint = "GetWindowLongPtr")]
-		private static extern WS_EX GetWindowLongPtr64WS_EX(IntPtr hWnd, int nIndex);
+		private static extern WS_EX GetWindowLongPtr64WS_EX(HWND hWnd, int nIndex);
 
 		private const int GWL_STYLE = -16;
 		private const int GWL_EXSTYLE = -20;
@@ -523,11 +550,11 @@ namespace Windawesome
 
 		[DllImport("User32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool ShowWindow(IntPtr hWnd, SW nCmdShow);
+		public static extern bool ShowWindow(HWND hWnd, SW nCmdShow);
 
 		[DllImport("User32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool ShowWindowAsync(IntPtr hWnd, SW nCmdShow);
+		public static extern bool ShowWindowAsync(HWND hWnd, SW nCmdShow);
 
 		public enum SW
 		{
@@ -550,11 +577,11 @@ namespace Windawesome
 
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool GetWindowPlacement(IntPtr hWnd, [In, Out] ref WINDOWPLACEMENT lpwndpl);
+		public static extern bool GetWindowPlacement(HWND hWnd, [In, Out] ref WINDOWPLACEMENT lpwndpl);
 
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool SetWindowPlacement(IntPtr hWnd, [In] ref WINDOWPLACEMENT lpwndpl);
+		public static extern bool SetWindowPlacement(HWND hWnd, [In] ref WINDOWPLACEMENT lpwndpl);
 
 		private static readonly int WINDOWPLACEMENTSize = Marshal.SizeOf(typeof(WINDOWPLACEMENT));
 
@@ -634,11 +661,11 @@ namespace Windawesome
 
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool GetWindowRect(IntPtr hwnd, [Out] out RECT lpRect);
+		public static extern bool GetWindowRect(HWND hwnd, [Out] out RECT lpRect);
 
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool SetWindowPos(IntPtr hwnd, [Optional] IntPtr hwndInsertAfter,
+		public static extern bool SetWindowPos(HWND hwnd, [Optional] HWND hwndInsertAfter,
 			int x, int y, int width, int height, SWP flags);
 
 		[Flags]
@@ -659,32 +686,32 @@ namespace Windawesome
 			SWP_ASYNCWINDOWPOS = 0x4000
 		}
 
-		public static readonly IntPtr HWND_BOTTOM = (IntPtr) 1;
-		public static readonly IntPtr HWND_NOTOPMOST = (IntPtr) (-2);
-		public static readonly IntPtr HWND_TOP = IntPtr.Zero;
-		public static readonly IntPtr HWND_TOPMOST = (IntPtr) (-1);
+		public static readonly HWND HWND_BOTTOM = (HWND) 1;
+		public static readonly HWND HWND_NOTOPMOST = (HWND) (-2);
+		public static readonly HWND HWND_TOP = IntPtr.Zero;
+		public static readonly HWND HWND_TOPMOST = (HWND) (-1);
 
 		[DllImport("user32.dll")]
-		public static extern IntPtr BeginDeferWindowPos(int nNumWindows);
+		public static extern HDWP BeginDeferWindowPos(int nNumWindows);
 
 		[DllImport("user32.dll")]
-		public static extern IntPtr DeferWindowPos(IntPtr hWinPosInfo, IntPtr hWnd,
-			 [Optional] IntPtr hWndInsertAfter, int x, int y, int cx, int cy, SWP uFlags);
+		public static extern IntPtr DeferWindowPos(HDWP hWinPosInfo, HWND hWnd,
+			 [Optional] HWND hWndInsertAfter, int x, int y, int cx, int cy, SWP uFlags);
 
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool EndDeferWindowPos(IntPtr hWinPosInfo);
+		public static extern bool EndDeferWindowPos(HDWP hWinPosInfo);
 
 		#endregion
 
 		#region GetForegroundWindow/SetForegroundWindow
 
 		[DllImport("user32.dll")]
-		public static extern IntPtr GetForegroundWindow();
+		public static extern HWND GetForegroundWindow();
 
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool SetForegroundWindow(IntPtr hWnd);
+		public static extern bool SetForegroundWindow(HWND hWnd);
 
 		#endregion
 
@@ -741,18 +768,18 @@ namespace Windawesome
 		}
 
 		[DllImport("user32.dll")]
-		public static extern bool RedrawWindow(IntPtr hWnd, IntPtr lprcUpdate, IntPtr hrgnUpdate, RDW flags);
+		public static extern bool RedrawWindow(HWND hWnd, IntPtr lprcUpdate, IntPtr hrgnUpdate, RDW flags);
 
 		#endregion
 
 		#region GetLastActivePopup/ShowOwnedPopups
 
 		[DllImport("user32.dll")]
-		public static extern IntPtr GetLastActivePopup(IntPtr hWnd);
+		public static extern HWND GetLastActivePopup(HWND hWnd);
 
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool ShowOwnedPopups(IntPtr hWnd, [MarshalAs(UnmanagedType.Bool)] bool fShow);
+		public static extern bool ShowOwnedPopups(IntPtr HWND, [MarshalAs(UnmanagedType.Bool)] bool fShow);
 
 		#endregion
 
@@ -761,11 +788,11 @@ namespace Windawesome
 		#region CopyIcon/DestroyIcon
 
 		[DllImport("user32.dll")]
-		public static extern IntPtr CopyIcon(IntPtr hIcon);
+		public static extern HICON CopyIcon(HICON hIcon);
 
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool DestroyIcon(IntPtr hIcon);
+		public static extern bool DestroyIcon(HICON hIcon);
 
 		#endregion
 
@@ -774,9 +801,9 @@ namespace Windawesome
 		[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
 		public struct SHFILEINFO
 		{
-			public IntPtr hIcon;
+			public HICON hIcon;
 			public int iIcon;
-			public uint dwAttributes;
+			public DWORD dwAttributes;
 			[MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)]
 			public string szDisplayName;
 			[MarshalAs(UnmanagedType.ByValTStr, SizeConst = 80)]
@@ -787,7 +814,7 @@ namespace Windawesome
 		public const uint SHGFI_SMALLICON = 0x1;
 
 		[DllImport("shell32.dll", CharSet = CharSet.Auto)]
-		public static extern UIntPtr SHGetFileInfo([MarshalAs(UnmanagedType.LPTStr)] string pszPath, uint dwFileAttributes, [In, Out] ref SHFILEINFO psfi, int cbSizeFileInfo, uint uFlags);
+		public static extern UIntPtr SHGetFileInfo([MarshalAs(UnmanagedType.LPTStr)] string pszPath, DWORD dwFileAttributes, [In, Out] ref SHFILEINFO psfi, int cbSizeFileInfo, UINT uFlags);
 
 		#endregion
 
@@ -796,7 +823,7 @@ namespace Windawesome
 		#region SendInput
 
 		[DllImport("user32.dll")]
-		public static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
+		public static extern UINT SendInput(UINT nInputs, INPUT[] pInputs, int cbSize);
 
 		[StructLayout(LayoutKind.Sequential)]
 		public struct MouseInputData
@@ -853,11 +880,11 @@ namespace Windawesome
 
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool RegisterHotKey([Optional] IntPtr hWnd, int id, MOD fsModifiers, System.Windows.Forms.Keys vk);
+		public static extern bool RegisterHotKey([Optional] HWND hWnd, int id, MOD fsModifiers, System.Windows.Forms.Keys vk);
 
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool UnregisterHotKey([Optional] IntPtr hWnd, int id);
+		public static extern bool UnregisterHotKey([Optional] HWND hWnd, int id);
 
 		[Flags]
 		public enum MOD : uint
@@ -880,6 +907,278 @@ namespace Windawesome
 
 		[DllImport("user32.dll")]
 		public static extern short GetAsyncKeyState(System.Windows.Forms.Keys nVirtKey);
+
+		#endregion
+
+		// process and thread stuff
+
+		#region Is64BitProcess
+
+		[DllImport("kernel32.dll")]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		private static extern bool IsWow64Process(HANDLE processHandle, [Out, MarshalAs(UnmanagedType.Bool)] out bool wow64Process);
+
+		public static bool Is64BitProcess(HWND hWnd)
+		{
+			if (Environment.Is64BitOperatingSystem)
+			{
+				var result = false;
+
+				int processId;
+				GetWindowThreadProcessId(hWnd, out processId);
+				var processHandle = Windawesome.isAtLeastVista ?
+					OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, processId) :
+					OpenProcess(PROCESS_QUERY_INFORMATION, false, processId);
+				if (processHandle != IntPtr.Zero)
+				{
+					try
+					{
+						IsWow64Process(processHandle, out result);
+						result = !result;
+					}
+					finally
+					{
+						CloseHandle(processHandle);
+					}
+				}
+
+				return result;
+			}
+			else
+			{
+				return false;
+			}
+		}
+
+		#endregion
+
+		/*
+		#region GetProcessOwner
+
+		[StructLayout(LayoutKind.Sequential)]
+		private struct TOKEN_USER
+		{
+			public SID_AND_ATTRIBUTES User;
+		}
+
+		[DllImport("kernel32.dll")]
+		private static extern HLOCAL LocalFree(HLOCAL hMem);
+
+		[DllImport("advapi32.dll", CharSet = CharSet.Auto)]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		public static extern bool ConvertSidToStringSid(HSID pSID, [Out] out IntPtr pStringSid);
+
+		public static string GetProcessOwner(int processId)
+		{
+			var result = String.Empty;
+
+			HANDLE tokenHandle;
+			var processHandle = Windawesome.isAtLeastVista ?
+				OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, processId) :
+				OpenProcess(PROCESS_QUERY_INFORMATION, false, processId);
+			if (processHandle != IntPtr.Zero)
+			{
+				if (OpenProcessToken(processHandle, TOKEN_QUERY, out tokenHandle))
+				{
+					int requiredLength;
+
+					GetTokenInformation(tokenHandle, TOKEN_INFORMATION_CLASS.TokenUser, IntPtr.Zero, 0, out requiredLength);
+
+					var tokenInformation = Marshal.AllocHGlobal(requiredLength);
+					if (GetTokenInformation(tokenHandle, TOKEN_INFORMATION_CLASS.TokenUser, tokenInformation, requiredLength, out requiredLength))
+					{
+						LPVOID sidString;
+						if (ConvertSidToStringSid(((TOKEN_USER) Marshal.PtrToStructure(tokenInformation, typeof(TOKEN_USER))).User.Sid, out sidString))
+						{
+							result = Marshal.PtrToStringAuto(sidString);
+							LocalFree(sidString);
+							result = new System.Security.Principal.SecurityIdentifier(result).Translate(typeof(System.Security.Principal.NTAccount)).ToString();
+						}
+					}
+					CloseHandle(tokenHandle);
+					Marshal.FreeHGlobal(tokenInformation);
+				}
+				CloseHandle(processHandle);
+			}
+			else
+			{
+				var searcher = new ManagementObjectSearcher();
+				searcher.Query = new ObjectQuery("SELECT * FROM Win32_Process WHERE ProcessID = " + processId);
+				searcher.Options.Timeout = TimeSpan.FromSeconds(3);
+
+				foreach (ManagementObject obj in searcher.Get())
+				{
+					 var args = new string[] { string.Empty, string.Empty };
+					 if (Convert.ToInt32(obj.InvokeMethod("GetOwner", args)) == 0)
+					 {
+						 return args[1] + "\\" + args[0];
+					 }
+				}
+			}
+
+			return result;
+		}
+
+		#endregion
+		*/
+
+		#region IsCurrentProcessElevatedInRespectToShell
+
+		public const DWORD TOKEN_QUERY = 0x00000008;
+
+		public const int SECURITY_NT_AUTHORITY = 5;
+		public const uint SECURITY_BUILTIN_DOMAIN_RID = 0x20;
+		public const uint DOMAIN_ALIAS_RID_ADMINS = 0x220;
+
+		public static readonly int SID_AND_ATTRIBUTESSize = Marshal.SizeOf(typeof(SID_AND_ATTRIBUTES));
+
+		public enum TOKEN_INFORMATION_CLASS
+		{
+			TokenUser = 1,
+			TokenGroups
+		}
+
+		[StructLayout(LayoutKind.Sequential)]
+		public struct SID_AND_ATTRIBUTES
+		{
+			public HSID Sid;
+			public DWORD Attributes;
+		}
+
+		[StructLayout(LayoutKind.Sequential)]
+		public struct SID_IDENTIFIER_AUTHORITY
+		{
+			[MarshalAs(UnmanagedType.ByValArray, SizeConst = 6, ArraySubType = UnmanagedType.I1)]
+			public byte[] Value;
+		}
+
+		[DllImport("advapi32.dll")]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		public static extern bool OpenProcessToken(HANDLE ProcessHandle, DWORD DesiredAccess, [Out] out HANDLE TokenHandle);
+
+		[DllImport("advapi32.dll")]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		public static extern bool GetTokenInformation(HANDLE hToken, TOKEN_INFORMATION_CLASS tokenInfoClass, [Optional, Out] LPVOID TokenInformation, int tokeInfoLength, [Out] out int reqLength);
+
+		[DllImport("advapi32.dll")]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		public static extern bool AllocateAndInitializeSid(
+			[In] ref SID_IDENTIFIER_AUTHORITY pIdentifierAuthority,
+			byte nSubAuthorityCount,
+			DWORD dwSubAuthority0, DWORD dwSubAuthority1,
+			DWORD dwSubAuthority2, DWORD dwSubAuthority3,
+			DWORD dwSubAuthority4, DWORD dwSubAuthority5,
+			DWORD dwSubAuthority6, DWORD dwSubAuthority7,
+			[Out] out IntPtr pSid);
+
+		[DllImport("advapi32.dll")]
+		public static extern PVOID FreeSid(IntPtr pSid);
+
+		[DllImport("advapi32.dll")]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		public static extern bool EqualSid(IntPtr pSid1, IntPtr pSid2);
+
+		internal static bool IsCurrentProcessElevatedInRespectToShell()
+		{
+			var result = false;
+
+			IntPtr authenticatedUsersSid;
+			var ntAuthority = new SID_IDENTIFIER_AUTHORITY { Value = new byte[] { 0, 0, 0, 0, 0, SECURITY_NT_AUTHORITY } };
+			AllocateAndInitializeSid(ref ntAuthority, 2, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_ADMINS,
+				0, 0, 0, 0, 0, 0, out authenticatedUsersSid);
+
+			var windawesomeIsRunAsAdmin = TokenInAdministratorsGroup(GetCurrentProcess(), authenticatedUsersSid);
+
+			if (windawesomeIsRunAsAdmin)
+			{
+				LONG shellProcessId;
+				GetWindowThreadProcessId(shellWindow, out shellProcessId);
+				var shellProcessHandle = Windawesome.isAtLeastVista ?
+					OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, shellProcessId) :
+					OpenProcess(PROCESS_QUERY_INFORMATION, false, shellProcessId);
+
+				result = !TokenInAdministratorsGroup(shellProcessHandle, authenticatedUsersSid);
+
+				CloseHandle(shellProcessHandle);
+			}
+
+			FreeSid(authenticatedUsersSid);
+
+			return result;
+		}
+
+		private static bool TokenInAdministratorsGroup(HANDLE processHandle, IntPtr authenticatedUsersSid)
+		{
+			var result = false;
+
+			HANDLE tokenHandle;
+			if (OpenProcessToken(processHandle, TOKEN_QUERY, out tokenHandle))
+			{
+				int requiredLength;
+
+				GetTokenInformation(tokenHandle, TOKEN_INFORMATION_CLASS.TokenGroups, IntPtr.Zero, 0, out requiredLength);
+
+				var tokenInformation = Marshal.AllocHGlobal(requiredLength);
+				if (GetTokenInformation(tokenHandle, TOKEN_INFORMATION_CLASS.TokenGroups, tokenInformation, requiredLength, out requiredLength))
+				{
+					var groupsCount = Marshal.ReadInt32(tokenInformation);
+					IntPtr counter = tokenInformation + 4;
+					for (int i = 0; i < groupsCount; i++)
+					{
+						var sid = Marshal.ReadIntPtr(counter);
+
+						if (EqualSid(authenticatedUsersSid, sid))
+						{
+							result = true;
+							break;
+						}
+
+						counter += SID_AND_ATTRIBUTESSize;
+					}
+				}
+
+				CloseHandle(tokenHandle);
+				Marshal.FreeHGlobal(tokenInformation);
+			}
+
+			return result;
+		}
+
+		#endregion
+
+		[DllImport("user32.dll")]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		public static extern bool AttachThreadInput(DWORD idAttach, DWORD idAttachTo, [MarshalAs(UnmanagedType.Bool)] bool fAttach);
+
+		[DllImport("user32.dll")]
+		public static extern DWORD GetWindowThreadProcessId(HWND hWnd, [Optional, Out] out int lpdwProcessId);
+
+		[DllImport("user32.dll")]
+		public static extern DWORD GetWindowThreadProcessId(HWND hWnd, [Optional, Out] IntPtr lpdwProcessId);
+
+		#region GetCurrentThreadId/GetCurrentProcess
+
+		[DllImport("kernel32.dll")]
+		public static extern DWORD GetCurrentThreadId();
+
+		[DllImport("kernel32.dll")]
+		private static extern HANDLE GetCurrentProcess();
+
+		#endregion
+
+		#region OpenProcess/CloseHandle
+
+		public const DWORD PROCESS_VM_READ = 0x10;
+		public const DWORD PROCESS_VM_OPERATION = 0x8;
+		public const DWORD PROCESS_QUERY_INFORMATION = 0x400;
+		public const DWORD PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
+
+		[DllImport("kernel32.dll")]
+		public static extern HANDLE OpenProcess(DWORD dwDesiredAccess, [MarshalAs(UnmanagedType.Bool)] bool bInheritHandle, int dwProcessId);
+
+		[DllImport("kernel32.dll")]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		public static extern bool CloseHandle(HANDLE hObject);
 
 		#endregion
 
@@ -919,46 +1218,6 @@ namespace Windawesome
 
 		[DllImport("kernel32.dll")]
 		public static extern ushort GlobalDeleteAtom(ushort nAtom);
-
-		#endregion
-
-		#region Is64BitProcess
-
-		[DllImport("kernel32.dll")]
-		[return: MarshalAs(UnmanagedType.Bool)]
-		private static extern bool IsWow64Process(IntPtr processHandle, [Out, MarshalAs(UnmanagedType.Bool)] out bool wow64Process);
-
-		public static bool Is64BitProcess(IntPtr hWnd)
-		{
-			if (Environment.Is64BitOperatingSystem)
-			{
-				var result = false;
-
-				int processId;
-				GetWindowThreadProcessId(hWnd, out processId);
-				var processHandle = Windawesome.isAtLeastVista ?
-					OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, processId) :
-					OpenProcess(PROCESS_QUERY_INFORMATION, false, processId);
-				if (processHandle != IntPtr.Zero)
-				{
-					try
-					{
-						IsWow64Process(processHandle, out result);
-						result = !result;
-					}
-					finally
-					{
-						CloseHandle(processHandle);
-					}
-				}
-
-				return result;
-			}
-			else
-			{
-				return false;
-			}
-		}
 
 		#endregion
 
@@ -1015,23 +1274,6 @@ namespace Windawesome
 		private static extern bool UnregisterSystemTrayHook64();
 
 		#endregion
-
-		[DllImport("user32.dll")]
-		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool AttachThreadInput(uint idAttach, uint idAttachTo, [MarshalAs(UnmanagedType.Bool)] bool fAttach);
-
-		[DllImport("kernel32.dll")]
-		public static extern uint GetCurrentThreadId();
-
-		[DllImport("shell32.dll")]
-		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool IsUserAnAdmin();
-
-		[DllImport("user32.dll")]
-		public static extern uint GetWindowThreadProcessId(IntPtr hWnd, [Optional, Out] out int lpdwProcessId);
-
-		[DllImport("user32.dll")]
-		public static extern uint GetWindowThreadProcessId(IntPtr hWnd, [Optional, Out] IntPtr lpdwProcessId);
 
 		public static readonly IntPtr IntPtrOne = (IntPtr) 1;
 
@@ -1629,36 +1871,26 @@ namespace Windawesome
 
 		#endregion
 
-		#region OpenProcess/CloseHandle/VirtualAllocEx/VirtualFreeEx/ReadProcessMemory
+		#region VirtualAllocEx/VirtualFreeEx/ReadProcessMemory
 
 		public const uint MEM_COMMIT = 0x1000;
 		public const uint MEM_RELEASE = 0x8000;
 		public const uint PAGE_READWRITE = 0x4;
-		public const uint PROCESS_VM_READ = 0x10;
-		public const uint PROCESS_VM_OPERATION = 0x8;
-		public const uint PROCESS_QUERY_INFORMATION = 0x400;
-		public const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
 
 		[DllImport("kernel32.dll")]
-		public static extern IntPtr OpenProcess(uint dwDesiredAccess, [MarshalAs(UnmanagedType.Bool)] bool bInheritHandle, int dwProcessId);
-
-		[DllImport("kernel32.dll")]
-		public static extern Int32 CloseHandle(IntPtr hObject);
-
-		[DllImport("kernel32.dll")]
-		public static extern IntPtr VirtualAllocEx(IntPtr hProcess, [Optional] IntPtr lpAddress, IntPtr dwSize, uint flAllocationType, uint flProtect);
+		public static extern LPVOID VirtualAllocEx(HANDLE hProcess, [Optional] LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect);
 
 		[DllImport("kernel32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool VirtualFreeEx(IntPtr hProcess, IntPtr lpAddress, IntPtr dwSize, uint dwFreeType);
+		public static extern bool VirtualFreeEx(HANDLE hProcess, LPVOID lpAddress, SIZE_T dwSize, DWORD dwFreeType);
 
 		[DllImport("kernel32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
-		unsafe public static extern bool ReadProcessMemory(IntPtr hProcess, IntPtr lpBaseAddress, [Out] void* lpBuffer, IntPtr nSize, [Out] UIntPtr lpNumberOfBytesRead);
+		unsafe public static extern bool ReadProcessMemory(HANDLE hProcess, IntPtr lpBaseAddress, [Out] void* lpBuffer, SIZE_T nSize, [Out] UIntPtr lpNumberOfBytesRead);
 
 		[DllImport("kernel32.dll", CharSet = CharSet.Auto)]
 		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool ReadProcessMemory(IntPtr hProcess, IntPtr lpBaseAddress, [Out] StringBuilder lpBuffer, IntPtr nSize, [Out] UIntPtr lpNumberOfBytesRead);
+		public static extern bool ReadProcessMemory(HANDLE hProcess, IntPtr lpBaseAddress, [Out] StringBuilder lpBuffer, SIZE_T nSize, [Out] UIntPtr lpNumberOfBytesRead);
 
 		#endregion
 
@@ -1760,7 +1992,7 @@ namespace Windawesome
 
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool GetMonitorInfo(IntPtr hMonitor, [In, Out] ref MONITORINFO lpmi);
+		public static extern bool GetMonitorInfo(HMONITOR hMonitor, [In, Out] ref MONITORINFO lpmi);
 
 		public enum MONITORINFOF : uint
 		{
@@ -1804,10 +2036,10 @@ namespace Windawesome
 		}
 
 		[DllImport("user32.dll")]
-		public static extern IntPtr MonitorFromRect([In] ref RECT lprc, MFRF dwFlags);
+		public static extern HMONITOR MonitorFromRect([In] ref RECT lprc, MFRF dwFlags);
 
 		[DllImport("user32.dll")]
-		public static extern IntPtr MonitorFromWindow(IntPtr hwnd, MFRF dwFlags);
+		public static extern HMONITOR MonitorFromWindow(HWND hwnd, MFRF dwFlags);
 
 		public enum MFRF : uint
 		{

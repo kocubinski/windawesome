@@ -17,7 +17,6 @@ namespace Windawesome
 		private readonly Color highlightedInactiveBackgroundColor;
 		private readonly Color flashingForegroundColor;
 		private readonly Color flashingBackgroundColor;
-		private int left, right;
 		private bool isLeft;
 		private bool isShown;
 		private readonly bool flashWorkspaces;
@@ -240,34 +239,30 @@ namespace Windawesome
 		{
 			if (isLeft)
 			{
-				this.left = left;
 				foreach (var label in workspaceLabels)
 				{
 					label.Location = new Point(left, 0);
 					left += label.Width;
 				}
-				this.right = left;
 			}
 			else
 			{
-				this.right = right;
 				foreach (var label in workspaceLabels.Reverse())
 				{
 					right -= label.Width;
 					label.Location = new Point(right, 0);
 				}
-				this.left = right;
 			}
 		}
 
 		int IWidget.GetLeft()
 		{
-			return left;
+			return workspaceLabels.First().Left;
 		}
 
 		int IWidget.GetRight()
 		{
-			return right;
+			return workspaceLabels.Last().Right;
 		}
 
 		void IWidget.StaticDispose()
