@@ -854,24 +854,6 @@ namespace Windawesome
 			return list != null;
 		}
 
-		private static void MoveWindowsToTopOfZOrder(Workspace workspace)
-		{
-			if (workspace.GetWindowsCount() > 1)
-			{
-				var winPosInfo = NativeMethods.BeginDeferWindowPos(workspace.GetWindowsCount());
-
-				var previousHWnd = NativeMethods.HWND_TOP;
-				foreach (var window in workspace.windows.Where(WindowIsNotHung))
-				{
-					winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, window.hWnd, previousHWnd, 0, 0, 0, 0,
-						NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
-					previousHWnd = window.hWnd;
-				}
-
-				NativeMethods.EndDeferWindowPos(winPosInfo);
-			}
-		}
-
 		#endregion
 
 		#region API
@@ -1155,7 +1137,23 @@ namespace Windawesome
 				{
 					if (CurrentWorkspace.Monitor != newWorkspace.Monitor)
 					{
-						MoveWindowsToTopOfZOrder(newWorkspace);
+						if (CurrentWorkspace.GetWindowsCount() > 0 && CurrentWorkspace.hideFromAltTabWhenOnInactiveWorkspaceCount != CurrentWorkspace.GetWindowsCount())
+						{
+							// TODO: moving the windows from CurrentWorkspace to the bottom of the Z-order is not correct
+							// if there are more than 2 monitors - rather, they should be above the rest of the monitors' windows
+
+							var winPosInfo = NativeMethods.BeginDeferWindowPos(CurrentWorkspace.GetWindowsCount());
+
+							var previousHWnd = NativeMethods.HWND_BOTTOM;
+							foreach (var window in CurrentWorkspace.windows.Where(WindowIsNotHung))
+							{
+								winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, window.hWnd, previousHWnd, 0, 0, 0, 0,
+									NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
+								previousHWnd = window.hWnd;
+							}
+
+							NativeMethods.EndDeferWindowPos(winPosInfo);
+						}
 
 						if (config.MoveMouseOverMonitorsOnSwitch)
 						{
@@ -1539,10 +1537,6 @@ namespace Windawesome
 
 								SwitchToWorkspace(workspace.id, false);
 								SwitchToApplicationInCurrentWorkspace(hWnd);
-
-								// whenever changing to a window in a different Workspace on another
-								// monitor, which is not the topmost one, Z-order is not preserved correctly
-								PostAction(() => MoveWindowsToTopOfZOrder(workspace));
 							}
 							else
 							{
