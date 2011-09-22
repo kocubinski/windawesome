@@ -5,14 +5,12 @@ using System.Text;
 
 namespace Windawesome
 {
-	using System.Management;
 using DWORD = UInt32;
 using HANDLE = IntPtr;
 using HDWP = IntPtr;
 using HHOOK = IntPtr;
 using HICON = IntPtr;
 using HINSTANCE = IntPtr;
-using HLOCAL = IntPtr;
 using HMENU = IntPtr;
 using HMODULE = IntPtr;
 using HMONITOR = IntPtr;
@@ -27,9 +25,7 @@ using PVOID = IntPtr;
 using SIZE_T = IntPtr;
 using UINT = UInt32;
 using UINT_PTR = UIntPtr;
-using WPARAM = UIntPtr;
-	using System.Security.Principal;
-	using Microsoft.Win32; // UINT_PTR
+using WPARAM = UIntPtr; // UINT_PTR
 
 #if !DEBUG
 	[System.Security.SuppressUnmanagedCodeSecurity]
@@ -1087,7 +1083,7 @@ using WPARAM = UIntPtr;
 			AllocateAndInitializeSid(ref ntAuthority, 2, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_ADMINS,
 				0, 0, 0, 0, 0, 0, out authenticatedUsersSid);
 
-			var windawesomeIsRunAsAdmin = TokenInAdministratorsGroup(GetCurrentProcess(), authenticatedUsersSid);
+			var windawesomeIsRunAsAdmin = TokenIsInAdministratorsGroup(GetCurrentProcess(), authenticatedUsersSid);
 
 			if (windawesomeIsRunAsAdmin)
 			{
@@ -1097,7 +1093,7 @@ using WPARAM = UIntPtr;
 					OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, shellProcessId) :
 					OpenProcess(PROCESS_QUERY_INFORMATION, false, shellProcessId);
 
-				result = !TokenInAdministratorsGroup(shellProcessHandle, authenticatedUsersSid);
+				result = !TokenIsInAdministratorsGroup(shellProcessHandle, authenticatedUsersSid);
 
 				CloseHandle(shellProcessHandle);
 			}
@@ -1107,7 +1103,7 @@ using WPARAM = UIntPtr;
 			return result;
 		}
 
-		private static bool TokenInAdministratorsGroup(HANDLE processHandle, IntPtr authenticatedUsersSid)
+		private static bool TokenIsInAdministratorsGroup(HANDLE processHandle, IntPtr authenticatedUsersSid)
 		{
 			var result = false;
 
@@ -1162,7 +1158,7 @@ using WPARAM = UIntPtr;
 		public static extern DWORD GetCurrentThreadId();
 
 		[DllImport("kernel32.dll")]
-		private static extern HANDLE GetCurrentProcess();
+		public static extern HANDLE GetCurrentProcess();
 
 		#endregion
 

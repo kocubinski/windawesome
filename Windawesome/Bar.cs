@@ -189,7 +189,7 @@ namespace Windawesome
 
 		public Monitor Monitor { get { return this.monitor; } }
 
-		void IBar.OnWidthChanging(int newWidth)
+		void IBar.OnClientWidthChanging(int newWidth)
 		{
 			if (this.form.ClientSize.Width != newWidth)
 			{

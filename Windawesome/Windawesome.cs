@@ -535,7 +535,7 @@ namespace Windawesome
 					var topmost = CurrentWorkspace.GetTopmostWindow();
 					if (topmost != null)
 					{
-						NativeMethods.SetWindowPos(hWnd, NativeMethods.HWND_BOTTOM, 0, 0, 0, 0,
+						NativeMethods.SetWindowPos(hWnd, CurrentWorkspace.windows.Last(w => !w.IsMinimized).hWnd, 0, 0, 0, 0,
 							NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
 						ForceForegroundWindow(topmost);
 						PostAction(() => CurrentWorkspace.WindowActivated(topmost.hWnd));
@@ -618,7 +618,8 @@ namespace Windawesome
 			}
 			else
 			{
-				NativeMethods.SetWindowPos(hWnd, NativeMethods.HWND_TOP, 0, 0, 0, 0, NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
+				NativeMethods.SetWindowPos(hWnd, NativeMethods.HWND_TOP, 0, 0, 0, 0,
+					NativeMethods.SWP.SWP_ASYNCWINDOWPOS | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
 			}
 		}
 
@@ -913,7 +914,7 @@ namespace Windawesome
 			// set monitor bounds, repositions all windows in all workspaces and redraw all windows in visible workspaces
 			monitors.ForEach(m => m.SetBoundsAndWorkingArea());
 			config.Workspaces.ForEach(ws => ws.Reposition());
-			monitors.ForEach(m => m.CurrentVisibleWorkspace.windows.ForEach(w => w.Redraw()));
+			monitors.SelectMany(m => m.CurrentVisibleWorkspace.windows).ForEach(w => w.Redraw());
 
 			// refresh bars
 			config.Bars.ForEach(b => b.Refresh());
@@ -1309,7 +1310,7 @@ namespace Windawesome
 				{
 					if (isRunningElevated)
 					{
-						NativeMethods.RunApplicationNonElevated(path, arguments);
+						NativeMethods.RunApplicationNonElevated(path, arguments); // TODO: this is not working on XP
 					}
 					else
 					{
@@ -1536,7 +1537,6 @@ namespace Windawesome
 								// (e.g. when the user has ALT-TABbed to the window across monitors)
 
 								SwitchToWorkspace(workspace.id, false);
-								SwitchToApplicationInCurrentWorkspace(hWnd);
 							}
 							else
 							{

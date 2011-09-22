@@ -213,6 +213,7 @@ namespace Windawesome
 
 		public delegate bool CustomMatchingFunction(IntPtr hWnd);
 
+		// http://blogs.msdn.com/b/oldnewthing/archive/2007/10/08/5351207.aspx
 		private static bool DefaultCustomMatchingFunction(IntPtr hWnd)
 		{
 			return !NativeMethods.GetWindowExStyleLongPtr(hWnd).HasFlag(NativeMethods.WS_EX.WS_EX_TOOLWINDOW) &&

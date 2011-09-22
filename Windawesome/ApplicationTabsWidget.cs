@@ -89,7 +89,7 @@ namespace Windawesome
 
 		private void OnWindowActivated(IntPtr hWnd)
 		{
-			if (isShown && bar.Monitor.CurrentVisibleWorkspace.IsCurrentWorkspace)
+			if (isShown && (!showSingleApplicationTab || bar.Monitor.CurrentVisibleWorkspace.IsCurrentWorkspace))
 			{
 				Panel panel = null;
 				var workspaceId = bar.Monitor.CurrentVisibleWorkspace.id - 1;
