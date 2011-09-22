@@ -89,7 +89,7 @@ namespace Windawesome
 
 		private void OnWindowActivated(IntPtr hWnd)
 		{
-			if (isShown)
+			if (isShown && bar.Monitor.CurrentVisibleWorkspace.IsCurrentWorkspace)
 			{
 				Panel panel = null;
 				var workspaceId = bar.Monitor.CurrentVisibleWorkspace.id - 1;
@@ -111,14 +111,14 @@ namespace Windawesome
 				// removes the current highlight
 				if (currentlyHighlightedPanel != null)
 				{
-					if (!showSingleApplicationTab)
+					if (showSingleApplicationTab)
+					{
+						currentlyHighlightedPanel.Hide();
+					}
+					else
 					{
 						currentlyHighlightedPanel.ForeColor = normalForegroundColor;
 						currentlyHighlightedPanel.BackColor = normalBackgroundColor;
-					}
-					else if (panel != null)
-					{
-						currentlyHighlightedPanel.Hide();
 					}
 				}
 
@@ -152,7 +152,7 @@ namespace Windawesome
 		{
 			Panel panel;
 			var applications = applicationPanels[workspace.id - 1];
-			if (applications.TryGetValue(window.hWnd, out panel))
+			if (workspace.Monitor == bar.Monitor && applications.TryGetValue(window.hWnd, out panel))
 			{
 				panel.Controls[1].Text = newText;
 			}
@@ -249,10 +249,13 @@ namespace Windawesome
 
 		private void ActivateTopmost(Workspace workspace)
 		{
-			var topmost = workspace.GetTopmostWindow();
-			if (topmost != null)
+			if (workspace.Monitor == bar.Monitor)
 			{
-				OnWindowActivated(topmost.hWnd);
+				var topmost = workspace.GetTopmostWindow();
+				if (topmost != null)
+				{
+					OnWindowActivated(topmost.hWnd);
+				}
 			}
 		}
 
