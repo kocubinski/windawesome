@@ -21,13 +21,12 @@ config.WindowPaddedBorderWidth = 0
 config.UniqueHotkey = Tuple[MOD, Keys](MOD.MOD_ALT, Keys.D0)
 
 config.Bars = Enumerable.ToArray[Bar]([
-	Bar(windawesome.monitors[i],
+	Bar(windawesome.monitors[0],
 		[WorkspacesWidget(), LayoutWidget(onClick = onLayoutLabelClick)],
 		[SystemTrayWidget(), DateTimeWidget("ddd, d-MMM"), DateTimeWidget("h:mm tt", Color.FromArgb(0xA8, 0xA8, 0xA8))],
 		[ApplicationTabsWidget()]
-	) for i in range(windawesome.monitors.Length)])
-
-index = 1 if windawesome.monitors.Length == 2 else 0
+	)
+ ])
 
 config.Workspaces = Enumerable.ToArray[Workspace]([
 	Workspace(windawesome.monitors[0], FloatingLayout(), [config.Bars[0]], name = 'main'),
@@ -37,14 +36,11 @@ config.Workspaces = Enumerable.ToArray[Workspace]([
 	Workspace(windawesome.monitors[0], FullScreenLayout(), [config.Bars[0]]),
 	Workspace(windawesome.monitors[0], FullScreenLayout(), [config.Bars[0]]),
 	Workspace(windawesome.monitors[0], FullScreenLayout(), [config.Bars[0]]),
-	Workspace(windawesome.monitors[index], FullScreenLayout(), [config.Bars[index]], name = 'mail'),
-	Workspace(windawesome.monitors[index], FullScreenLayout(), [config.Bars[index]], name = 'BC')
+	Workspace(windawesome.monitors[0], FullScreenLayout(), [config.Bars[0]], name = 'mail'),
+	Workspace(windawesome.monitors[0], FullScreenLayout(), [config.Bars[0]], name = 'BC')
 ])
 
-if windawesome.monitors.Length == 2:
-	config.StartingWorkspaces = [config.Workspaces[0], config.Workspaces[7]]
-else if windawesome.monitors.Length == 1:
-	config.StartingWorkspaces = [config.Workspaces[0]]
+config.StartingWorkspaces = [config.Workspaces[0]]
 
 config.Plugins = [
 	#LoggerPlugin(logWorkspaceSwitching = True, logWindowMinimization = True, logWindowRestoration = True,

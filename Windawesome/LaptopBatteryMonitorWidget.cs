@@ -105,14 +105,7 @@ namespace Windawesome
 
 		public void RepositionControls(int left, int right)
 		{
-			if (isLeft)
-			{
-				label.Location = new Point(left, 0);
-			}
-			else
-			{
-				label.Location = new Point(right - label.Width, 0);
-			}
+			this.label.Location = this.isLeft ? new Point(left, 0) : new Point(right - this.label.Width, 0);
 		}
 
 		int IWidget.GetLeft()

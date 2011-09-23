@@ -105,9 +105,7 @@ namespace Windawesome
 			var prevStyle = style;
 			var prevExStyle = exStyle;
 
-			var titlebarStyle = originalStyle &
-				(NativeMethods.WS.WS_CAPTION | NativeMethods.WS.WS_MINIMIZEBOX |
-				NativeMethods.WS.WS_MAXIMIZEBOX | NativeMethods.WS.WS_SYSMENU);
+			var titlebarStyle = originalStyle & NativeMethods.WS.WS_OVERLAPPEDWINDOW;
 
 			var borderStyle = originalStyle & NativeMethods.WS.WS_SIZEBOX;
 

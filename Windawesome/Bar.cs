@@ -263,7 +263,7 @@ namespace Windawesome
 
 		#endregion
 
-		private NonActivatableForm CreateForm()
+		private static NonActivatableForm CreateForm()
 		{
 			var newForm = new NonActivatableForm
 				{

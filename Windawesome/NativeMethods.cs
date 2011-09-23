@@ -1031,7 +1031,8 @@ using WPARAM = UIntPtr; // UINT_PTR
 		public enum TOKEN_INFORMATION_CLASS
 		{
 			TokenUser = 1,
-			TokenGroups
+			TokenGroups = 2,
+			TokenElevationType = 18,
 		}
 
 		[StructLayout(LayoutKind.Sequential)]
@@ -1047,6 +1048,18 @@ using WPARAM = UIntPtr; // UINT_PTR
 			[MarshalAs(UnmanagedType.ByValArray, SizeConst = 6, ArraySubType = UnmanagedType.I1)]
 			public byte[] Value;
 		}
+
+		public struct TOKEN_ELEVATION
+		{
+			public DWORD TokenIsElevated;
+		}
+
+		public enum TOKEN_ELEVATION_TYPE : uint
+		{
+			TokenElevationTypeDefault = 1,
+			TokenElevationTypeFull = 2,
+			TokenElevationTypeLimited = 3
+		} 
 
 		[DllImport("advapi32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
@@ -1083,59 +1096,90 @@ using WPARAM = UIntPtr; // UINT_PTR
 			AllocateAndInitializeSid(ref ntAuthority, 2, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_ADMINS,
 				0, 0, 0, 0, 0, 0, out authenticatedUsersSid);
 
-			var windawesomeIsRunAsAdmin = TokenIsInAdministratorsGroup(GetCurrentProcess(), authenticatedUsersSid);
-
-			if (windawesomeIsRunAsAdmin)
+			HANDLE currentProcessTokenHandle;
+			if (OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, out currentProcessTokenHandle))
 			{
-				LONG shellProcessId;
-				GetWindowThreadProcessId(shellWindow, out shellProcessId);
-				var shellProcessHandle = Windawesome.isAtLeastVista ?
-					OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, shellProcessId) :
-					OpenProcess(PROCESS_QUERY_INFORMATION, false, shellProcessId);
+				var windawesomeIsRunAsAdmin = TokenIsInAdministratorsGroup(currentProcessTokenHandle, authenticatedUsersSid);
 
-				result = !TokenIsInAdministratorsGroup(shellProcessHandle, authenticatedUsersSid);
+				if (windawesomeIsRunAsAdmin)
+				{
+					LONG shellProcessId;
+					GetWindowThreadProcessId(shellWindow, out shellProcessId);
+					var shellProcessHandle = Windawesome.isAtLeastVista ?
+						OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, shellProcessId) :
+						OpenProcess(PROCESS_QUERY_INFORMATION, false, shellProcessId);
 
-				CloseHandle(shellProcessHandle);
+					if (shellProcessHandle != IntPtr.Zero)
+					{
+						HANDLE shellProcessTokenHandle;
+						if (OpenProcessToken(shellProcessHandle, TOKEN_QUERY, out shellProcessTokenHandle))
+						{
+							result = Windawesome.isAtLeastVista
+								? IsProcessElevated(currentProcessTokenHandle) && !IsProcessElevated(shellProcessTokenHandle)
+								: !TokenIsInAdministratorsGroup(shellProcessTokenHandle, authenticatedUsersSid);
+
+							CloseHandle(shellProcessTokenHandle);
+						}
+
+						CloseHandle(shellProcessHandle);
+					}
+				}
+				else if (Windawesome.isAtLeastVista)
+				{
+					result = IsProcessElevated(GetCurrentProcess());
+				}
+	
+				FreeSid(authenticatedUsersSid);
+
+				CloseHandle(currentProcessTokenHandle);
 			}
-
-			FreeSid(authenticatedUsersSid);
 
 			return result;
 		}
 
-		private static bool TokenIsInAdministratorsGroup(HANDLE processHandle, IntPtr authenticatedUsersSid)
+		private static bool TokenIsInAdministratorsGroup(HANDLE tokenHandle, IntPtr authenticatedUsersSid)
 		{
 			var result = false;
 
-			HANDLE tokenHandle;
-			if (OpenProcessToken(processHandle, TOKEN_QUERY, out tokenHandle))
+			int requiredLength;
+			GetTokenInformation(tokenHandle, TOKEN_INFORMATION_CLASS.TokenGroups, IntPtr.Zero, 0, out requiredLength);
+
+			var tokenInformation = Marshal.AllocHGlobal(requiredLength);
+			if (GetTokenInformation(tokenHandle, TOKEN_INFORMATION_CLASS.TokenGroups, tokenInformation, requiredLength, out requiredLength))
 			{
-				int requiredLength;
-
-				GetTokenInformation(tokenHandle, TOKEN_INFORMATION_CLASS.TokenGroups, IntPtr.Zero, 0, out requiredLength);
-
-				var tokenInformation = Marshal.AllocHGlobal(requiredLength);
-				if (GetTokenInformation(tokenHandle, TOKEN_INFORMATION_CLASS.TokenGroups, tokenInformation, requiredLength, out requiredLength))
+				var groupsCount = Marshal.ReadInt32(tokenInformation);
+				var counter = tokenInformation + IntPtr.Size; // This is IntPtr.Size although groupsCount is a DWORD because of padding
+				for (var i = 0; i < groupsCount; i++)
 				{
-					var groupsCount = Marshal.ReadInt32(tokenInformation);
-					IntPtr counter = tokenInformation + 4;
-					for (int i = 0; i < groupsCount; i++)
+					var sid = Marshal.ReadIntPtr(counter);
+
+					if (EqualSid(authenticatedUsersSid, sid))
 					{
-						var sid = Marshal.ReadIntPtr(counter);
-
-						if (EqualSid(authenticatedUsersSid, sid))
-						{
-							result = true;
-							break;
-						}
-
-						counter += SID_AND_ATTRIBUTESSize;
+						result = true;
+						break;
 					}
-				}
 
-				CloseHandle(tokenHandle);
-				Marshal.FreeHGlobal(tokenInformation);
+					counter += SID_AND_ATTRIBUTESSize;
+				}
 			}
+
+			Marshal.FreeHGlobal(tokenInformation);
+
+			return result;
+		}
+
+		private static bool IsProcessElevated(HANDLE tokenHandle)
+		{
+			var result = false;
+
+			var tokenElevationType = Marshal.AllocHGlobal(4); // Marshal.SizeOf(typeof(TOKEN_ELEVATION_TYPE))
+			int requiredLength;
+			if (GetTokenInformation(tokenHandle, TOKEN_INFORMATION_CLASS.TokenElevationType, tokenElevationType, 4, out requiredLength))
+			{
+				result = (TOKEN_ELEVATION_TYPE) Marshal.ReadInt32(tokenElevationType) == TOKEN_ELEVATION_TYPE.TokenElevationTypeFull;
+			}
+
+			Marshal.FreeHGlobal(tokenElevationType);
 
 			return result;
 		}

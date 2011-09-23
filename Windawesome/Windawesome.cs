@@ -635,12 +635,10 @@ namespace Windawesome
 			{
 				return false;
 			}
-			else
-			{
-				NativeMethods.SetWindowPos(hWnd, NativeMethods.HWND_TOP, 0, 0, 0, 0, NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
 
-				return true;
-			}
+			NativeMethods.SetWindowPos(hWnd, NativeMethods.HWND_TOP, 0, 0, 0, 0, NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
+
+			return true;
 		}
 
 		#region SendHotkey
@@ -817,7 +815,7 @@ namespace Windawesome
 			return false;
 		}
 
-		private void RestoreIfMinimized(IntPtr hWnd, bool isMinimized)
+		private static void RestoreIfMinimized(IntPtr hWnd, bool isMinimized)
 		{
 			if (isMinimized)
 			{
@@ -1046,8 +1044,8 @@ namespace Windawesome
 								LinkedList<Tuple<Workspace, Window>> windowList;
 								if (IsAppWindow(h) && applications.TryGetValue(h, out windowList))
 								{
-									Tuple<Workspace, Window> tuple = windowList.First(t => t.Item1.IsWorkspaceVisible);
-									if (tuple.Item1.GetWindowsCount() > 1)
+									var tuple = windowList.First(t => t.Item1.IsWorkspaceVisible);
+									if (tuple.Item1.windows.First.Next != null)
 									{
 										var secondZOrderWindow = tuple.Item1.windows.First.Next.Value.hWnd;
 										NativeMethods.SetWindowPos(tuple.Item2.hWnd, secondZOrderWindow, 0, 0, 0, 0,
