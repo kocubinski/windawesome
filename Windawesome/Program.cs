@@ -12,7 +12,7 @@ namespace Windawesome
 		static void Main()
 		{
 			bool createdNew;
-			using (new System.Threading.Mutex(true, "Global\\{BCDA45B7-407E-43F3-82FB-D1F6D6D093FF}", out createdNew))
+			using (new System.Threading.Mutex(true, "{BCDA45B7-407E-43F3-82FB-D1F6D6D093FF}", out createdNew))
 			{
 				if (createdNew) // if the mutex was taken successfully, i.e. this is the first instance of the app running
 				{
@@ -31,6 +31,11 @@ namespace Windawesome
 							{
 								"------------------------------------",
 								DateTime.Now.ToString(),
+								System.Reflection.Assembly.GetCallingAssembly().FullName,
+								Environment.OSVersion.VersionString,
+								"CLR: " + Environment.Version.ToString(3),
+								"64-bit OS: " + Environment.Is64BitOperatingSystem.ToString(),
+								"64-bit process: " + Environment.Is64BitProcess.ToString(),
 								e.ToString()
 							});
 

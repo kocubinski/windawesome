@@ -93,6 +93,8 @@ namespace Windawesome
 
 		#endregion
 
+		// TODO: owned windows should be handled A LOT better - messageboxes, dialogboxes, modal, modeless, etc
+
 		#region Windawesome Construction, Initialization and Destruction
 
 		static Windawesome()
@@ -633,7 +635,11 @@ namespace Windawesome
 
 			if (count == 5)
 			{
-				return false;
+				System.Threading.Thread.Sleep(10);
+				if (NativeMethods.GetForegroundWindow() != hWnd)
+				{
+					return false;
+				}
 			}
 
 			NativeMethods.SetWindowPos(hWnd, NativeMethods.HWND_TOP, 0, 0, 0, 0, NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
@@ -783,7 +789,7 @@ namespace Windawesome
 
 			var hideWindows = oldWorkspace.sharedWindowsCount > 0 ? oldWorkspace.windows.Except(showWindows) : oldWorkspace.windows;
 			// if the window is not visible we shouldn't add it to hiddenApplications as EVENT_OBJECT_HIDE won't be sent
-			foreach (var window in hideWindows.Where(w => WindowIsNotHung(w) && NativeMethods.IsWindowVisible(w.hWnd)))
+			foreach (var window in hideWindows.Where(w => NativeMethods.IsWindowVisible(w.hWnd) && WindowIsNotHung(w)))
 			{
 				hiddenApplications.Add(window.hWnd);
 				window.HidePopups();
@@ -1306,7 +1312,7 @@ namespace Windawesome
 		{
 			System.Threading.Tasks.Task.Factory.StartNew(() =>
 				{
-					if (isRunningElevated)
+					if (isAtLeastVista && isRunningElevated)
 					{
 						NativeMethods.RunApplicationNonElevated(path, arguments); // TODO: this is not working on XP
 					}

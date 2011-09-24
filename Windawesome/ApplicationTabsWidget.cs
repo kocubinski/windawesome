@@ -242,7 +242,6 @@ namespace Windawesome
 					{
 						currentlyHighlightedPanel.Hide();
 					}
-					OnWindowActivated(IntPtr.Zero);
 				}
 			}
 		}
@@ -292,6 +291,7 @@ namespace Windawesome
 			Workspace.WindowActivatedEvent += OnWindowActivated;
 			Workspace.WorkspaceHidden += OnWorkspaceHidden;
 			Workspace.WorkspaceShown += OnWorkspaceShown;
+			Workspace.WorkspaceDeactivated += _ => OnWindowActivated(IntPtr.Zero);
 			Workspace.WorkspaceActivated += ActivateTopmost;
 
 			currentlyHighlightedPanel = null;

@@ -1114,9 +1114,9 @@ using WPARAM = UIntPtr; // UINT_PTR
 						HANDLE shellProcessTokenHandle;
 						if (OpenProcessToken(shellProcessHandle, TOKEN_QUERY, out shellProcessTokenHandle))
 						{
-							result = Windawesome.isAtLeastVista
-								? IsProcessElevated(currentProcessTokenHandle) && !IsProcessElevated(shellProcessTokenHandle)
-								: !TokenIsInAdministratorsGroup(shellProcessTokenHandle, authenticatedUsersSid);
+							result = Windawesome.isAtLeastVista ?
+								IsProcessElevated(currentProcessTokenHandle) && !IsProcessElevated(shellProcessTokenHandle) :
+								!TokenIsInAdministratorsGroup(shellProcessTokenHandle, authenticatedUsersSid);
 
 							CloseHandle(shellProcessTokenHandle);
 						}
@@ -1128,11 +1128,11 @@ using WPARAM = UIntPtr; // UINT_PTR
 				{
 					result = IsProcessElevated(GetCurrentProcess());
 				}
-	
-				FreeSid(authenticatedUsersSid);
 
 				CloseHandle(currentProcessTokenHandle);
 			}
+
+			FreeSid(authenticatedUsersSid);
 
 			return result;
 		}
