@@ -5,7 +5,7 @@ from Windawesome.NativeMethods import WS, WS_EX
 config.ProgramRules = [
 	ProgramRule(
 		className = "^cygwin/x X rl*$",
-		windowCreatedDelay = 500,
+		windowCreatedDelay = 200,
 		rules = [ProgramRule.Rule(workspace = 5)]
 	),
 	ProgramRule(
@@ -122,6 +122,7 @@ config.ProgramRules = [
 	ProgramRule(
 		className = "^wxWindowClassNR$",
 		displayName = "^Buddy List$",
+		processName = "^digsby-app$",
         customMatchingFunction = lambda hWnd: True
 	),
 	ProgramRule(

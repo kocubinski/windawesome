@@ -131,7 +131,7 @@ using WPARAM = UIntPtr; // UINT_PTR
 		#region SetWinEventHook/UnhookWinEvent
 
 		public delegate void WinEventDelegate(HWINEVENTHOOK hWinEventHook, EVENT eventType,
-			HWND hwnd, LONG idObject, LONG idChild, DWORD dwEventThread, DWORD dwmsEventTime);
+			HWND hwnd, OBJID idObject, LONG idChild, DWORD dwEventThread, DWORD dwmsEventTime);
 
 		[DllImport("user32.dll")]
 		public static extern HWINEVENTHOOK SetWinEventHook(EVENT eventMin, EVENT eventMax, HMODULE hmodWinEventProc,
@@ -142,12 +142,18 @@ using WPARAM = UIntPtr; // UINT_PTR
 			EVENT_OBJECT_DESTROY = 0x00008001,
 			EVENT_OBJECT_SHOW = 0x00008002,
 			EVENT_OBJECT_HIDE = 0x00008003,
+			EVENT_OBJECT_FOCUS = 0x00008005,
 
 			EVENT_SYSTEM_MINIMIZESTART = 0x16,
 			EVENT_SYSTEM_MINIMIZEEND = 0x17
 		}
 
-		public const LONG OBJID_WINDOW = 0x00000000;
+		public enum OBJID : int
+		{
+			OBJID_WINDOW = 0x00000000,
+			OBJID_CLIENT = -4
+		}
+
 		public const LONG CHILDID_SELF = 0;
 
 		[Flags]
@@ -399,6 +405,10 @@ using WPARAM = UIntPtr; // UINT_PTR
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
 		public static extern bool IsWindowVisible(HWND hWnd);
+
+		[DllImport("user32.dll")]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		public static extern bool IsWindowEnabled(HWND hWnd);
 
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]

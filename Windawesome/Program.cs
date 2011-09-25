@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Windows.Forms;
 
 namespace Windawesome
@@ -31,13 +32,20 @@ namespace Windawesome
 							{
 								"------------------------------------",
 								DateTime.Now.ToString(),
-								System.Reflection.Assembly.GetCallingAssembly().FullName,
-								Environment.OSVersion.VersionString,
-								"CLR: " + Environment.Version.ToString(3),
-								"64-bit OS: " + Environment.Is64BitOperatingSystem.ToString(),
-								"64-bit process: " + Environment.Is64BitProcess.ToString(),
-								e.ToString()
-							});
+								"Assemblies:",
+								System.Reflection.Assembly.GetExecutingAssembly().FullName
+							}.
+							Concat(System.Reflection.Assembly.GetExecutingAssembly().GetReferencedAssemblies().Select(a => a.FullName)).
+							Concat(new[]
+								{
+									"",
+									"OS: " + Environment.OSVersion.VersionString,
+									"CLR: " + Environment.Version.ToString(3),
+									"64-bit OS: " + Environment.Is64BitOperatingSystem.ToString(),
+									"64-bit process: " + Environment.Is64BitProcess.ToString(),
+									"Elevated: " + Windawesome.isRunningElevated,
+									e.ToString()
+								}));
 
 						if (windawesome != null)
 						{

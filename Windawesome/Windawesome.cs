@@ -38,6 +38,7 @@ namespace Windawesome
 		private readonly NativeMethods.WinEventDelegate winEventDelegate;
 		private readonly IntPtr windowShownOrDestroyedWinEventHook;
 		private readonly IntPtr windowMinimizedOrRestoredWinEventHook;
+		private readonly IntPtr windowFocusedWinEventHook;
 
 		private IntPtr forceForegroundWindow;
 
@@ -258,6 +259,9 @@ namespace Windawesome
 			windowMinimizedOrRestoredWinEventHook = NativeMethods.SetWinEventHook(NativeMethods.EVENT.EVENT_SYSTEM_MINIMIZESTART, NativeMethods.EVENT.EVENT_SYSTEM_MINIMIZEEND,
 				IntPtr.Zero, winEventDelegate, 0, 0,
 				NativeMethods.WINEVENT.WINEVENT_OUTOFCONTEXT | NativeMethods.WINEVENT.WINEVENT_SKIPOWNTHREAD);
+			windowFocusedWinEventHook = NativeMethods.SetWinEventHook(NativeMethods.EVENT.EVENT_OBJECT_FOCUS, NativeMethods.EVENT.EVENT_OBJECT_FOCUS,
+				IntPtr.Zero, winEventDelegate, 0, 0,
+				NativeMethods.WINEVENT.WINEVENT_OUTOFCONTEXT | NativeMethods.WINEVENT.WINEVENT_SKIPOWNTHREAD);
 
 			// initialize all workspaces and hide windows not on StartingWorkspaces
 			var windowsToHide = new HashSet<Window>();
@@ -289,6 +293,7 @@ namespace Windawesome
 			// unregister the shell events
 			NativeMethods.UnhookWinEvent(windowShownOrDestroyedWinEventHook);
 			NativeMethods.UnhookWinEvent(windowMinimizedOrRestoredWinEventHook);
+			NativeMethods.UnhookWinEvent(windowFocusedWinEventHook);
 
 			// unregister shell hook
 			NativeMethods.DeregisterShellHookWindow(this.Handle);
@@ -384,9 +389,17 @@ namespace Windawesome
 			Quit();
 		}
 
+		private static bool IsNotModalWindow(IntPtr hWnd)
+		{
+			// TODO: this is kind of a hack and may not always work. Is there another way?
+			var owner = NativeMethods.GetWindow(hWnd, NativeMethods.GW.GW_OWNER);
+			return owner == IntPtr.Zero || NativeMethods.IsWindowEnabled(owner);
+		}
+
 		private static bool IsAppWindow(IntPtr hWnd)
 		{
-			return NativeMethods.IsWindowVisible(hWnd) && !NativeMethods.GetWindowStyleLongPtr(hWnd).HasFlag(NativeMethods.WS.WS_CHILD);
+			return NativeMethods.IsWindowVisible(hWnd) && !NativeMethods.GetWindowStyleLongPtr(hWnd).HasFlag(NativeMethods.WS.WS_CHILD) &&
+				IsNotModalWindow(hWnd);
 		}
 
 		private bool AddWindowToWorkspace(IntPtr hWnd, bool firstTry = true, bool finishedInitializing = true)
@@ -863,13 +876,13 @@ namespace Windawesome
 
 		#region API
 
-		public static bool DoForSelfAndOwnersWhile(IntPtr hWnd, Predicate<IntPtr> action)
+		public static IntPtr DoForSelfAndOwnersWhile(IntPtr hWnd, Predicate<IntPtr> action)
 		{
 			while (hWnd != IntPtr.Zero && action(hWnd))
 			{
 				hWnd = NativeMethods.GetWindow(hWnd, NativeMethods.GW.GW_OWNER);
 			}
-			return hWnd != IntPtr.Zero;
+			return hWnd;
 		}
 
 		public static IntPtr GetTopOwnerWindow(IntPtr hWnd)
@@ -1466,9 +1479,14 @@ namespace Windawesome
 		#region Message Loop Stuff
 
 		private void WinEventDelegate(IntPtr hWinEventHook, NativeMethods.EVENT eventType,
-			IntPtr hWnd, int idObject, int idChild, uint dwEventThread, uint dwmsEventTime)
+			IntPtr hWnd, NativeMethods.OBJID idObject, int idChild, uint dwEventThread, uint dwmsEventTime)
 		{
-			if (idObject == NativeMethods.OBJID_WINDOW && idChild == NativeMethods.CHILDID_SELF && hWnd != IntPtr.Zero)
+			if (eventType == NativeMethods.EVENT.EVENT_OBJECT_FOCUS)
+			{
+				// HSHELL_WINDOWACTIVATED/HSHELL_RUDEAPPACTIVATED doesn't work for some windows like Digsby Buddy List
+				OnWindowActivated(NativeMethods.GetForegroundWindow());
+			}
+			else if (idChild == NativeMethods.CHILDID_SELF && idObject == NativeMethods.OBJID.OBJID_WINDOW && hWnd != IntPtr.Zero)
 			{
 				switch (eventType)
 				{
@@ -1497,12 +1515,14 @@ namespace Windawesome
 						RemoveApplicationFromAllWorkspaces(hWnd, true);
 						break;
 					case NativeMethods.EVENT.EVENT_OBJECT_HIDE:
+						// differentiating between hiding and destroying a window is nice - therefore HSHELL_WINDOWDESTROYED is not enough
 						if (hiddenApplications.Remove(hWnd) == HashMultiSet<IntPtr>.RemoveResult.NotFound)
 						{
 							// a window has been closed but it was hidden by the application rather than destroyed (e.g. ICQ 7.6 main window)
 							RemoveApplicationFromAllWorkspaces(hWnd, false);
 						}
 						break;
+					// these actually work (in contrast with HSHELL_GETMINRECT)
 					case NativeMethods.EVENT.EVENT_SYSTEM_MINIMIZESTART:
 						CurrentWorkspace.WindowMinimized(hWnd);
 						break;
@@ -1581,10 +1601,6 @@ namespace Windawesome
 				LinkedList<Tuple<Workspace, Window>> list;
 				switch ((NativeMethods.ShellEvents) m.WParam)
 				{
-					case NativeMethods.ShellEvents.HSHELL_WINDOWACTIVATED:
-					case NativeMethods.ShellEvents.HSHELL_RUDEAPPACTIVATED:
-						OnWindowActivated(NativeMethods.GetForegroundWindow());
-						break;
 					case NativeMethods.ShellEvents.HSHELL_REDRAW:
 						if (applications.TryGetValue(m.LParam, out list))
 						{
@@ -1596,6 +1612,8 @@ namespace Windawesome
 							}
 						}
 						break;
+					// this is the only thing that cannot be done with WinEvents (as far as I can tell)
+					// it would be nice to remove the shell hook and use only WinEvents
 					case NativeMethods.ShellEvents.HSHELL_FLASH:
 						if (ApplicationsTryGetValue(m.LParam, out list))
 						{

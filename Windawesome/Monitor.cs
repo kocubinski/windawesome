@@ -301,7 +301,7 @@ namespace Windawesome
 		}
 
 		private static void TaskbarShownWinEventDelegate(IntPtr hWinEventHook, NativeMethods.EVENT eventType,
-			IntPtr hwnd, int idObject, int idChild, uint dwEventThread, uint dwmsEventTime)
+			IntPtr hwnd, NativeMethods.OBJID idObject, int idChild, uint dwEventThread, uint dwmsEventTime)
 		{
 			if (NativeMethods.IsWindowVisible(taskbarHandle) != isWindowsTaskbarShown)
 			{

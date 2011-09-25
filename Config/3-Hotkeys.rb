@@ -9,6 +9,14 @@ end
 
 flashing_window = nil
 
+def get_managed_window workspace, hWnd
+	Windawesome::Windawesome.do_for_self_and_owners_while hWnd, lambda { |h| not workspace.contains_window h }
+end
+
+def get_current_workspace_managed_window
+	get_managed_window windawesome.current_workspace, Windawesome::NativeMethods.get_foreground_window
+end
+
 Windawesome::Windawesome.window_flashing do |l|
 	flashing_window = l.first.value.item2.hWnd
 end
@@ -33,7 +41,7 @@ end
 
 # dismiss application
 subscribe modifiers.Alt, key.D do
-	windawesome.dismiss_temporarily_shown_window Windawesome::NativeMethods.get_foreground_window
+	windawesome.dismiss_temporarily_shown_window get_current_workspace_managed_window
 end
 
 # minimize application
@@ -132,7 +140,7 @@ subscribe modifiers.Control | modifiers.Alt | modifiers.Shift, key.M do
 end
 
 subscribe modifiers.Control | modifiers.Alt | modifiers.Shift, key.Q do
-	windawesome.remove_application_from_workspace Windawesome::NativeMethods.get_foreground_window
+	windawesome.remove_application_from_workspace get_current_workspace_managed_window
 end
 
 subscribe modifiers.Alt | modifiers.Shift, key.L do
@@ -149,14 +157,14 @@ end
 
 subscribe modifiers.Alt | modifiers.Shift, key.Down do
 	if windawesome.current_workspace.layout.layout_name == "Tile"
-		window = windawesome.current_workspace.get_window Windawesome::NativeMethods.get_foreground_window
+		window = windawesome.current_workspace.get_window get_current_workspace_managed_window
 		windawesome.current_workspace.layout.shift_window_to_next_position window
 	end
 end
 
 subscribe modifiers.Alt | modifiers.Shift, key.Up do
 	if windawesome.current_workspace.layout.layout_name == "Tile"
-		window = windawesome.current_workspace.get_window Windawesome::NativeMethods.get_foreground_window
+		window = windawesome.current_workspace.get_window get_current_workspace_managed_window
 		windawesome.current_workspace.layout.shift_window_to_previous_position window
 	end
 end
@@ -171,7 +179,7 @@ end
 
 subscribe modifiers.Control | modifiers.Alt | modifiers.Shift, key.Return do
 	if windawesome.current_workspace.layout.layout_name == "Tile"
-		window = windawesome.current_workspace.get_window Windawesome::NativeMethods.get_foreground_window
+		window = windawesome.current_workspace.get_window get_current_workspace_managed_window
 		windawesome.current_workspace.layout.shift_window_to_main_position window
 	end
 end
@@ -184,10 +192,10 @@ end
 	end
 
 	subscribe modifiers.Alt | modifiers.Shift, k do
-		windawesome.change_application_to_workspace Windawesome::NativeMethods.get_foreground_window, i
+		windawesome.change_application_to_workspace get_current_workspace_managed_window, i
 	end
 
 	subscribe modifiers.Control | modifiers.Alt | modifiers.Shift, k do
-		windawesome.add_application_to_workspace Windawesome::NativeMethods.get_foreground_window, i
+		windawesome.add_application_to_workspace get_current_workspace_managed_window, i
 	end
 end
