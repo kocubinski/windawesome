@@ -199,11 +199,11 @@ namespace Windawesome
 		internal readonly NativeMethods.WS_EX exStyleContains;
 		internal readonly NativeMethods.WS_EX exStyleNotContains;
 		private readonly CustomMatchingFunction customMatchingFunction;
+		internal readonly CustomMatchingFunction customOwnedWindowMatchingFunction;
 
 		internal readonly bool isManaged;
 		internal readonly int tryAgainAfter;
 		internal readonly int windowCreatedDelay;
-		internal readonly bool hideOwnedPopups;
 		internal readonly bool redrawDesktopOnWindowCreated;
 		internal readonly bool showMenu;
 		internal readonly OnWindowCreatedOnCurrentWorkspaceAction onWindowCreatedOnCurrentWorkspaceAction;
@@ -214,10 +214,15 @@ namespace Windawesome
 		public delegate bool CustomMatchingFunction(IntPtr hWnd);
 
 		// http://blogs.msdn.com/b/oldnewthing/archive/2007/10/08/5351207.aspx
-		private static bool DefaultCustomMatchingFunction(IntPtr hWnd)
+		private static bool DefaultMatchingFunction(IntPtr hWnd)
 		{
 			return !NativeMethods.GetWindowExStyleLongPtr(hWnd).HasFlag(NativeMethods.WS_EX.WS_EX_TOOLWINDOW) &&
 				NativeMethods.GetWindow(hWnd, NativeMethods.GW.GW_OWNER) == IntPtr.Zero;
+		}
+
+		private static bool DefaultOwnedWindowMatchingFunction(IntPtr hWnd)
+		{
+			return !NativeMethods.GetWindowExStyleLongPtr(hWnd).HasFlag(NativeMethods.WS_EX.WS_EX_TOOLWINDOW);
 		}
 
 		internal bool IsMatch(IntPtr hWnd, string cName, string dName, string pName, NativeMethods.WS style, NativeMethods.WS_EX exStyle)
@@ -233,8 +238,7 @@ namespace Windawesome
 			NativeMethods.WS_EX exStyleContains = (NativeMethods.WS_EX) 0, NativeMethods.WS_EX exStyleNotContains = (NativeMethods.WS_EX) 0,
 			CustomMatchingFunction customMatchingFunction = null,
 
-			bool isManaged = true, int tryAgainAfter = -1, int windowCreatedDelay = -1,
-			bool hideOwnedPopups = true, bool redrawDesktopOnWindowCreated = false, bool showMenu = true,
+			bool isManaged = true, int tryAgainAfter = -1, int windowCreatedDelay = -1, bool redrawDesktopOnWindowCreated = false, bool showMenu = true,
 			OnWindowCreatedOnCurrentWorkspaceAction onWindowCreatedOnCurrentWorkspaceAction = OnWindowCreatedOnCurrentWorkspaceAction.ActivateWindow,
 			OnWindowShownAction onWindowCreatedAction = OnWindowShownAction.SwitchToWindowsWorkspace,
 			OnWindowShownAction onHiddenWindowShownAction = OnWindowShownAction.SwitchToWindowsWorkspace,
@@ -247,14 +251,14 @@ namespace Windawesome
 			this.styleNotContains = styleNotContains;
 			this.exStyleContains = exStyleContains;
 			this.exStyleNotContains = exStyleNotContains;
-			this.customMatchingFunction = customMatchingFunction ?? DefaultCustomMatchingFunction;
+			this.customMatchingFunction = customMatchingFunction ?? DefaultMatchingFunction;
+			this.customOwnedWindowMatchingFunction = DefaultOwnedWindowMatchingFunction;
 
 			this.isManaged = isManaged;
 			if (isManaged)
 			{
 				this.tryAgainAfter = tryAgainAfter;
 				this.windowCreatedDelay = windowCreatedDelay;
-				this.hideOwnedPopups = hideOwnedPopups;
 				this.redrawDesktopOnWindowCreated = redrawDesktopOnWindowCreated;
 				this.showMenu = showMenu;
 				this.onWindowCreatedOnCurrentWorkspaceAction = onWindowCreatedOnCurrentWorkspaceAction;
@@ -284,7 +288,7 @@ namespace Windawesome
 		{
 			public Rule(int workspace = 0, bool isFloating = false, bool showInTabs = true,
 				State titlebar = State.AS_IS, State inAltTabAndTaskbar = State.AS_IS, State windowBorders = State.AS_IS,
-				bool redrawOnShow = false, bool activateLastActivePopup = true, bool hideFromAltTabAndTaskbarWhenOnInactiveWorkspace = false)
+				bool redrawOnShow = false, bool hideFromAltTabAndTaskbarWhenOnInactiveWorkspace = false)
 			{
 				this.workspace = workspace;
 				this.isFloating = isFloating;
@@ -293,7 +297,6 @@ namespace Windawesome
 				this.inAltTabAndTaskbar = inAltTabAndTaskbar;
 				this.windowBorders = windowBorders;
 				this.redrawOnShow = redrawOnShow;
-				this.activateLastActivePopup = activateLastActivePopup;
 				this.hideFromAltTabAndTaskbarWhenOnInactiveWorkspace = hideFromAltTabAndTaskbarWhenOnInactiveWorkspace;
 			}
 
@@ -304,7 +307,6 @@ namespace Windawesome
 			internal readonly State inAltTabAndTaskbar;
 			internal readonly State windowBorders;
 			internal readonly bool redrawOnShow;
-			internal readonly bool activateLastActivePopup;
 			internal readonly bool hideFromAltTabAndTaskbarWhenOnInactiveWorkspace;
 		}
 	}

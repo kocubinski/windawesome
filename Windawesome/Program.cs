@@ -41,8 +41,8 @@ namespace Windawesome
 									"",
 									"OS: " + Environment.OSVersion.VersionString,
 									"CLR: " + Environment.Version.ToString(3),
-									"64-bit OS: " + Environment.Is64BitOperatingSystem.ToString(),
-									"64-bit process: " + Environment.Is64BitProcess.ToString(),
+									"64-bit OS: " + Environment.Is64BitOperatingSystem,
+									"64-bit process: " + Environment.Is64BitProcess,
 									"Elevated: " + Windawesome.isRunningElevated,
 									e.ToString()
 								}));

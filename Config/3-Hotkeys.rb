@@ -82,7 +82,7 @@ end
 
 # start Foobar2000
 subscribe modifiers.Alt, key.W do
-	windawesome.run_application "C:\\Program Files (x86)\\foobar2000-1.1.6\\Prog\\foobar2000.exe"
+	windawesome.run_application "C:\\Program Files (x86)\\foobar2000\\foobar2000.exe"
 end
 
 # start Cygwin's MinTTY shell
@@ -92,7 +92,7 @@ end
 
 # start Bitcomet
 subscribe modifiers.Alt, key.B do
-	windawesome.run_application "C:\\Program Files (x86)\\BitComet\\BitComet_x64.exe"
+	windawesome.run_application "C:\\Program Files\\BitComet\\BitComet.exe"
 end
 
 # switch to flashing window

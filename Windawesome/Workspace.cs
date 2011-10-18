@@ -36,10 +36,12 @@ namespace Windawesome
 			}
 		}
 
-		internal bool hasChanges;
 		internal int hideFromAltTabWhenOnInactiveWorkspaceCount;
 		internal int sharedWindowsCount;
+		internal int ownedWindowsCount;
 		internal readonly LinkedList<Window> windows; // all windows, sorted in Z-order, topmost window first
+
+		private bool hasChanges;
 
 		private static int count;
 
@@ -418,6 +420,7 @@ namespace Windawesome
 			{
 				window.Initialize();
 			}
+			ownedWindowsCount += window.ownedWindows.Count - 1;
 
 			if (!window.IsMinimized && !window.IsFloating)
 			{
@@ -440,6 +443,7 @@ namespace Windawesome
 			{
 				sharedWindowsCount--;
 			}
+			ownedWindowsCount -= window.ownedWindows.Count - 1;
 
 			if (!window.IsMinimized && !window.IsFloating)
 			{

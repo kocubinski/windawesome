@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace Windawesome
 {
@@ -17,8 +18,6 @@ namespace Windawesome
 		public readonly string processName;
 		public readonly bool is64BitProcess;
 		public readonly bool redrawOnShow;
-		public readonly bool activateLastActivePopup;
-		public readonly bool hideOwnedPopups;
 		public bool ShowMenu { get; private set; }
 		public readonly OnWindowShownAction onHiddenWindowShownAction;
 		public readonly IntPtr menu;
@@ -29,6 +28,14 @@ namespace Windawesome
 
 		private NativeMethods.WINDOWPLACEMENT windowPlacement;
 		private readonly NativeMethods.WINDOWPLACEMENT originalWindowPlacement;
+
+		private readonly ProgramRule.CustomMatchingFunction customOwnedWindowMatchingFunction;
+		internal readonly LinkedList<IntPtr> ownedWindows;
+
+		internal bool IsMatchOwnedWindow(IntPtr hWnd)
+		{
+			return customOwnedWindowMatchingFunction(hWnd);
+		}
 
 		internal Window(IntPtr hWnd, string className, string displayName, string processName, int workspacesCount, bool is64BitProcess,
 			NativeMethods.WS originalStyle, NativeMethods.WS_EX originalExStyle, ProgramRule.Rule rule, ProgramRule programRule, IntPtr menu)
@@ -46,8 +53,6 @@ namespace Windawesome
 			this.processName = processName;
 			this.is64BitProcess = is64BitProcess;
 			redrawOnShow = rule.redrawOnShow;
-			activateLastActivePopup = rule.activateLastActivePopup;
-			hideOwnedPopups = programRule.hideOwnedPopups;
 			ShowMenu = programRule.showMenu;
 			onHiddenWindowShownAction = programRule.onHiddenWindowShownAction;
 			this.menu = menu;
@@ -59,6 +64,10 @@ namespace Windawesome
 			windowPlacement = NativeMethods.WINDOWPLACEMENT.Default;
 			SavePosition();
 			originalWindowPlacement = windowPlacement;
+
+			this.customOwnedWindowMatchingFunction = programRule.customOwnedWindowMatchingFunction;
+			this.ownedWindows = new LinkedList<IntPtr>();
+			this.ownedWindows.AddFirst(hWnd);
 		}
 
 		internal Window(Window window)
@@ -76,8 +85,6 @@ namespace Windawesome
 			processName = window.processName;
 			is64BitProcess = window.is64BitProcess;
 			redrawOnShow = window.redrawOnShow;
-			activateLastActivePopup = window.activateLastActivePopup;
-			hideOwnedPopups = window.hideOwnedPopups;
 			ShowMenu = window.ShowMenu;
 			onHiddenWindowShownAction = window.onHiddenWindowShownAction;
 			menu = window.menu;
@@ -85,6 +92,9 @@ namespace Windawesome
 			
 			windowPlacement = window.windowPlacement;
 			originalWindowPlacement = window.originalWindowPlacement;
+
+			this.customOwnedWindowMatchingFunction = window.customOwnedWindowMatchingFunction;
+			ownedWindows = window.ownedWindows;
 		}
 
 		public override int GetHashCode()
@@ -248,37 +258,18 @@ namespace Windawesome
 			}
 		}
 
-		internal void ShowPopupsAndRedraw()
-		{
-			if (hideOwnedPopups)
-			{
-				NativeMethods.ShowOwnedPopups(hWnd, true);
-			}
-
-			if (redrawOnShow)
-			{
-				Redraw();
-			}
-		}
-
 		internal void Show()
 		{
-			ShowPopupsAndRedraw();
-			NativeMethods.ShowWindowAsync(hWnd, NativeMethods.SW.SW_SHOWNA);
-		}
-
-		internal void HidePopups()
-		{
-			if (hideOwnedPopups)
+			if (this.redrawOnShow)
 			{
-				NativeMethods.ShowOwnedPopups(hWnd, false);
+				this.Redraw();
 			}
+			ownedWindows.ForEach(h => NativeMethods.ShowWindowAsync(h, NativeMethods.SW.SW_SHOWNA));
 		}
 
 		internal void Hide()
 		{
-			HidePopups();
-			NativeMethods.ShowWindowAsync(hWnd, NativeMethods.SW.SW_HIDE);
+			ownedWindows.ForEach(h => NativeMethods.ShowWindowAsync(h, NativeMethods.SW.SW_HIDE));
 		}
 
 		internal void ShowWindowMenu()

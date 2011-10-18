@@ -22,7 +22,6 @@ config.ProgramRules = [
 	ProgramRule(
 		className = "^TApplication$",
 		customMatchingFunction = lambda hWnd: True,
-		hideOwnedPopups = False,
 		rules = [ProgramRule.Rule(isFloating = True)]
 	),
 	ProgramRule(
