@@ -89,7 +89,7 @@ namespace Windawesome
 			onHiddenWindowShownAction = window.onHiddenWindowShownAction;
 			menu = window.menu;
 			this.hideFromAltTabAndTaskbarWhenOnInactiveWorkspace = window.hideFromAltTabAndTaskbarWhenOnInactiveWorkspace;
-			
+
 			windowPlacement = window.windowPlacement;
 			originalWindowPlacement = window.originalWindowPlacement;
 
@@ -258,7 +258,7 @@ namespace Windawesome
 			}
 		}
 
-		internal void Show()
+		internal void ShowAsync()
 		{
 			if (this.redrawOnShow)
 			{
@@ -268,6 +268,11 @@ namespace Windawesome
 		}
 
 		internal void Hide()
+		{
+			ownedWindows.ForEach(h => NativeMethods.ShowWindow(h, NativeMethods.SW.SW_HIDE));
+		}
+
+		internal void HideAsync()
 		{
 			ownedWindows.ForEach(h => NativeMethods.ShowWindowAsync(h, NativeMethods.SW.SW_HIDE));
 		}
@@ -294,7 +299,7 @@ namespace Windawesome
 
 			windowPlacement = originalWindowPlacement;
 			RestorePosition(false);
-			Show();
+			ShowAsync();
 		}
 	}
 }

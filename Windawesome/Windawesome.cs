@@ -246,6 +246,32 @@ namespace Windawesome
 					" switching to windows as you change workspaces!");
 			}
 
+			// initialize all workspaces and hide windows not on StartingWorkspaces
+			var windowsToHide = new HashSet<Window>();
+			foreach (var workspace in config.Workspaces)
+			{
+				workspace.windows.ForEach(w => windowsToHide.Add(w));
+				workspace.Initialize();
+			}
+			windowsToHide.ExceptWith(config.StartingWorkspaces.SelectMany(ws => ws.windows));
+			var winPosInfo = NativeMethods.BeginDeferWindowPos(windowsToHide.Count);
+			winPosInfo = windowsToHide.Where(WindowIsNotHung).Aggregate(winPosInfo, (current, w) =>
+				NativeMethods.DeferWindowPos(current, w.hWnd, IntPtr.Zero, 0, 0, 0, 0,
+					NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE |
+					NativeMethods.SWP.SWP_NOSIZE | NativeMethods.SWP.SWP_NOZORDER |
+					NativeMethods.SWP.SWP_NOOWNERZORDER | NativeMethods.SWP.SWP_HIDEWINDOW));
+			NativeMethods.EndDeferWindowPos(winPosInfo);
+
+			// remove windows from ALT-TAB menu and Taskbar
+			config.StartingWorkspaces.Where(ws => ws != CurrentWorkspace).SelectMany(ws => ws.windows).
+				Where(w => w.hideFromAltTabAndTaskbarWhenOnInactiveWorkspace).ForEach(w => w.ShowInAltTabAndTaskbar(false));
+
+			// initialize monitors and switch to the default starting workspaces
+			monitors.ForEach(m => m.Initialize());
+			Monitor.ShowHideWindowsTaskbar(CurrentWorkspace.ShowWindowsTaskbar);
+			SetWorkspaceTopManagedWindowAsForeground(CurrentWorkspace);
+			CurrentWorkspace.IsCurrentWorkspace = true;
+
 			// register a shell hook
 			NativeMethods.RegisterShellHookWindow(this.Handle);
 
@@ -260,26 +286,6 @@ namespace Windawesome
 			windowFocusedWinEventHook = NativeMethods.SetWinEventHook(NativeMethods.EVENT.EVENT_OBJECT_FOCUS, NativeMethods.EVENT.EVENT_OBJECT_FOCUS,
 				IntPtr.Zero, winEventDelegate, 0, 0,
 				NativeMethods.WINEVENT.WINEVENT_OUTOFCONTEXT | NativeMethods.WINEVENT.WINEVENT_SKIPOWNTHREAD);
-
-			// initialize all workspaces and hide windows not on StartingWorkspaces
-			var windowsToHide = new HashSet<Window>();
-			foreach (var workspace in config.Workspaces)
-			{
-				workspace.windows.ForEach(w => windowsToHide.Add(w));
-				workspace.Initialize();
-			}
-			windowsToHide.ExceptWith(config.StartingWorkspaces.SelectMany(ws => ws.windows));
-			windowsToHide.ForEach(HideWindow);
-
-			// remove windows from ALT-TAB menu and Taskbar
-			config.StartingWorkspaces.Where(ws => ws != CurrentWorkspace).SelectMany(ws => ws.windows).
-				Where(w => w.hideFromAltTabAndTaskbarWhenOnInactiveWorkspace).ForEach(w => w.ShowInAltTabAndTaskbar(false));
-
-			// initialize monitors and switch to the default starting workspaces
-			monitors.ForEach(m => m.Initialize());
-			Monitor.ShowHideWindowsTaskbar(CurrentWorkspace.ShowWindowsTaskbar);
-			SetWorkspaceTopManagedWindowAsForeground(CurrentWorkspace);
-			CurrentWorkspace.IsCurrentWorkspace = true;
 		}
 
 		public void Quit()
@@ -404,7 +410,7 @@ namespace Windawesome
 				workspacesWindowsList.ForEach(t => t.Item1.ownedWindowsCount++);
 				return true;
 			}
-			
+
 			var className = NativeMethods.GetWindowClassName(hWnd);
 			var displayName = NativeMethods.GetText(hWnd);
 			var style = NativeMethods.GetWindowStyleLongPtr(hWnd);
@@ -605,10 +611,10 @@ namespace Windawesome
 
 		private void ForceForegroundWindow(IntPtr hWnd)
 		{
-			var foregroundWindow = NativeMethods.GetForegroundWindow();
-			if (foregroundWindow != hWnd)
+			if (WindowIsNotHung(hWnd))
 			{
-				if (WindowIsNotHung(hWnd))
+				var foregroundWindow = NativeMethods.GetForegroundWindow();
+				if (foregroundWindow != hWnd)
 				{
 					var successfullyChanged = false;
 					if (foregroundWindow == IntPtr.Zero)
@@ -631,11 +637,11 @@ namespace Windawesome
 						SendHotkey(config.UniqueHotkey);
 					}
 				}
-			}
-			else
-			{
-				NativeMethods.SetWindowPos(hWnd, NativeMethods.HWND_TOP, 0, 0, 0, 0,
-					NativeMethods.SWP.SWP_ASYNCWINDOWPOS | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
+				else
+				{
+					NativeMethods.SetWindowPos(hWnd, NativeMethods.HWND_TOP, 0, 0, 0, 0,
+						NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
+				}
 			}
 		}
 
@@ -656,7 +662,8 @@ namespace Windawesome
 				}
 			}
 
-			NativeMethods.SetWindowPos(hWnd, NativeMethods.HWND_TOP, 0, 0, 0, 0, NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
+			NativeMethods.SetWindowPos(hWnd, NativeMethods.HWND_TOP, 0, 0, 0, 0,
+				NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
 
 			return true;
 		}
@@ -777,12 +784,19 @@ namespace Windawesome
 			}
 		}
 
-		private void HideWindow(Window window)
+		private void HideWindow(Window window, bool async = true)
 		{
 			if (NativeMethods.IsWindowVisible(window.hWnd))
 			{
 				hiddenApplications.Add(window.hWnd);
-				window.Hide();
+				if (async)
+				{
+					window.HideAsync();
+				}
+				else if (WindowIsNotHung(window))
+				{
+					window.Hide();
+				}
 			}
 		}
 
@@ -791,16 +805,13 @@ namespace Windawesome
 			var winPosInfo = NativeMethods.BeginDeferWindowPos(newWorkspace.GetWindowsCount() + newWorkspace.ownedWindowsCount + oldWorkspace.GetWindowsCount() + oldWorkspace.ownedWindowsCount);
 
 			var showWindows = newWorkspace.windows;
-			var newTopmostWindow = newWorkspace.GetTopmostWindow() != null ?
-				newWorkspace.GetTopmostWindow().ownedWindows.Last.Value : IntPtr.Zero;
 			foreach (var window in showWindows)
 			{
 				winPosInfo = window.ownedWindows.Where(WindowIsNotHung).Aggregate(winPosInfo, (current, hWnd) =>
 					NativeMethods.DeferWindowPos(current, hWnd, IntPtr.Zero, 0, 0, 0, 0,
-						(setForeground && hWnd == newTopmostWindow ? 0 : NativeMethods.SWP.SWP_NOACTIVATE) |
-							NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOZORDER |
-							NativeMethods.SWP.SWP_NOOWNERZORDER | NativeMethods.SWP.SWP_NOSIZE |
-							NativeMethods.SWP.SWP_SHOWWINDOW));
+						NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE |
+						NativeMethods.SWP.SWP_NOSIZE | NativeMethods.SWP.SWP_NOZORDER |
+						NativeMethods.SWP.SWP_NOOWNERZORDER | NativeMethods.SWP.SWP_SHOWWINDOW));
 				if (window.redrawOnShow)
 				{
 					window.Redraw();
@@ -810,17 +821,13 @@ namespace Windawesome
 			var hideWindows = oldWorkspace.sharedWindowsCount > 0 && newWorkspace.sharedWindowsCount > 0 ?
 				oldWorkspace.windows.Except(showWindows) : oldWorkspace.windows;
 			// if the window is not visible we shouldn't add it to hiddenApplications as EVENT_OBJECT_HIDE won't be sent
-			foreach (var window in hideWindows)
+			foreach (var hWnd in hideWindows.SelectMany(w => w.ownedWindows).Where(h => NativeMethods.IsWindowVisible(h) && WindowIsNotHung(h)))
 			{
-				winPosInfo = window.ownedWindows.Where(h => NativeMethods.IsWindowVisible(h) && WindowIsNotHung(h)).
-					Aggregate(winPosInfo, (current, hWnd) =>
-						{
-							this.hiddenApplications.Add(hWnd);
-							return NativeMethods.DeferWindowPos(current, hWnd, IntPtr.Zero, 0, 0, 0, 0,
-								NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE |
-								NativeMethods.SWP.SWP_NOSIZE | NativeMethods.SWP.SWP_NOZORDER |
-								NativeMethods.SWP.SWP_NOOWNERZORDER | NativeMethods.SWP.SWP_HIDEWINDOW);
-						});
+				this.hiddenApplications.Add(hWnd);
+				winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, hWnd, IntPtr.Zero, 0, 0, 0, 0,
+					NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE |
+					NativeMethods.SWP.SWP_NOSIZE | NativeMethods.SWP.SWP_NOZORDER |
+					NativeMethods.SWP.SWP_NOOWNERZORDER | NativeMethods.SWP.SWP_HIDEWINDOW);
 			}
 
 			NativeMethods.EndDeferWindowPos(winPosInfo);
@@ -930,8 +937,7 @@ namespace Windawesome
 			// of calling IsHungAppWindow AND SendMessageTimeout is not worth.
 
 			return NativeMethods.SendMessageTimeout(hWnd, NativeMethods.WM_NULL, UIntPtr.Zero, IntPtr.Zero,
-					NativeMethods.SMTO.SMTO_ABORTIFHUNG | NativeMethods.SMTO.SMTO_BLOCK, 1000, IntPtr.Zero) != IntPtr.Zero ||
-				Marshal.GetLastWin32Error() != NativeMethods.ERROR_TIMEOUT;
+				NativeMethods.SMTO.SMTO_ABORTIFHUNG | NativeMethods.SMTO.SMTO_BLOCK, 3000, IntPtr.Zero) != IntPtr.Zero;
 		}
 
 		public void RefreshWindawesome()
@@ -971,7 +977,7 @@ namespace Windawesome
 						}
 						else if (!oldWorkspace.IsWorkspaceVisible && newWorkspace.IsWorkspaceVisible)
 						{
-							window.Show();
+							window.ShowAsync();
 						}
 					}
 
@@ -1000,7 +1006,7 @@ namespace Windawesome
 					newWorkspace.WindowCreated(newWindow);
 					if (!follow && !oldWorkspace.IsWorkspaceVisible && newWorkspace.IsWorkspaceVisible)
 					{
-						window.Show();
+						window.ShowAsync();
 					}
 
 					var list = applications[window.hWnd];
@@ -1017,7 +1023,7 @@ namespace Windawesome
 			if (!NativeMethods.IsWindowVisible(window.hWnd))
 			{
 				CurrentWorkspace.Monitor.temporarilyShownWindows.Add(window.hWnd);
-				window.Show();
+				window.ShowAsync();
 			}
 		}
 
@@ -1054,71 +1060,76 @@ namespace Windawesome
 		public void RemoveApplicationFromAllWorkspaces(IntPtr hWnd, bool windowHidden) // sort of UnmanageWindow
 		{
 			LinkedList<Tuple<Workspace, Window>> list;
-			LinkedListNode<IntPtr> node;
-			if (applications.TryGetValue(hWnd, out list))
+			if (ApplicationsTryGetValue(hWnd, out list))
 			{
-				var oldWorkspaceWindowCount = CurrentWorkspace.GetWindowsCount();
-				list.ForEach(t => t.Item1.WindowDestroyed(t.Item2));
-				if (CurrentWorkspace.GetWindowsCount() != oldWorkspaceWindowCount)
+				if (list.First.Value.Item2.hWnd == hWnd)
 				{
-					// the window was on the current workspace, so activate another one
-					SetWorkspaceTopManagedWindowAsForeground(CurrentWorkspace);
-					// TODO: this doesn't always work when closing the last window of a workspace
-					// and another one is visible on another monitor
-
-					if (monitors.Length > 1 && CurrentWorkspace.GetWindowsCount() == 0)
+					var oldWorkspaceWindowCount = CurrentWorkspace.GetWindowsCount();
+					list.ForEach(t => t.Item1.WindowDestroyed(t.Item2));
+					if (CurrentWorkspace.GetWindowsCount() != oldWorkspaceWindowCount)
 					{
-						// Windows sometimes activates for a second the topmost window on another monitor so it
-						// disrupts the Z order of other windows
+						// the window was on the current workspace, so activate another one
+						SetWorkspaceTopManagedWindowAsForeground(CurrentWorkspace);
+						// TODO: this doesn't always work when closing the last window of a workspace
+						// and another one is visible on another monitor
 
-						NativeMethods.EnumWindows((h, _) =>
-							{
-								LinkedList<Tuple<Workspace, Window>> windowList;
-								if (IsAppWindow(h) && applications.TryGetValue(h, out windowList))
+						if (monitors.Length > 1 && CurrentWorkspace.GetWindowsCount() == 0)
+						{
+							// Windows sometimes activates for a second the topmost window on another monitor so it
+							// disrupts the Z order of other windows
+
+							NativeMethods.EnumWindows((h, _) =>
 								{
-									var tuple = windowList.First(t => t.Item1.IsWorkspaceVisible);
-									if (tuple.Item1.windows.First.Next != null)
+									LinkedList<Tuple<Workspace, Window>> windowList;
+									if (IsAppWindow(h) && applications.TryGetValue(h, out windowList))
 									{
-										var secondZOrderWindow = tuple.Item1.windows.First.Next.Value.hWnd;
-										NativeMethods.SetWindowPos(tuple.Item2.hWnd, secondZOrderWindow, 0, 0, 0, 0,
-											NativeMethods.SWP.SWP_ASYNCWINDOWPOS | NativeMethods.SWP.SWP_NOACTIVATE |
-											NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
-										NativeMethods.SetWindowPos(secondZOrderWindow, tuple.Item2.hWnd, 0, 0, 0, 0,
-											NativeMethods.SWP.SWP_ASYNCWINDOWPOS | NativeMethods.SWP.SWP_NOACTIVATE |
-											NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
+										var tuple = windowList.First(t => t.Item1.IsWorkspaceVisible);
+										if (tuple.Item1.windows.First.Next != null)
+										{
+											var secondZOrderWindow = tuple.Item1.windows.First.Next.Value.hWnd;
+											NativeMethods.SetWindowPos(tuple.Item2.hWnd, secondZOrderWindow, 0, 0, 0, 0,
+												NativeMethods.SWP.SWP_ASYNCWINDOWPOS | NativeMethods.SWP.SWP_NOACTIVATE |
+												NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
+											NativeMethods.SetWindowPos(secondZOrderWindow, tuple.Item2.hWnd, 0, 0, 0, 0,
+												NativeMethods.SWP.SWP_ASYNCWINDOWPOS | NativeMethods.SWP.SWP_NOACTIVATE |
+												NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
+										}
+										else
+										{
+											NativeMethods.SetWindowPos(tuple.Item2.hWnd, NativeMethods.HWND_BOTTOM, 0, 0, 0, 0,
+												NativeMethods.SWP.SWP_ASYNCWINDOWPOS | NativeMethods.SWP.SWP_NOACTIVATE |
+												NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
+										}
+										return false;
 									}
-									else
-									{
-										NativeMethods.SetWindowPos(tuple.Item2.hWnd, NativeMethods.HWND_BOTTOM, 0, 0, 0, 0,
-											NativeMethods.SWP.SWP_ASYNCWINDOWPOS | NativeMethods.SWP.SWP_NOACTIVATE |
-											NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
-									}
-									return false;
-								}
-								return true;
-							}, IntPtr.Zero);
+									return true;
+								}, IntPtr.Zero);
+						}
 					}
+					var window = list.First.Value.Item2;
+					if (!window.ShowMenu && window.menu != IntPtr.Zero)
+					{
+						if (windowHidden)
+						{
+							NativeMethods.DestroyMenu(window.menu);
+						}
+						else
+						{
+							window.ToggleShowHideWindowMenu();
+						}
+					}
+					applications.Remove(hWnd);
+					monitors.ForEach(m => m.temporarilyShownWindows.Remove(hWnd));
 				}
-				var window = list.First.Value.Item2;
-				if (!window.ShowMenu && window.menu != IntPtr.Zero)
+				else
 				{
-					if (windowHidden)
+					var node = list.First.Value.Item2.ownedWindows.FindLast(hWnd);
+					if (node != null)
 					{
-						NativeMethods.DestroyMenu(window.menu);
-					}
-					else
-					{
-						window.ToggleShowHideWindowMenu();
+						list.First.Value.Item2.ownedWindows.Remove(node);
+						list.ForEach(t => t.Item1.ownedWindowsCount--);
 					}
 				}
-				applications.Remove(hWnd);
-				monitors.ForEach(m => m.temporarilyShownWindows.Remove(hWnd));
-			}
-			else if (ApplicationsTryGetValue(hWnd, out list) &&
-				(node = list.First.Value.Item2.ownedWindows.FindLast(hWnd)) != null)
-			{
-				list.First.Value.Item2.ownedWindows.Remove(node);
-				list.ForEach(t => t.Item1.ownedWindowsCount--);
 			}
 		}
 
@@ -1143,6 +1154,12 @@ namespace Windawesome
 				{
 					// TODO: must check if there are shared windows on two different monitors
 
+					if (CurrentWorkspace.Monitor.temporarilyShownWindows.Count > 0)
+					{
+						CurrentWorkspace.Monitor.temporarilyShownWindows.ForEach(hWnd => HideWindow(applications[hWnd].First.Value.Item2, false));
+						CurrentWorkspace.Monitor.temporarilyShownWindows.Clear();
+					}
+
 					var currentVisibleWorkspace = newWorkspace.Monitor.CurrentVisibleWorkspace;
 
 					var needsToReposition = newWorkspace.NeedsToReposition();
@@ -1151,12 +1168,6 @@ namespace Windawesome
 					{
 						// first show and hide if there are no changes
 						ShowHideWindows(currentVisibleWorkspace, newWorkspace, setForeground);
-					}
-
-					if (newWorkspace.Monitor.temporarilyShownWindows.Count > 0)
-					{
-						newWorkspace.Monitor.temporarilyShownWindows.ForEach(hWnd => HideWindow(applications[hWnd].First.Value.Item2));
-						newWorkspace.Monitor.temporarilyShownWindows.Clear();
 					}
 
 					CurrentWorkspace.IsCurrentWorkspace = false;
@@ -1530,12 +1541,16 @@ namespace Windawesome
 							}
 						}
 						break;
+					// differentiating between hiding and destroying a window is nice - therefore HSHELL_WINDOWDESTROYED is not enough
 					case NativeMethods.EVENT.EVENT_OBJECT_DESTROY:
-						RemoveApplicationFromAllWorkspaces(hWnd, true);
+						if (!NativeMethods.GetWindowStyleLongPtr(hWnd).HasFlag(NativeMethods.WS.WS_CHILD))
+						{
+							RemoveApplicationFromAllWorkspaces(hWnd, true);
+						}
 						break;
 					case NativeMethods.EVENT.EVENT_OBJECT_HIDE:
-						// differentiating between hiding and destroying a window is nice - therefore HSHELL_WINDOWDESTROYED is not enough
-						if (hiddenApplications.Remove(hWnd) == HashMultiSet<IntPtr>.RemoveResult.NotFound)
+						if (!NativeMethods.GetWindowStyleLongPtr(hWnd).HasFlag(NativeMethods.WS.WS_CHILD) &&
+							hiddenApplications.Remove(hWnd) == HashMultiSet<IntPtr>.RemoveResult.NotFound)
 						{
 							// a window has been closed but it was hidden by the application rather than destroyed (e.g. ICQ 7.6 main window)
 							RemoveApplicationFromAllWorkspaces(hWnd, false);

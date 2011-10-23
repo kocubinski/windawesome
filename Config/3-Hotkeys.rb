@@ -41,7 +41,7 @@ end
 
 # dismiss application
 subscribe modifiers.Alt, key.D do
-	windawesome.dismiss_temporarily_shown_window get_current_workspace_managed_window
+	windawesome.dismiss_temporarily_shown_window Windawesome::NativeMethods.get_foreground_window
 end
 
 # minimize application

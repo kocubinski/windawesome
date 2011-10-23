@@ -14,14 +14,7 @@ config.ProgramRules = [
 		isManaged = False
 	),
 	ProgramRule(
-		className = "^TMainForm$",
-		displayName = "^Find and Run Robot 2$",
-		customMatchingFunction = lambda hWnd: True,
-        isManaged = False
-	),
-	ProgramRule(
 		className = "^TApplication$",
-		customMatchingFunction = lambda hWnd: True,
 		rules = [ProgramRule.Rule(isFloating = True)]
 	),
 	ProgramRule(
@@ -72,22 +65,6 @@ config.ProgramRules = [
 		rules = [ProgramRule.Rule(workspace = 4, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
 	),
 	ProgramRule(
-		className = "^__oxFrame.class__$", # ICQ
-		displayName = "^ICQ$",
-		onWindowCreatedAction = OnWindowShownAction.TemporarilyShowWindowOnCurrentWorkspace,
-		rules = [ProgramRule.Rule(workspace = 4, isFloating = True)]
-	),
-	ProgramRule(
-		className = "^__oxFrame.class__$", # ICQ some stupid small window
-		exStyleContains = WS_EX.WS_EX_TOOLWINDOW,
-		isManaged = False
-	),
-	ProgramRule(
-		className = "^__oxFrame.class__$", # ICQ chat window
-		onWindowCreatedAction = OnWindowShownAction.HideWindow,
-		rules = [ProgramRule.Rule(workspace = 4)]
-	),
-	ProgramRule(
 		className = "^MediaPlayerClassicW$",
 		rules = [ProgramRule.Rule(workspace = 1)]
 	),
@@ -97,7 +74,7 @@ config.ProgramRules = [
 		rules = [ProgramRule.Rule(workspace = 3, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
 	),
 	ProgramRule(
-		className = "^{97E27FAA-C0B3-4b8e-A693-ED7881E99FC1}$", # Foobar2000
+		className = "^{97E27FAA-C0B3-4b8e-A693-ED7881E99FC1}$", # foobar2000
 		rules = [ProgramRule.Rule(workspace = 7)]
 	),
 	ProgramRule(
@@ -119,15 +96,23 @@ config.ProgramRules = [
 		rules = [ProgramRule.Rule(workspace = 1, isFloating = True)]
 	),
 	ProgramRule(
-		className = "^wxWindowClassNR$",
+		className = "^wxWindowClassNR$", # digsby Buddy List
 		displayName = "^Buddy List$",
 		processName = "^digsby-app$",
-        customMatchingFunction = lambda hWnd: True
+        customMatchingFunction = lambda hWnd: True,
+		onWindowCreatedAction = OnWindowShownAction.TemporarilyShowWindowOnCurrentWorkspace,
+		rules = [ProgramRule.Rule(workspace = 4, isFloating = True)]
+	),
+	ProgramRule(
+		className = "^wxWindowClass$", # digsby chat window
+		processName = "^digsby-app$",
+		onWindowCreatedAction = OnWindowShownAction.HideWindow,
+		rules = [ProgramRule.Rule(workspace = 4, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
 	),
 	ProgramRule(
 		className = "^OpusApp$",
-		tryAgainAfter = 500,
-		displayName = ".*Microsoft Word Viewer$"
+		displayName = ".*Microsoft Word Viewer$",
+		tryAgainAfter = 500
 	),
 	ProgramRule(
 		className = "^ConsoleWindowClass$", # Interix terminal
@@ -179,11 +164,6 @@ config.ProgramRules = [
 	ProgramRule(
 		styleNotContains = WS.WS_MAXIMIZEBOX,
 		rules = [ProgramRule.Rule(isFloating = True)]
-	),
-	ProgramRule(
-		exStyleNotContains = WS_EX.WS_EX_TOOLWINDOW,
-		customMatchingFunction = lambda hWnd: NativeMethods.GetWindowClassName(Windawesome.GetTopOwnerWindow(hWnd)) == "TApplication",
-		rules = [ProgramRule.Rule(showInTabs = False)]
 	),
 	ProgramRule() # an all-catching rule in the end to manage all other windows
 ]

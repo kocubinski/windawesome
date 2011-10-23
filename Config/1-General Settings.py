@@ -25,11 +25,16 @@ config.Bars = Enumerable.ToArray[Bar]([
 		[WorkspacesWidget(), LayoutWidget(onClick = onLayoutLabelClick)],
 		[SystemTrayWidget(), DateTimeWidget("ddd, d-MMM"), DateTimeWidget("h:mm tt", Color.FromArgb(0xA8, 0xA8, 0xA8))],
 		[ApplicationTabsWidget()]
+	),
+	Bar(windawesome.monitors[0],
+		[WorkspacesWidget(), LayoutWidget(onClick = onLayoutLabelClick)],
+		[SystemTrayWidget(True), DateTimeWidget("ddd, d-MMM"), DateTimeWidget("h:mm tt", Color.FromArgb(0xA8, 0xA8, 0xA8))],
+		[ApplicationTabsWidget()]
 	)
  ])
 
 config.Workspaces = Enumerable.ToArray[Workspace]([
-	Workspace(windawesome.monitors[0], FloatingLayout(), [config.Bars[0]], name = 'main'),
+	Workspace(windawesome.monitors[0], FloatingLayout(), [config.Bars[1]], name = 'main'),
 	Workspace(windawesome.monitors[0], FullScreenLayout(), [config.Bars[0]], name = 'web'),
 	Workspace(windawesome.monitors[0], FullScreenLayout(), [config.Bars[0]]),
 	Workspace(windawesome.monitors[0], TileLayout(), [config.Bars[0]], name = 'chat'),

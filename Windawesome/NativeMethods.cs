@@ -192,7 +192,7 @@ using WPARAM = UIntPtr; // UINT_PTR
 		[DllImport("User32.dll")]
 		public static extern LRESULT SendMessageTimeout(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, SMTO fuFlags, UINT uTimeout, [Optional, Out] out IntPtr lpdwResult);
 
-		[DllImport("User32.dll", SetLastError = true)]
+		[DllImport("User32.dll")]
 		public static extern LRESULT SendMessageTimeout(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, SMTO fuFlags, UINT uTimeout, [Optional, Out] IntPtr lpdwResult);
 
 		[Flags]
@@ -313,7 +313,7 @@ using WPARAM = UIntPtr; // UINT_PTR
 		public enum MSGFLT : uint
 		{
 			MSGFLT_ADD = 1,
-			MSGFLT_REMOVE = 2 
+			MSGFLT_REMOVE = 2
 		}
 
 		public enum MSGFLTEx : uint
@@ -1069,7 +1069,7 @@ using WPARAM = UIntPtr; // UINT_PTR
 			TokenElevationTypeDefault = 1,
 			TokenElevationTypeFull = 2,
 			TokenElevationTypeLimited = 3
-		} 
+		}
 
 		[DllImport("advapi32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
