@@ -1,0 +1,6 @@
+IronPython.dll
+IronPython.Modules.dll
+IronRuby.dll
+IronRuby.Libraries.dll
+Microsoft.Dynamic.dll
+Microsoft.Scripting.dll

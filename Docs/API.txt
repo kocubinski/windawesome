@@ -1,0 +1,120 @@
+IMPORTANT!!!
+This document is badly out of date. If you want to write a plugin/widget for Windawesome, I suggest you look at the code and see what methods are public so you know what you can use.
+If you just want to configure Windawesome, then the only functions you need are the public ones in Windawesome.cs - take a look at them. They are pretty self-explanatory, I think.
+
+Methods:
+
+Windawesome:
+
+void RefreshWindawesome()
+removes all windows that have died but Windawesome hasn't noticed, which will fix some problems with the Widgets which would be thinking that there are more windows
+
+void ChangeApplicationToWorkspace(IntPtr handle, int workspace)
+moves the specified window from the current workspace to the one specified in the second parameter
+
+void AddApplicationToWorkspace(IntPtr handle, int workspace)
+adds the specified window from the current workspace to the one specified in the second parameter
+
+void RemoveApplicationFromCurrentWorkspace(IntPtr handle)
+removes the specified window from the current workspace
+
+public void RemoveApplicationFromAllWorkspaces(IntPtr hWnd)
+removes the specified window from all workspaces - this is somewhat like making the window unmanaged by Windawesome
+
+void SwitchToWorkspace(int workspace, bool setForeground = true)
+switches the current workspace to the one specified in the first parameter. If the second parameter is true, the window highest in Z order of the new workspace is set as the foreground and active window, otherwise is not
+
+void ToggleShowHideWindowInTaskbar(IntPtr handle)
+toggles the visibility of a button in the Windows taskbar for this window
+
+void ToggleShowHideWindowTitlebar(IntPtr handle)
+toggles the visibility of this window's titlebar
+
+void ToggleShowHideWindowBorder(IntPtr handle)
+toggles the visibility of this window's border
+
+void ToggleTaskbarVisibility()
+toggles the visibility of Window's taskbar
+
+void SwitchToApplication(IntPtr handle)
+switches to the window with this handle on whichever workspace it is
+
+void RunApplication(string path, string arguments = "")
+runs the specified application. Even if Windawesome is run in elevated mode, the new application will not be elevated
+
+void RunOrShowApplication(string className, string path, string displayName = ".*", string arguments = "")
+if the application with the specified class and display name is running (both are regexes), it is switch to, on whichever workspace it is. If not, it is run with RunApplication
+
+void QuitApplication(IntPtr handle)
+quits the specified application
+
+void MinimizeApplication(IntPtr handle)
+minimizes the specified application
+
+bool SwitchToApplicationInCurrentWorkspace(IntPtr handle)
+switches to the specified application but only if it is in the current workspace. Returns true if the application was found on the current workspace and was switched to
+
+static void RegisterMessage(int message, HandleMessageDelegate targetHandler)
+tells Windawesome that if it gets a message with that number it should call the delegate provided. Useful for plugins and widgets
+
+static Bitmap GetWindowSmallIconAsBitmap(IntPtr handle)
+returns the small icon of a window as a Bitmap instance
+
+Bar:
+
+void OnWidgetControlsChanged(IWidget widget, Control[] oldControls, Control[] newControls)
+void OnSpanWidgetControlsRemoved(IWidget widget, Control[] controls)
+void OnSpanWidgetControlsAdded(IWidget widget, Control[] controls)
+void OnFixedWidthWidgetWidthChanged(IWidget widget)
+Label CreateLabel(string text, int xLocation, int width = -1)
+
+Events:
+
+Windawesome:
+
+delegate void LayoutUpdatedEventHandler()
+static event LayoutUpdatedEventHandler LayoutUpdated
+called when the layout is updated (e.g. changed from one layout to the other, the layout symbol is changed and so on)
+
+delegate void WindowTitleOrIconChangedEventHandler(Workspace workspace, Window window, string newText, Bitmap newIcon)
+static event WindowTitleOrIconChangedEventHandler WindowTitleOrIconChanged
+called when a window's text (which is in the specified workspace) has been changed to the new text or the icon has changed to the new icon
+
+delegate void WindowFlashingEventHandler(LinkedList<Tuple<Workspace, Window>> list)
+static event WindowFlashingEventHandler WindowFlashing
+called when a window is flashing in the Windows Taskbar. The argument passed is a list of all the Workspaces which contain this Window
+
+Workspace:
+
+delegate void WorkspaceApplicationAddedEventHandler(Workspace workspace, Window window)
+static event WorkspaceApplicationAddedEventHandler WorkspaceApplicationAdded
+called when an application is added to that workspace
+
+delegate void WorkspaceApplicationRemovedEventHandler(Workspace workspace, Window window)
+static event WorkspaceApplicationRemovedEventHandler WorkspaceApplicationRemoved
+called when an application is removed from that workspace
+
+delegate void WorkspaceApplicationMinimizedEventHandler(Workspace workspace, Window window)
+static event WorkspaceApplicationMinimizedEventHandler WorkspaceApplicationMinimized
+called when an application is minimized in that workspace
+
+delegate void WorkspaceApplicationRestoredEventHandler(Workspace workspace, Window window)
+static event WorkspaceApplicationRestoredEventHandler WorkspaceApplicationRestored
+called when an application is restored in that workspace
+
+delegate void WorkspaceChangedFromEventHandler(Workspace workspace)
+static event WorkspaceChangedFromEventHandler WorkspaceChangedFrom
+called when a workspace has been unswitched from
+
+delegate void WorkspaceChangedToEventHandler(Workspace workspace)
+static event WorkspaceChangedToEventHandler WorkspaceChangedTo
+called when a workspace has been switched to
+
+delegate void WorkspaceLayoutChangedEventHandler(Workspace workspace, ILayout oldLayout)
+static event WorkspaceLayoutChangedEventHandler WorkspaceLayoutChanged
+called when a workspace's layout has changed. The ILayout argument is the old layout
+
+delegate void WindowActivatedEventHandler(IntPtr handle)
+static event WindowActivatedEventHandler WindowActivatedEvent
+called when an application has been switched to
+
