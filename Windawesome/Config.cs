@@ -286,13 +286,12 @@ namespace Windawesome
 
 		public class Rule
 		{
-			public Rule(int workspace = 0, bool isFloating = false, bool showInTabs = true,
+			public Rule(int workspace = 0, bool isFloating = false,
 				State titlebar = State.AS_IS, State inAltTabAndTaskbar = State.AS_IS, State windowBorders = State.AS_IS,
 				bool redrawOnShow = false, bool hideFromAltTabAndTaskbarWhenOnInactiveWorkspace = false)
 			{
 				this.workspace = workspace;
 				this.isFloating = isFloating;
-				this.showInTabs = showInTabs;
 				this.titlebar = titlebar;
 				this.inAltTabAndTaskbar = inAltTabAndTaskbar;
 				this.windowBorders = windowBorders;
@@ -302,7 +301,6 @@ namespace Windawesome
 
 			internal readonly int workspace;
 			internal readonly bool isFloating;
-			internal readonly bool showInTabs;
 			internal readonly State titlebar;
 			internal readonly State inAltTabAndTaskbar;
 			internal readonly State windowBorders;

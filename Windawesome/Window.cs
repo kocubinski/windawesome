@@ -7,7 +7,6 @@ namespace Windawesome
 	{
 		public readonly IntPtr hWnd;
 		public bool IsFloating { get; internal set; }
-		public bool ShowInTabs { get; private set; }
 		public State Titlebar { get; internal set; }
 		public State InAltTabAndTaskbar { get; internal set; }
 		public State WindowBorders { get; internal set; }
@@ -42,7 +41,6 @@ namespace Windawesome
 		{
 			this.hWnd = hWnd;
 			IsFloating = rule.isFloating;
-			ShowInTabs = rule.showInTabs;
 			Titlebar = rule.titlebar;
 			InAltTabAndTaskbar = rule.inAltTabAndTaskbar;
 			WindowBorders = rule.windowBorders;
@@ -74,7 +72,6 @@ namespace Windawesome
 		{
 			hWnd = window.hWnd;
 			this.IsFloating = window.IsFloating;
-			this.ShowInTabs = window.ShowInTabs;
 			this.Titlebar = window.Titlebar;
 			this.InAltTabAndTaskbar = window.InAltTabAndTaskbar;
 			this.WindowBorders = window.WindowBorders;

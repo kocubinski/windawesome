@@ -164,7 +164,7 @@ namespace Windawesome
 
 		private void OnWorkspaceWindowAdded(Workspace workspace, Window window)
 		{
-			if (workspace.Monitor == bar.Monitor && window.ShowInTabs)
+			if (workspace.Monitor == bar.Monitor)
 			{
 				var workspaceId = workspace.id - 1;
 				var newPanel = CreatePanel(window);

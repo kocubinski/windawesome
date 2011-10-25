@@ -250,12 +250,11 @@ namespace Windawesome
 			}
 
 			var master = "[]";
-			var masterCount = windows.Take(masterAreaWindowsCount).Count(w => w.ShowInTabs);
-			var stackCount = workspace.GetWindowsCount() - masterCount;
+			var stackCount = workspace.GetWindowsCount() - masterAreaWindowsCount;
 
 			if (masterAreaWindowsCount > 1)
 			{
-				master = GetAreaSymbol(masterCount, masterAreaAxis);
+				master = GetAreaSymbol(masterAreaWindowsCount, masterAreaAxis);
 			}
 			var stack = GetAreaSymbol(stackCount, stackAreaAxis);
 
