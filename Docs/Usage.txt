@@ -63,11 +63,11 @@ styleNotContains - the window styles that must NOT be present in the window's st
 exStyleContains - the extended window styles that must be present in the window's extended style. Defaults to 0
 exStyleNotContains - the extended window styles that must NOT be present in the window's extended style. Defaults to 0
 customMatchingFunction - a delegate of type "bool CustomMatchingFunction(IntPtr hWnd)" which is called after each rule that matches all of the above variables. It should return true if the rule is to be matched and false otherwise. The default one returns true if the window has no owner and hasn't got the WS_EX_TOOLWINDOW extended style
+customOwnedWindowMatchingFunction - a delegate of type "bool CustomMatchingFunction(IntPtr hWnd)" which is called whenever an owned window of an already managed one (which was matched with this rule) is created. It should return true if the window is to be managed (i.e. hidden with its owner) and false otherwise. The default one returns true if the window hasn't got the WS_EX_TOOLWINDOW extended style
 
 isManaged - whether Windawesome should care about that window. Defaults to true
 tryAgainAfter - the time, in milliseconds, to wait before trying to match the rules again (if >= 0). Defaults to -1
 windowCreatedDelay - the time, in milliseconds, to wait before taking any action after the window has been created (if > 0). Windawesome will match the rules and then sleep. The default value is -1 which means that Windawesome will wait until the process is completely loaded. In most cases the default will work just fine
-hideOwnedPopups - if true, Windawesome will hide all popups that are owned of the window being hidden. Defaults to true
 redrawDesktopOnWindowCreated - if true, Windawesome will redraw the Desktop when this window is created. Useful if you have problems with that. I've seen it with mintty (the cygwin terminal emulator). Defaults to false
 showMenu - if true, the menu bar (if any) of a window is shown, otherwise - not. Note that actually this doesn't work for a lot of windows, because they don't have a menu in Window's sense. Defaults to true
 onWindowCreatedOnCurrentWorkspaceAction - specifies what to do when a window is created on the current workspace or MoveWindowToCurrentWorkspace/TemporarilyShowWindowOnCurrentWorkspace is used in the onWindowCreatedAction. Can be one of the enum values:
@@ -100,7 +100,6 @@ titlebar - whether the window's titlebar is SHOWN, HIDDEN or AS_IS (the last one
 inAltTabAndTaskbar - whether the window is SHOWN, HIDDEN or AS_IS in Windows' taskbar and Alt-Tab menu. Defaults to AS_IS
 windowBorders - whether the window's border is SHOWN, HIDDEN or AS_IS (the last one means that Windawesome will not do anything to the border - do NOT use that if the window is shared, i.e. visible on two or more workspaces, if on any of the others it is not AS_IS). Defaults to AS_IS
 redrawOnShow - whether the window should be redrawed when shown. Some windows (e.g. Excel) have a problem when hidden and then shown again. Defaults to false
-activateLastActivePopup - whether Windawesome should activate the last active popup of the window, instead of the window itself. This is normally what you want as most windows that a top-level window creates are popups and they should be above the main window. Defaults to true
 hideFromAltTabAndTaskbarWhenOnInactiveWorkspace - if true, hides the window from the Alt-Tab menu and the Windows Taskbar when the application is visible on some Workspace but it is not the active one (which can happen only with multiple monitors). Defaults to false
 
 ====================================================================
@@ -208,6 +207,7 @@ http://maximumpcguides.com/windows-vista/run-a-program-with-administrative-privi
 ~RAlt Up::return
 This will remove the Windows standard behaviour of the Alt key which focuses keyboard input on the menu of the current application. This is VERY useful because sometimes when switching workspaces the focus is on the menu of the newly shown application and not on the app itself.
 - I haven't included an Application Launcher in Windawesome (like dmenu for example in Linux WMs) because there are already plenty available for Windows. My personal favourite (only because it is vastly customizable) after trying many others is Find and Run Robot.
+- If there is a window that is owned by another which is managed by Windawesome, then the owned one is handled specially (it is hidden whenever the managed owner is hidden, etc). This might be a problem with TApplication windows as they have an (almost) invisible owner and the "real" application windows are owned by it. If you handle the owner (as are my own rules) - the owned windows won't be managed by the layout, e.g., which might be a problem for some. If you would like them to be, you should make rules for each one of them separatelly.
 
 ====================================================================
 

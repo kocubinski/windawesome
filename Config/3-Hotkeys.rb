@@ -39,6 +39,10 @@ subscribe modifiers.Alt, key.Q do
 	windawesome.quit_application Windawesome::NativeMethods.get_foreground_window
 end
 
+subscribe modifiers.Control | modifiers.Alt | modifiers.Shift, key.Q do
+	windawesome.remove_application_from_workspace get_current_workspace_managed_window
+end
+
 # dismiss application
 subscribe modifiers.Alt, key.D do
 	windawesome.dismiss_temporarily_shown_window Windawesome::NativeMethods.get_foreground_window
@@ -120,28 +124,59 @@ subscribe modifiers.Alt | modifiers.Shift, key.B do
 	windawesome.toggle_show_hide_window_border Windawesome::NativeMethods.get_foreground_window
 end
 
-# change layout to Tile
-subscribe modifiers.Alt | modifiers.Shift, key.T do
-	windawesome.current_workspace.change_layout Windawesome::TileLayout.new
-end
-
-# change layout to Full Screen
-subscribe modifiers.Alt | modifiers.Shift, key.M do
-	windawesome.current_workspace.change_layout Windawesome::FullScreenLayout.new
-end
-
-# change layout to Floating
-subscribe modifiers.Alt | modifiers.Shift, key.F do
-	windawesome.current_workspace.change_layout Windawesome::FloatingLayout.new
-end
-
+# toggle window menu
 subscribe modifiers.Control | modifiers.Alt | modifiers.Shift, key.M do
 	windawesome.toggle_show_hide_window_menu Windawesome::NativeMethods.get_foreground_window
 end
 
-subscribe modifiers.Control | modifiers.Alt | modifiers.Shift, key.Q do
-	windawesome.remove_application_from_workspace get_current_workspace_managed_window
+# Layout stuff
+
+subscribe modifiers.Alt | modifiers.Shift, key.T do # change layout to Tile
+	windawesome.current_workspace.change_layout Windawesome::TileLayout.new
 end
+
+subscribe modifiers.Alt | modifiers.Shift, key.M do # change layout to Full Screen
+	windawesome.current_workspace.change_layout Windawesome::FullScreenLayout.new
+end
+
+subscribe modifiers.Alt | modifiers.Shift, key.F do # change layout to Floating
+	windawesome.current_workspace.change_layout Windawesome::FloatingLayout.new
+end
+
+# window position stuff
+
+subscribe modifiers.Alt, key.J do
+	window = windawesome.current_workspace.get_window get_current_workspace_managed_window
+	if window
+		next_window = windawesome.current_workspace.get_next_window window
+		windawesome.switch_to_application next_window.hWnd if next_window
+	end
+end
+
+subscribe modifiers.Alt, key.K do
+	window = windawesome.current_workspace.get_window get_current_workspace_managed_window
+	if window
+		previous_window = windawesome.current_workspace.get_previous_window window
+		windawesome.switch_to_application previous_window.hWnd if previous_window
+	end
+end
+
+subscribe modifiers.Alt | modifiers.Shift, key.Down do
+	window = windawesome.current_workspace.get_window get_current_workspace_managed_window
+	windawesome.current_workspace.shift_window_to_next_position window if window
+end
+
+subscribe modifiers.Alt | modifiers.Shift, key.Up do
+	window = windawesome.current_workspace.get_window get_current_workspace_managed_window
+	windawesome.current_workspace.shift_window_to_previous_position window if window
+end
+
+subscribe modifiers.Control | modifiers.Alt | modifiers.Shift, key.Return do
+	window = windawesome.current_workspace.get_window get_current_workspace_managed_window
+	windawesome.current_workspace.shift_window_to_main_position window if window
+end
+
+# Tile Layout stuff
 
 subscribe modifiers.Alt | modifiers.Shift, key.L do
 	windawesome.current_workspace.layout.toggle_layout_axis if windawesome.current_workspace.layout.layout_name == "Tile"
@@ -155,20 +190,6 @@ subscribe modifiers.Control | modifiers.Alt | modifiers.Shift, key.S do
 	windawesome.current_workspace.layout.toggle_master_area_axis if windawesome.current_workspace.layout.layout_name == "Tile"
 end
 
-subscribe modifiers.Alt | modifiers.Shift, key.Down do
-	if windawesome.current_workspace.layout.layout_name == "Tile"
-		window = windawesome.current_workspace.get_window get_current_workspace_managed_window
-		windawesome.current_workspace.layout.shift_window_to_next_position window
-	end
-end
-
-subscribe modifiers.Alt | modifiers.Shift, key.Up do
-	if windawesome.current_workspace.layout.layout_name == "Tile"
-		window = windawesome.current_workspace.get_window get_current_workspace_managed_window
-		windawesome.current_workspace.layout.shift_window_to_previous_position window
-	end
-end
-
 subscribe modifiers.Alt | modifiers.Shift, key.Left do
 	windawesome.current_workspace.layout.add_to_master_area_factor -0.05 if windawesome.current_workspace.layout.layout_name == "Tile"
 end
@@ -177,12 +198,7 @@ subscribe modifiers.Alt | modifiers.Shift, key.Right do
 	windawesome.current_workspace.layout.add_to_master_area_factor if windawesome.current_workspace.layout.layout_name == "Tile"
 end
 
-subscribe modifiers.Control | modifiers.Alt | modifiers.Shift, key.Return do
-	if windawesome.current_workspace.layout.layout_name == "Tile"
-		window = windawesome.current_workspace.get_window get_current_workspace_managed_window
-		windawesome.current_workspace.layout.shift_window_to_main_position window
-	end
-end
+# Workspaces stuff
 
 (1 .. config.workspaces.length).each do |i|
 	k = eval("key.D" + i.to_s)

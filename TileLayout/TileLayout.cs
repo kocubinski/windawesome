@@ -17,11 +17,11 @@ namespace Windawesome
 		}
 
 		private Workspace workspace;
+		private IEnumerable<Window> windows;
 		private LayoutAxis layoutAxis;
 		private LayoutAxis masterAreaAxis;
 		private LayoutAxis stackAreaAxis;
 		private double masterAreaFactor;
-		private LinkedList<Window> windows;
 		private int masterAreaWindowsCount;
 
 		public TileLayout(LayoutAxis layoutAxis = LayoutAxis.LeftToRight, LayoutAxis masterAreaAxis = LayoutAxis.Monocle,
@@ -44,8 +44,6 @@ namespace Windawesome
 				masterAreaWindowsCount = 0;
 			}
 			this.masterAreaWindowsCount = masterAreaWindowsCount;
-
-			windows = new LinkedList<Window>();
 		}
 
 		#region API
@@ -105,42 +103,6 @@ namespace Windawesome
 			}
 		}
 
-		public void ShiftWindowToNextPosition(Window window)
-		{
-			if (windows.Count > 1 && windows.Last.Value != window)
-			{
-				var node = windows.Find(window);
-				windows.AddAfter(node.Next, window);
-				windows.Remove(node);
-
-				this.Reposition();
-			}
-		}
-
-		public void ShiftWindowToPreviousPosition(Window window)
-		{
-			if (windows.Count > 1 && windows.First.Value != window)
-			{
-				var node = windows.Find(window);
-				windows.AddBefore(node.Previous, window);
-				windows.Remove(node);
-
-				this.Reposition();
-			}
-		}
-
-		public void ShiftWindowToMainPosition(Window window)
-		{
-			if (windows.Count > 1 && windows.First.Value != window)
-			{
-				var node = windows.Find(window);
-				windows.Remove(node);
-				windows.AddFirst(node);
-
-				this.Reposition();
-			}
-		}
-
 		public void AddToMasterAreaFactor(double masterAreaFactorChange = 0.05)
 		{
 			masterAreaFactor += masterAreaFactorChange;
@@ -160,10 +122,10 @@ namespace Windawesome
 
 		private IntPtr PositionAreaWindows(IntPtr winPosInfo, Rectangle workingArea, bool master)
 		{
-			var count = master ? masterAreaWindowsCount : windows.Count - masterAreaWindowsCount;
+			var count = master ? masterAreaWindowsCount : windows.Count() - masterAreaWindowsCount;
 			if (count > 0)
 			{
-				var otherWindowsCount = master ? windows.Count - masterAreaWindowsCount : masterAreaWindowsCount;
+				var otherWindowsCount = master ? windows.Count() - masterAreaWindowsCount : masterAreaWindowsCount;
 				var factor = otherWindowsCount == 0 ? 1 : (master ? masterAreaFactor : 1 - masterAreaFactor);
 				var axis = master ? masterAreaAxis : stackAreaAxis;
 
@@ -266,10 +228,10 @@ namespace Windawesome
 
 		private void Reposition()
 		{
-			if (this.windows.Count > 0)
+			if (this.windows.Count() > 0)
 			{
 				var workingArea = workspace.Monitor.WorkingArea;
-				var winPosInfo = NativeMethods.BeginDeferWindowPos(this.windows.Count);
+				var winPosInfo = NativeMethods.BeginDeferWindowPos(this.windows.Count());
 				winPosInfo = PositionAreaWindows(winPosInfo, workingArea, true);
 				winPosInfo = PositionAreaWindows(winPosInfo, workingArea, false);
 				NativeMethods.EndDeferWindowPos(winPosInfo);
@@ -331,16 +293,19 @@ namespace Windawesome
 
 		void ILayout.Reposition()
 		{
-			var managedWindows = workspace.GetManagedWindows();
-			if (this.windows.Count != managedWindows.Count() || (this.windows.Count > 0 && !new HashSet<Window>(this.windows).Overlaps(managedWindows)))
+			// restore any maximized windows - should not use SW_RESTORE as it activates the window
+			var hasMaximized = false;
+			foreach (var window in workspace.GetManagedWindows().Where(w => NativeMethods.IsZoomed(w.hWnd)))
 			{
-				// restore any maximized windows - should not use SW_RESTORE as it activates the window
-				managedWindows.Where(w => NativeMethods.IsZoomed(w.hWnd)).ForEach(w => NativeMethods.ShowWindowAsync(w.hWnd, NativeMethods.SW.SW_SHOWNOACTIVATE));
+				hasMaximized = true;
+				NativeMethods.ShowWindowAsync(window.hWnd, NativeMethods.SW.SW_SHOWNOACTIVATE);
+			}
+			if (hasMaximized)
+			{
 				System.Threading.Thread.Sleep(NativeMethods.minimizeRestoreDelay);
-
-				this.windows = new LinkedList<Window>(managedWindows);
 			}
 
+			this.windows = workspace.GetManagedWindows();
 			Reposition();
 		}
 
@@ -358,7 +323,6 @@ namespace Windawesome
 		{
 			if (workspace.IsWorkspaceVisible || window.WorkspacesCount == 1)
 			{
-				this.windows.AddFirst(window);
 				if (NativeMethods.IsZoomed(window.hWnd))
 				{
 					// restore if maximized - should not use SW_RESTORE as it activates the window
@@ -374,7 +338,6 @@ namespace Windawesome
 
 		void ILayout.WindowDestroyed(Window window)
 		{
-			this.windows.Remove(window);
 			if (workspace.IsWorkspaceVisible)
 			{
 				Reposition();

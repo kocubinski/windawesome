@@ -196,9 +196,9 @@ namespace Windawesome
 			if (flashWorkspaces)
 			{
 				flashTimer.Tick += OnTimerTick;
-				Workspace.WorkspaceApplicationRemoved += (_, w) => StopFlashingApplication(w.hWnd);
+				Workspace.WorkspaceWindowRemoved += (_, w) => StopFlashingApplication(w.hWnd);
 				Workspace.WindowActivatedEvent += StopFlashingApplication;
-				Workspace.WorkspaceApplicationRestored += (_, w) => StopFlashingApplication(w.hWnd);
+				Workspace.WorkspaceWindowRestored += (_, w) => StopFlashingApplication(w.hWnd);
 				Windawesome.WindowFlashing += OnWindowFlashing;
 			}
 
@@ -209,8 +209,8 @@ namespace Windawesome
 
 			workspaceLabels = new Label[windawesome.config.Workspaces.Length];
 
-			Workspace.WorkspaceApplicationAdded += (ws, _) => SetWorkspaceLabelColor(ws);
-			Workspace.WorkspaceApplicationRemoved += (ws, _) => SetWorkspaceLabelColor(ws);
+			Workspace.WorkspaceWindowAdded += (ws, _) => SetWorkspaceLabelColor(ws);
+			Workspace.WorkspaceWindowRemoved += (ws, _) => SetWorkspaceLabelColor(ws);
 
 			Workspace.WorkspaceDeactivated += OnWorkspaceChangedFromTo;
 			Workspace.WorkspaceActivated += OnWorkspaceChangedFromTo;

@@ -39,7 +39,8 @@ namespace Windawesome
 		internal int hideFromAltTabWhenOnInactiveWorkspaceCount;
 		internal int sharedWindowsCount;
 		internal int ownedWindowsCount;
-		internal readonly LinkedList<Window> windows; // all windows, sorted in Z-order, topmost window first
+		internal readonly LinkedList<Window> windowsZOrder; // all windows, sorted in Z-order, topmost window first
+		private readonly LinkedList<Window> windows; // non-minimized and non-floating windows, sorted in tab-order, topmost window first
 
 		private bool hasChanges;
 
@@ -47,17 +48,20 @@ namespace Windawesome
 
 		#region Events
 
-		public delegate void WorkspaceApplicationAddedEventHandler(Workspace workspace, Window window);
-		public static event WorkspaceApplicationAddedEventHandler WorkspaceApplicationAdded;
+		public delegate void WorkspaceWindowAddedEventHandler(Workspace workspace, Window window);
+		public static event WorkspaceWindowAddedEventHandler WorkspaceWindowAdded;
 
-		public delegate void WorkspaceApplicationRemovedEventHandler(Workspace workspace, Window window);
-		public static event WorkspaceApplicationRemovedEventHandler WorkspaceApplicationRemoved;
+		public delegate void WorkspaceWindowRemovedEventHandler(Workspace workspace, Window window);
+		public static event WorkspaceWindowRemovedEventHandler WorkspaceWindowRemoved;
 
-		public delegate void WorkspaceApplicationMinimizedEventHandler(Workspace workspace, Window window);
-		public static event WorkspaceApplicationMinimizedEventHandler WorkspaceApplicationMinimized;
+		public delegate void WorkspaceWindowMinimizedEventHandler(Workspace workspace, Window window);
+		public static event WorkspaceWindowMinimizedEventHandler WorkspaceWindowMinimized;
 
-		public delegate void WorkspaceApplicationRestoredEventHandler(Workspace workspace, Window window);
-		public static event WorkspaceApplicationRestoredEventHandler WorkspaceApplicationRestored;
+		public delegate void WorkspaceWindowRestoredEventHandler(Workspace workspace, Window window);
+		public static event WorkspaceWindowRestoredEventHandler WorkspaceWindowRestored;
+
+		public delegate void WorkspaceWindowOrderChangedEventHandler(Workspace workspace, Window window);
+		public static event WorkspaceWindowOrderChangedEventHandler WorkspaceWindowOrderChanged;
 
 		public delegate void WorkspaceHiddenEventHandler(Workspace workspace);
 		public static event WorkspaceHiddenEventHandler WorkspaceHidden;
@@ -89,35 +93,43 @@ namespace Windawesome
 		public delegate void LayoutUpdatedEventHandler();
 		public static event LayoutUpdatedEventHandler LayoutUpdated; // TODO: this should be for a specific workspace. But how to call from Widgets then?
 
-		private static void DoWorkspaceApplicationAdded(Workspace workspace, Window window)
+		private static void DoWorkspaceWindowAdded(Workspace workspace, Window window)
 		{
-			if (WorkspaceApplicationAdded != null)
+			if (WorkspaceWindowAdded != null)
 			{
-				WorkspaceApplicationAdded(workspace, window);
+				WorkspaceWindowAdded(workspace, window);
 			}
 		}
 
-		private static void DoWorkspaceApplicationRemoved(Workspace workspace, Window window)
+		private static void DoWorkspaceWindowRemoved(Workspace workspace, Window window)
 		{
-			if (WorkspaceApplicationRemoved != null)
+			if (WorkspaceWindowRemoved != null)
 			{
-				WorkspaceApplicationRemoved(workspace, window);
+				WorkspaceWindowRemoved(workspace, window);
 			}
 		}
 
-		private static void DoWorkspaceApplicationMinimized(Workspace workspace, Window window)
+		private static void DoWorkspaceWindowMinimized(Workspace workspace, Window window)
 		{
-			if (WorkspaceApplicationMinimized != null)
+			if (WorkspaceWindowMinimized != null)
 			{
-				WorkspaceApplicationMinimized(workspace, window);
+				WorkspaceWindowMinimized(workspace, window);
 			}
 		}
 
-		private static void DoWorkspaceApplicationRestored(Workspace workspace, Window window)
+		private static void DoWorkspaceWindowRestored(Workspace workspace, Window window)
 		{
-			if (WorkspaceApplicationRestored != null)
+			if (WorkspaceWindowRestored != null)
 			{
-				WorkspaceApplicationRestored(workspace, window);
+				WorkspaceWindowRestored(workspace, window);
+			}
+		}
+
+		private static void DoWorkspaceWindowOrderChanged(Workspace workspace, Window window)
+		{
+			if (WorkspaceWindowOrderChanged != null)
+			{
+				WorkspaceWindowOrderChanged(workspace, window);
 			}
 		}
 
@@ -206,6 +218,7 @@ namespace Windawesome
 		public Workspace(Monitor monitor, ILayout layout, IEnumerable<IBar> barsAtTop = null, IEnumerable<IBar> barsAtBottom = null,
 			string name = "", bool showWindowsTaskbar = false, bool repositionOnSwitchedTo = false)
 		{
+			windowsZOrder = new LinkedList<Window>();
 			windows = new LinkedList<Window>();
 
 			this.id = ++count;
@@ -243,7 +256,7 @@ namespace Windawesome
 			if (sharedWindowsCount > 0)
 			{
 				// sets the layout- and workspace-specific changes to the windows
-				windows.Where(w => w.WorkspacesCount > 1).ForEach(w => RestoreSharedWindowState(w, false));
+				windowsZOrder.Where(w => w.WorkspacesCount > 1).ForEach(w => RestoreSharedWindowState(w, false));
 			}
 
 			IsWorkspaceVisible = true;
@@ -261,7 +274,7 @@ namespace Windawesome
 		{
 			if (sharedWindowsCount > 0)
 			{
-				windows.Where(w => w.WorkspacesCount > 1 && ShouldSaveAndRestoreSharedWindowsPosition(w)).
+				windowsZOrder.Where(w => w.WorkspacesCount > 1 && ShouldSaveAndRestoreSharedWindowsPosition(w)).
 					ForEach(w => w.SavePosition());
 			}
 
@@ -377,7 +390,7 @@ namespace Windawesome
 					Layout.WindowMinimized(window);
 				}
 
-				DoWorkspaceApplicationMinimized(this, window);
+				DoWorkspaceWindowMinimized(this, window);
 			}
 		}
 
@@ -392,7 +405,7 @@ namespace Windawesome
 					Layout.WindowRestored(window);
 				}
 
-				DoWorkspaceApplicationRestored(this, window);
+				DoWorkspaceWindowRestored(this, window);
 			}
 		}
 
@@ -408,6 +421,7 @@ namespace Windawesome
 		internal void WindowCreated(Window window)
 		{
 			windows.AddFirst(window);
+			windowsZOrder.AddFirst(window);
 			if (window.hideFromAltTabAndTaskbarWhenOnInactiveWorkspace)
 			{
 				hideFromAltTabWhenOnInactiveWorkspaceCount++;
@@ -429,12 +443,13 @@ namespace Windawesome
 				hasChanges |= !IsWorkspaceVisible;
 			}
 
-			DoWorkspaceApplicationAdded(this, window);
+			DoWorkspaceWindowAdded(this, window);
 		}
 
 		internal void WindowDestroyed(Window window)
 		{
 			windows.Remove(window);
+			windowsZOrder.Remove(window);
 			if (window.hideFromAltTabAndTaskbarWhenOnInactiveWorkspace)
 			{
 				hideFromAltTabWhenOnInactiveWorkspaceCount--;
@@ -452,32 +467,32 @@ namespace Windawesome
 				hasChanges |= !IsWorkspaceVisible;
 			}
 
-			DoWorkspaceApplicationRemoved(this, window);
+			DoWorkspaceWindowRemoved(this, window);
 		}
 
 		public int GetWindowsCount()
 		{
-			return windows.Count;
+			return windowsZOrder.Count;
 		}
 
 		public bool ContainsWindow(IntPtr hWnd)
 		{
-			return windows.Any(w => w.hWnd == hWnd);
+			return windowsZOrder.Any(w => w.hWnd == hWnd);
 		}
 
 		public Window GetWindow(IntPtr hWnd)
 		{
-			return windows.FirstOrDefault(w => w.hWnd == hWnd);
+			return windowsZOrder.FirstOrDefault(w => w.hWnd == hWnd);
 		}
 
 		public IEnumerable<Window> GetManagedWindows()
 		{
-			return windows.Where(w => !w.IsMinimized && !w.IsFloating);
+			return windows.Where(w => !w.IsFloating && !w.IsMinimized);
 		}
 
-		public Window GetTopmostWindow()
+		public Window GetTopmostZOrderWindow()
 		{
-			var window = windows.FirstOrDefault();
+			var window = windowsZOrder.FirstOrDefault();
 			return (window != null && !window.IsMinimized) ? window : null;
 		}
 
@@ -543,17 +558,18 @@ namespace Windawesome
 		{
 			// I'm adding to the front of the list in WindowCreated, however EnumWindows enums
 			// from the top of the Z-order to the bottom, so I need to reverse the list
-			if (windows.Count > 0)
+			if (windowsZOrder.Count > 0)
 			{
-				var newWindows = windows.ToArray();
-				windows.Clear();
-				newWindows.ForEach(w => windows.AddFirst(w));
+				var newWindows = windowsZOrder.ToArray();
+				windowsZOrder.Clear();
+				newWindows.ForEach(w => windowsZOrder.AddFirst(w));
+				newWindows.ForEach(this.ShiftWindowToMainPosition); // n ^ 2!
 			}
 		}
 
 		private LinkedListNode<Window> GetWindowNode(IntPtr hWnd)
 		{
-			for (var node = windows.First; node != null; node = node.Next)
+			for (var node = windowsZOrder.First; node != null; node = node.Next)
 			{
 				if (node.Value.hWnd == hWnd)
 				{
@@ -570,11 +586,11 @@ namespace Windawesome
 
 			if (node != null)
 			{
-				if (node != windows.First)
+				if (node != windowsZOrder.First)
 				{
 					// adds the window to the front of the list, i.e. the top of the Z order
-					windows.Remove(node);
-					windows.AddFirst(node);
+					windowsZOrder.Remove(node);
+					windowsZOrder.AddFirst(node);
 				}
 
 				return node.Value;
@@ -589,11 +605,11 @@ namespace Windawesome
 
 			if (node != null)
 			{
-				if (node != windows.First)
+				if (node != windowsZOrder.First)
 				{
 					// adds the window to the back of the list, i.e. the bottom of the Z order
-					windows.Remove(node);
-					windows.AddLast(node);
+					windowsZOrder.Remove(node);
+					windowsZOrder.AddLast(node);
 				}
 
 				return node.Value;
@@ -606,6 +622,59 @@ namespace Windawesome
 		{
 			RestoreSharedWindowState(window, !IsWorkspaceVisible);
 			sharedWindowsCount--;
+		}
+
+		public Window GetNextWindow(Window window)
+		{
+			var next = windows.Find(window).Next;
+			return next != null ? next.Value : null;
+		}
+
+		public Window GetPreviousWindow(Window window)
+		{
+			var previous = windows.Find(window).Previous;
+			return previous != null ? previous.Value : null;
+		}
+
+		public void ShiftWindowToNextPosition(Window window)
+		{
+			if (windows.Count > 1 && windows.Last.Value != window)
+			{
+				var node = windows.Find(window);
+				var nextNode = node.Next;
+				windows.Remove(node);
+				windows.AddAfter(nextNode, node);
+
+				this.Reposition();
+				DoWorkspaceWindowOrderChanged(this, window);
+			}
+		}
+
+		public void ShiftWindowToPreviousPosition(Window window)
+		{
+			if (windows.Count > 1 && windows.First.Value != window)
+			{
+				var node = windows.Find(window);
+				var previousNode = node.Next;
+				windows.Remove(node);
+				windows.AddBefore(previousNode, node);
+
+				this.Reposition();
+				DoWorkspaceWindowOrderChanged(this, window);
+			}
+		}
+
+		public void ShiftWindowToMainPosition(Window window)
+		{
+			if (windows.Count > 1 && windows.First.Value != window)
+			{
+				var node = windows.Find(window);
+				windows.Remove(node);
+				windows.AddFirst(node);
+
+				this.Reposition();
+				DoWorkspaceWindowOrderChanged(this, window);
+			}
 		}
 	}
 }

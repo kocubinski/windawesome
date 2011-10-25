@@ -121,8 +121,8 @@ namespace Windawesome
 
 		void IPlugin.InitializePlugin(Windawesome windawesome)
 		{
-			Workspace.WorkspaceApplicationAdded += OnWorkspaceApplicationAdded;
-			Workspace.WorkspaceApplicationRemoved += OnWorkspaceApplicationRemoved;
+			Workspace.WorkspaceWindowAdded += OnWorkspaceApplicationAdded;
+			Workspace.WorkspaceWindowRemoved += OnWorkspaceApplicationRemoved;
 			//Workspace.WorkspaceChangedFrom += OnWorkspaceChangedFrom;
 			//Workspace.WorkspaceChangedTo += OnWorkspaceChangedTo;
 			Workspace.WorkspaceLayoutChanged += OnWorkspaceLayoutChanged;

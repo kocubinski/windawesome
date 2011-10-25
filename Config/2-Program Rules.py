@@ -41,6 +41,7 @@ config.ProgramRules = [
 	ProgramRule(
 		displayName = ".*BitComet.*",
 		onWindowCreatedAction = OnWindowShownAction.HideWindow,
+		showMenu = False,
 		rules = [ProgramRule.Rule(workspace = 9, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
 	),
 	ProgramRule(
@@ -99,7 +100,7 @@ config.ProgramRules = [
 		className = "^wxWindowClassNR$", # digsby Buddy List
 		displayName = "^Buddy List$",
 		processName = "^digsby-app$",
-        customMatchingFunction = lambda hWnd: True,
+		customMatchingFunction = lambda hWnd: True,
 		onWindowCreatedAction = OnWindowShownAction.TemporarilyShowWindowOnCurrentWorkspace,
 		rules = [ProgramRule.Rule(workspace = 4, isFloating = True)]
 	),

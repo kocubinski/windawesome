@@ -4,11 +4,9 @@ namespace Windawesome
 	public interface ILayout
 	{
 		string LayoutSymbol();
-
 		string LayoutName();
 
 		void Initialize(Workspace workspace);
-
 		void Dispose();
 
 		/*
@@ -27,11 +25,8 @@ namespace Windawesome
 		 * as invisible
 		 */
 		void WindowMinimized(Window window);
-
 		void WindowRestored(Window window);
-
 		void WindowCreated(Window window);
-
 		void WindowDestroyed(Window window);
 	}
 }

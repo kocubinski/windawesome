@@ -12,7 +12,7 @@ namespace Windawesome
 
 		// TODO: may use a single panel for each workspace which contains all the panels for the applications
 		// when changing a workspace, only the parent panel must be shown/hidden
-		private Dictionary<IntPtr, Panel>[] applicationPanels; // hWnd -> Panel
+		private LinkedList<Tuple<IntPtr, Panel>>[] applicationPanels; // hWnd -> Panel
 		private Panel currentlyHighlightedPanel;
 		private bool[] mustResize;
 		private int left, right;
@@ -42,17 +42,17 @@ namespace Windawesome
 		{
 			mustResize[workspaceId] = false;
 
-			if (applicationPanels[workspaceId].Values.Count > 0)
+			if (applicationPanels[workspaceId].Count > 0)
 			{
-				var eachWidth = (right - left) / (showSingleApplicationTab ? 1 : applicationPanels[workspaceId].Values.Count);
+				var eachWidth = (right - left) / (showSingleApplicationTab ? 1 : applicationPanels[workspaceId].Count);
 
-				foreach (var panel in applicationPanels[workspaceId].Values)
+				foreach (var panel in this.applicationPanels[workspaceId].Select(tuple => tuple.Item2))
 				{
 					panel.Location = new Point(left, 0);
-					panel.Size = new Size(eachWidth, bar.GetBarHeight());
-					panel.Controls[0].Size = new Size(bar.GetBarHeight(), bar.GetBarHeight());
-					panel.Controls[1].Size = new Size(eachWidth - bar.GetBarHeight(), bar.GetBarHeight());
-					if (!showSingleApplicationTab)
+					panel.Size = new Size(eachWidth, this.bar.GetBarHeight());
+					panel.Controls[0].Size = new Size(this.bar.GetBarHeight(), this.bar.GetBarHeight());
+					panel.Controls[1].Size = new Size(eachWidth - this.bar.GetBarHeight(), this.bar.GetBarHeight());
+					if (!this.showSingleApplicationTab)
 					{
 						left += eachWidth;
 					}
@@ -95,8 +95,9 @@ namespace Windawesome
 				var workspaceId = bar.Monitor.CurrentVisibleWorkspace.id - 1;
 				var applications = applicationPanels[workspaceId];
 
-				if (Windawesome.DoForSelfAndOwnersWhile(hWnd, h => !applications.TryGetValue(h, out panel)) != IntPtr.Zero)
+				if ((hWnd = Windawesome.DoForSelfAndOwnersWhile(hWnd, h => applications.All(t => t.Item1 != h))) != IntPtr.Zero)
 				{
+					panel = applications.First(t => t.Item1 == hWnd).Item2;
 					if (panel == currentlyHighlightedPanel)
 					{
 						if (!showSingleApplicationTab && applications.Count == 1 && currentlyHighlightedPanel != null)
@@ -134,9 +135,13 @@ namespace Windawesome
 						panel.ForeColor = highlightedForegroundColor;
 						panel.BackColor = highlightedBackgroundColor;
 					}
-				}
 
-				currentlyHighlightedPanel = panel;
+					currentlyHighlightedPanel = panel;
+				}
+				else
+				{
+					currentlyHighlightedPanel = null;
+				}
 			}
 		}
 
@@ -144,28 +149,27 @@ namespace Windawesome
 		{
 			windawesome.SwitchToApplication(
 				applicationPanels[bar.Monitor.CurrentVisibleWorkspace.id - 1].
-					First(item => item.Value == (((Control) sender).Parent as Panel)).
-					Key);
+					First(tuple => tuple.Item2 == (((Control) sender).Parent as Panel)).Item1);
 		}
 
 		private void OnWindowTitleOrIconChanged(Workspace workspace, Window window, string newText)
 		{
-			Panel panel;
+			Tuple<IntPtr, Panel> tuple;
 			var applications = applicationPanels[workspace.id - 1];
-			if (workspace.Monitor == bar.Monitor && applications.TryGetValue(window.hWnd, out panel))
+			if (workspace.Monitor == bar.Monitor && (tuple = applications.FirstOrDefault(t => t.Item1 == window.hWnd)) != null)
 			{
-				panel.Controls[1].Text = newText;
+				tuple.Item2.Controls[1].Text = newText;
 			}
 		}
 
-		private void OnWorkspaceApplicationAdded(Workspace workspace, Window window)
+		private void OnWorkspaceWindowAdded(Workspace workspace, Window window)
 		{
 			if (workspace.Monitor == bar.Monitor && window.ShowInTabs)
 			{
 				var workspaceId = workspace.id - 1;
 				var newPanel = CreatePanel(window);
 
-				applicationPanels[workspaceId].Add(window.hWnd, newPanel);
+				applicationPanels[workspaceId].AddFirst(new Tuple<IntPtr, Panel>(window.hWnd, newPanel));
 
 				if (isShown && workspace.IsWorkspaceVisible)
 				{
@@ -184,13 +188,13 @@ namespace Windawesome
 			}
 		}
 
-		private void OnWorkspaceApplicationRemoved(Workspace workspace, Window window)
+		private void OnWorkspaceWindowRemoved(Workspace workspace, Window window)
 		{
 			var workspaceId = workspace.id - 1;
-			Panel removedPanel;
-			if (workspace.Monitor == bar.Monitor && applicationPanels[workspaceId].TryGetValue(window.hWnd, out removedPanel))
+			var tuple = applicationPanels[workspaceId].FirstOrDefault(t => t.Item1 == window.hWnd);
+			if (workspace.Monitor == bar.Monitor && tuple != null)
 			{
-				applicationPanels[workspaceId].Remove(window.hWnd);
+				applicationPanels[workspaceId].Remove(tuple);
 				if (isShown && workspace.IsWorkspaceVisible)
 				{
 					if (workspace.IsCurrentWorkspace)
@@ -203,7 +207,56 @@ namespace Windawesome
 				{
 					mustResize[workspaceId] = true;
 				}
-				bar.DoSpanWidgetControlsRemoved(this, new[] { removedPanel });
+				bar.DoSpanWidgetControlsRemoved(this, new[] { tuple.Item2 });
+			}
+		}
+
+		private void OnWorkspaceWindowOrderChanged(Workspace workspace, Window window)
+		{
+			if (bar.Monitor == workspace.Monitor)
+			{
+				var applications = applicationPanels[workspace.id - 1];
+				var windows = workspace.GetManagedWindows();
+				var enumerator = windows.GetEnumerator();
+				var isPrev = false;
+				for (var node = applications.First; node != null; node = node.Next)
+				{
+					enumerator.MoveNext();
+					if (node.Value.Item1 == window.hWnd)
+					{
+						if (windows.First() == window)
+						{
+							applications.Remove(node);
+							applications.AddFirst(node);
+						}
+						else if (isPrev)
+						{
+							var prevNode = node.Previous;
+							applications.Remove(node);
+							applications.AddBefore(prevNode, node);
+						}
+						else
+						{
+							var nextNode = node.Next;
+							applications.Remove(node);
+							applications.AddAfter(nextNode, node);
+						}
+						break;
+					}
+					if (enumerator.Current == window)
+					{
+						isPrev = true;
+					}
+				}
+
+				if (isShown)
+				{
+					ResizeApplicationPanels(left, right, workspace.id - 1);
+				}
+				else
+				{
+					mustResize[workspace.id - 1] = true;
+				}
 			}
 		}
 
@@ -220,7 +273,7 @@ namespace Windawesome
 					}
 					if (!showSingleApplicationTab)
 					{
-						applicationPanels[workspaceId].Values.ForEach(p => p.Show());
+						applicationPanels[workspaceId].ForEach(t => t.Item2.Show());
 					}
 					currentlyHighlightedPanel = null;
 				}
@@ -236,7 +289,7 @@ namespace Windawesome
 				{
 					if (!showSingleApplicationTab)
 					{
-						applicationPanels[workspaceId].Values.ForEach(p => p.Hide());
+						applicationPanels[workspaceId].ForEach(t => t.Item2.Hide());
 					}
 					else if (currentlyHighlightedPanel != null)
 					{
@@ -250,7 +303,7 @@ namespace Windawesome
 		{
 			if (workspace.Monitor == bar.Monitor)
 			{
-				var topmost = workspace.GetTopmostWindow();
+				var topmost = workspace.GetTopmostZOrderWindow();
 				if (topmost != null)
 				{
 					OnWindowActivated(topmost.hWnd);
@@ -285,22 +338,23 @@ namespace Windawesome
 			bar.BarHidden += OnBarHidden;
 
 			Windawesome.WindowTitleOrIconChanged += OnWindowTitleOrIconChanged;
-			Workspace.WorkspaceApplicationAdded += OnWorkspaceApplicationAdded;
-			Workspace.WorkspaceApplicationRemoved += OnWorkspaceApplicationRemoved;
-			Workspace.WorkspaceApplicationRestored += (_, w) => OnWindowActivated(w.hWnd);
+			Workspace.WorkspaceWindowAdded += OnWorkspaceWindowAdded;
+			Workspace.WorkspaceWindowRemoved += OnWorkspaceWindowRemoved;
+			Workspace.WorkspaceWindowRestored += (_, w) => OnWindowActivated(w.hWnd);
 			Workspace.WindowActivatedEvent += OnWindowActivated;
 			Workspace.WorkspaceHidden += OnWorkspaceHidden;
 			Workspace.WorkspaceShown += OnWorkspaceShown;
 			Workspace.WorkspaceDeactivated += _ => OnWindowActivated(IntPtr.Zero);
 			Workspace.WorkspaceActivated += ActivateTopmost;
+			Workspace.WorkspaceWindowOrderChanged += OnWorkspaceWindowOrderChanged;
 
 			currentlyHighlightedPanel = null;
 
 			mustResize = new bool[windawesome.config.Workspaces.Length];
-			applicationPanels = new Dictionary<IntPtr, Panel>[windawesome.config.Workspaces.Length];
+			applicationPanels = new LinkedList<Tuple<IntPtr, Panel>>[windawesome.config.Workspaces.Length];
 			for (var i = 0; i < windawesome.config.Workspaces.Length; i++)
 			{
-				applicationPanels[i] = new Dictionary<IntPtr, Panel>(3);
+				applicationPanels[i] = new LinkedList<Tuple<IntPtr, Panel>>();
 			}
 		}
 

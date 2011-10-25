@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Drawing;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -2112,13 +2113,7 @@ using WPARAM = UIntPtr; // UINT_PTR
 
 		public static System.Collections.Generic.IEnumerable<T> Unless<T>(this System.Collections.Generic.IEnumerable<T> items, Predicate<T> predicate)
 		{
-			foreach (var item in items)
-			{
-				if (!predicate(item))
-				{
-					yield return item;
-				}
-			}
+			return items.Where(item => !predicate(item));
 		}
 
 		#endregion

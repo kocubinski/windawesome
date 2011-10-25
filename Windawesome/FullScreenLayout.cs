@@ -57,7 +57,7 @@ namespace Windawesome
 			}
 		}
 
-		private void OnWorkspaceApplicationAddedOrRemoved(Workspace workspace, Window window)
+		private void OnWorkspaceWindowAddedOrRemoved(Workspace workspace, Window window)
 		{
 			if (workspace == this.workspace && workspace.IsWorkspaceVisible)
 			{
@@ -84,8 +84,8 @@ namespace Windawesome
 			workspace.WindowTitlebarToggled += MaximizeWindow;
 			workspace.WindowBorderToggled += MaximizeWindow;
 
-			Workspace.WorkspaceApplicationAdded += OnWorkspaceApplicationAddedOrRemoved;
-			Workspace.WorkspaceApplicationRemoved += OnWorkspaceApplicationAddedOrRemoved;
+			Workspace.WorkspaceWindowAdded += OnWorkspaceWindowAddedOrRemoved;
+			Workspace.WorkspaceWindowRemoved += OnWorkspaceWindowAddedOrRemoved;
 		}
 
 		void ILayout.Dispose()
@@ -93,8 +93,8 @@ namespace Windawesome
 			workspace.WindowTitlebarToggled -= MaximizeWindow;
 			workspace.WindowBorderToggled -= MaximizeWindow;
 
-			Workspace.WorkspaceApplicationAdded -= OnWorkspaceApplicationAddedOrRemoved;
-			Workspace.WorkspaceApplicationRemoved -= OnWorkspaceApplicationAddedOrRemoved;
+			Workspace.WorkspaceWindowAdded -= OnWorkspaceWindowAddedOrRemoved;
+			Workspace.WorkspaceWindowRemoved -= OnWorkspaceWindowAddedOrRemoved;
 		}
 
 		bool ILayout.ShouldSaveAndRestoreSharedWindowsPosition()

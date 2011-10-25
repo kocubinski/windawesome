@@ -47,25 +47,25 @@ namespace Windawesome
 			}
 		}
 
-		private void OnWorkspaceApplicationAdded(Workspace workspace, Window window)
+		private void OnWorkspaceWindowAdded(Workspace workspace, Window window)
 		{
 			writer.WriteLine("ADDED - class '{0}'; caption '{1}'; workspace '{2}'",
 				window.className, window.DisplayName, workspace.id);
 		}
 
-		private void OnWorkspaceApplicationRemoved(Workspace workspace, Window window)
+		private void OnWorkspaceWindowRemoved(Workspace workspace, Window window)
 		{
 			writer.WriteLine("REMOVED - class '{0}'; caption '{1}'; workspace '{2}'",
 				window.className, window.DisplayName, workspace.id);
 		}
 
-		private void OnWorkspaceApplicationMinimized(Workspace workspace, Window window)
+		private void OnWorkspaceWindowMinimized(Workspace workspace, Window window)
 		{
 			writer.WriteLine("MINIMIZED - class '{0}'; caption '{1}'; workspace '{2}'",
 				window.className, window.DisplayName, workspace.id);
 		}
 
-		private void OnWorkspaceApplicationRestored(Workspace workspace, Window window)
+		private void OnWorkspaceWindowRestored(Workspace workspace, Window window)
 		{
 			writer.WriteLine("RESTORED - class '{0}'; caption '{1}'; workspace '{2}'",
 				window.className, window.DisplayName, workspace.id);
@@ -91,7 +91,7 @@ namespace Windawesome
 			writer.WriteLine("Workspace '{0}' deactivated", workspace.id);
 		}
 
-		private void OnWindowActivatedEvent(IntPtr hWnd)
+		private void OnWindowActivated(IntPtr hWnd)
 		{
 			var window = windawesome.CurrentWorkspace.GetWindow(hWnd);
 			if (window != null)
@@ -118,11 +118,11 @@ namespace Windawesome
 			}
 			if (logCreation)
 			{
-				Workspace.WorkspaceApplicationAdded += OnWorkspaceApplicationAdded;
+				Workspace.WorkspaceWindowAdded += OnWorkspaceWindowAdded;
 			}
 			if (logDeletion)
 			{
-				Workspace.WorkspaceApplicationRemoved += OnWorkspaceApplicationRemoved;
+				Workspace.WorkspaceWindowRemoved += OnWorkspaceWindowRemoved;
 			}
 			if (logWorkspaceSwitching)
 			{
@@ -133,15 +133,15 @@ namespace Windawesome
 			}
 			if (logWindowMinimization)
 			{
-				Workspace.WorkspaceApplicationMinimized += OnWorkspaceApplicationMinimized;
+				Workspace.WorkspaceWindowMinimized += OnWorkspaceWindowMinimized;
 			}
 			if (logWindowRestoration)
 			{
-				Workspace.WorkspaceApplicationRestored += OnWorkspaceApplicationRestored;
+				Workspace.WorkspaceWindowRestored += OnWorkspaceWindowRestored;
 			}
 			if (logActivation)
 			{
-				Workspace.WindowActivatedEvent += OnWindowActivatedEvent;
+				Workspace.WindowActivatedEvent += OnWindowActivated;
 			}
 		}
 
