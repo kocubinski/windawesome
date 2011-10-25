@@ -211,41 +211,30 @@ namespace Windawesome
 			}
 		}
 
-		private void OnWorkspaceWindowOrderChanged(Workspace workspace, Window window)
+		private void OnWorkspaceWindowOrderChanged(Workspace workspace, Window window, int positions, bool backwards)
 		{
 			if (bar.Monitor == workspace.Monitor)
 			{
 				var applications = applicationPanels[workspace.id - 1];
-				var windows = workspace.GetManagedWindows();
-				var enumerator = windows.GetEnumerator();
-				var isPrev = false;
 				for (var node = applications.First; node != null; node = node.Next)
 				{
-					enumerator.MoveNext();
 					if (node.Value.Item1 == window.hWnd)
 					{
-						if (windows.First() == window)
+						var otherNode = backwards ? node.Previous : node.Next;
+						applications.Remove(node);
+						for (var i = 1; i < positions; i++)
 						{
-							applications.Remove(node);
-							applications.AddFirst(node);
+							otherNode = backwards ? otherNode.Previous : otherNode.Next;
 						}
-						else if (isPrev)
+						if (backwards)
 						{
-							var prevNode = node.Previous;
-							applications.Remove(node);
-							applications.AddBefore(prevNode, node);
+							applications.AddBefore(otherNode, node);
 						}
 						else
 						{
-							var nextNode = node.Next;
-							applications.Remove(node);
-							applications.AddAfter(nextNode, node);
+							applications.AddAfter(otherNode, node);
 						}
 						break;
-					}
-					if (enumerator.Current == window)
-					{
-						isPrev = true;
 					}
 				}
 

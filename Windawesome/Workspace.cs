@@ -60,7 +60,7 @@ namespace Windawesome
 		public delegate void WorkspaceWindowRestoredEventHandler(Workspace workspace, Window window);
 		public static event WorkspaceWindowRestoredEventHandler WorkspaceWindowRestored;
 
-		public delegate void WorkspaceWindowOrderChangedEventHandler(Workspace workspace, Window window);
+		public delegate void WorkspaceWindowOrderChangedEventHandler(Workspace workspace, Window window, int positions, bool backwards);
 		public static event WorkspaceWindowOrderChangedEventHandler WorkspaceWindowOrderChanged;
 
 		public delegate void WorkspaceHiddenEventHandler(Workspace workspace);
@@ -125,11 +125,11 @@ namespace Windawesome
 			}
 		}
 
-		private static void DoWorkspaceWindowOrderChanged(Workspace workspace, Window window)
+		private static void DoWorkspaceWindowOrderChanged(Workspace workspace, Window window, int positions, bool backwards)
 		{
 			if (WorkspaceWindowOrderChanged != null)
 			{
-				WorkspaceWindowOrderChanged(workspace, window);
+				WorkspaceWindowOrderChanged(workspace, window, positions, backwards);
 			}
 		}
 
@@ -626,41 +626,79 @@ namespace Windawesome
 
 		public Window GetNextWindow(Window window)
 		{
-			var next = windows.Find(window).Next;
-			return next != null ? next.Value : null;
+			var node = windows.Find(window);
+			if (node != null)
+			{
+				return node.Next != null ? node.Next.Value : null;
+			}
+			return null;
 		}
 
 		public Window GetPreviousWindow(Window window)
 		{
-			var previous = windows.Find(window).Previous;
-			return previous != null ? previous.Value : null;
+			var node = windows.Find(window);
+			if (node != null)
+			{
+				return node.Previous != null ? node.Previous.Value : null;
+			}
+			return null;
 		}
 
-		public void ShiftWindowToNextPosition(Window window)
+		public void ShiftWindowForward(Window window, int positions = 1)
 		{
 			if (windows.Count > 1 && windows.Last.Value != window)
 			{
 				var node = windows.Find(window);
-				var nextNode = node.Next;
-				windows.Remove(node);
-				windows.AddAfter(nextNode, node);
+				if (node != null)
+				{
+					var nextNode = node.Next;
+					windows.Remove(node);
+					var i = 0;
+					while (++i < positions && nextNode != null)
+					{
+						nextNode = nextNode.Next;
+					}
+					if (nextNode != null)
+					{
+						windows.AddAfter(nextNode, node);
+					}
+					else
+					{
+						windows.AddLast(node);
+					}
 
-				this.Reposition();
-				DoWorkspaceWindowOrderChanged(this, window);
+					this.Reposition();
+					DoWorkspaceWindowOrderChanged(this, window, i, false);
+				}
 			}
 		}
 
-		public void ShiftWindowToPreviousPosition(Window window)
+		public void ShiftWindowBackwards(Window window, int positions = 1)
 		{
 			if (windows.Count > 1 && windows.First.Value != window)
 			{
 				var node = windows.Find(window);
-				var previousNode = node.Next;
-				windows.Remove(node);
-				windows.AddBefore(previousNode, node);
+				if (node != null)
+				{
+					var previousNode = node.Previous;
+					windows.Remove(node);
+					var i = 0;
+					while (++i < positions && previousNode != null)
+					{
+						previousNode = previousNode.Previous;
+					}
+					if (previousNode != null)
+					{
+						windows.AddBefore(previousNode, node);
+					}
+					else
+					{
+						windows.AddFirst(node);
+					}
 
-				this.Reposition();
-				DoWorkspaceWindowOrderChanged(this, window);
+					this.Reposition();
+					DoWorkspaceWindowOrderChanged(this, window, i, true);
+				}
 			}
 		}
 
@@ -668,12 +706,24 @@ namespace Windawesome
 		{
 			if (windows.Count > 1 && windows.First.Value != window)
 			{
-				var node = windows.Find(window);
-				windows.Remove(node);
-				windows.AddFirst(node);
-
-				this.Reposition();
-				DoWorkspaceWindowOrderChanged(this, window);
+				var node = windows.First;
+				var i = 0;
+				for ( ; i < windows.Count; i++)
+				{
+					if (node.Value == window)
+					{
+						break;
+					}
+					node = node.Next;
+				}
+				if (i != windows.Count)
+				{
+					windows.Remove(node);
+					windows.AddFirst(node);
+	
+					this.Reposition();
+					DoWorkspaceWindowOrderChanged(this, window, i, true);
+				}
 			}
 		}
 	}

@@ -163,12 +163,12 @@ end
 
 subscribe modifiers.Alt | modifiers.Shift, key.Down do
 	window = windawesome.current_workspace.get_window get_current_workspace_managed_window
-	windawesome.current_workspace.shift_window_to_next_position window if window
+	windawesome.current_workspace.shift_window_forward window if window
 end
 
 subscribe modifiers.Alt | modifiers.Shift, key.Up do
 	window = windawesome.current_workspace.get_window get_current_workspace_managed_window
-	windawesome.current_workspace.shift_window_to_previous_position window if window
+	windawesome.current_workspace.shift_window_backwards window if window
 end
 
 subscribe modifiers.Control | modifiers.Alt | modifiers.Shift, key.Return do
