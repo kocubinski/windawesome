@@ -405,7 +405,7 @@ namespace Windawesome
 			if (ApplicationsTryGetValue(hWnd, out workspacesWindowsList))
 			{
 				if (workspacesWindowsList.First.Value.Item2.IsMatchOwnedWindow(hWnd) &&
-					!workspacesWindowsList.First.Value.Item2.ownedWindows.Contains(hWnd))
+					workspacesWindowsList.First.Value.Item2.ownedWindows.FindLast(hWnd) == null)
 				{
 					workspacesWindowsList.First.Value.Item2.ownedWindows.AddLast(hWnd);
 					workspacesWindowsList.ForEach(t => t.Item1.ownedWindowsCount++);
