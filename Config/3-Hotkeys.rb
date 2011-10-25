@@ -161,12 +161,12 @@ subscribe modifiers.Alt, key.K do
 	end
 end
 
-subscribe modifiers.Alt | modifiers.Shift, key.Down do
+subscribe modifiers.Alt | modifiers.Shift, key.J do
 	window = windawesome.current_workspace.get_window get_current_workspace_managed_window
 	windawesome.current_workspace.shift_window_forward window if window
 end
 
-subscribe modifiers.Alt | modifiers.Shift, key.Up do
+subscribe modifiers.Alt | modifiers.Shift, key.K do
 	window = windawesome.current_workspace.get_window get_current_workspace_managed_window
 	windawesome.current_workspace.shift_window_backwards window if window
 end
