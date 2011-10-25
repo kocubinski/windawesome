@@ -319,20 +319,20 @@ namespace Windawesome
 				ShowHideWindowsTaskbar(workspace.ShowWindowsTaskbar);
 			}
 
-			var oldWorkspace = workspaces[CurrentVisibleWorkspace];
-			var newWorkspace = workspaces[workspace];
-
-			var oldCurrentVisibleWorkspace = CurrentVisibleWorkspace;
+			var previousVisibleWorkspace = CurrentVisibleWorkspace;
 			CurrentVisibleWorkspace = workspace;
 
 			workspace.SwitchTo();
+
+			var oldWorkspace = workspaces[previousVisibleWorkspace];
+			var newWorkspace = workspaces[workspace];
 
 			// hides the Bars for the old workspace and shows the new ones
 			if (newWorkspace.Item1 != oldWorkspace.Item1)
 			{
 				ShowHideBars(oldWorkspace.Item2, oldWorkspace.Item3,
 					newWorkspace.Item2, newWorkspace.Item3,
-					oldCurrentVisibleWorkspace, workspace);
+					previousVisibleWorkspace, workspace);
 			}
 		}
 
@@ -404,15 +404,15 @@ namespace Windawesome
 		internal void RemoveWorkspace(Workspace workspace)
 		{
 			var workspaceTuple = workspaces[workspace];
-			if (workspaceTuple.Item2 != null && workspaces.Where(kv => kv.Key != workspace).All(kv => kv.Value.Item2 != workspaceTuple.Item2))
+			workspaces.Remove(workspace);
+			if (workspaceTuple.Item2 != null && workspaces.All(kv => kv.Value.Item2 != workspaceTuple.Item2))
 			{
 				workspaceTuple.Item2.Destroy();
 			}
-			if (workspaceTuple.Item3 != null && workspaces.Where(kv => kv.Key != workspace).All(kv => kv.Value.Item3 != workspaceTuple.Item3))
+			if (workspaceTuple.Item3 != null && workspaces.All(kv => kv.Value.Item3 != workspaceTuple.Item3))
 			{
 				workspaceTuple.Item3.Destroy();
 			}
-			workspaces.Remove(workspace);
 		}
 
 		private void ShowHideBars(AppBarNativeWindow previousAppBarTopWindow, AppBarNativeWindow previousAppBarBottomWindow,
