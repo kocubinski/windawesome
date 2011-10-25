@@ -106,7 +106,7 @@ end
 
 # toggle window floating
 subscribe modifiers.Control | modifiers.Alt | modifiers.Shift, key.F do
-	windawesome.toggle_window_floating Windawesome::NativeMethods.get_foreground_window
+	windawesome.toggle_window_floating get_current_workspace_managed_window
 end
 
 # toggle window titlebar
@@ -114,7 +114,7 @@ subscribe modifiers.Alt | modifiers.Shift, key.D do
 	windawesome.toggle_show_hide_window_titlebar Windawesome::NativeMethods.get_foreground_window
 end
 
-# toggle windows taskbar
+# toggle Windows taskbar
 subscribe modifiers.Alt | modifiers.Control, key.Space do
 	windawesome.toggle_taskbar_visibility
 end
@@ -126,7 +126,7 @@ end
 
 # toggle window menu
 subscribe modifiers.Control | modifiers.Alt | modifiers.Shift, key.M do
-	windawesome.toggle_show_hide_window_menu Windawesome::NativeMethods.get_foreground_window
+	windawesome.toggle_show_hide_window_menu get_current_workspace_managed_window
 end
 
 # Layout stuff
