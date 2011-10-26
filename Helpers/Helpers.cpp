@@ -49,15 +49,28 @@ void RunApplicationNonElevated(const WCHAR* path, const WCHAR* arguments)
 		}
 	}
 
-	VARIANT args, dir, operation, show;
-	args.bstrVal = SysAllocString(arguments);
+	VARIANT args;
+	VariantInit(&args);
 	args.vt = VT_BSTR;
-	dir.bstrVal = args.bstrVal;
-	dir.vt = VT_BSTR;
-	operation.bstrVal = SysAllocString(L"open");
+	args.bstrVal = SysAllocString(arguments);
+
+	VARIANT dir;
+	VariantInit(&dir);
+
+	VARIANT operation;
+	VariantInit(&operation);
 	operation.vt = VT_BSTR;
-	show.intVal = 10;
+	operation.bstrVal = SysAllocString(L"open");
+
+	VARIANT show;
+	VariantInit(&show);
 	show.vt = VT_INT;
+	show.intVal = SW_SHOWDEFAULT;
+
 	BSTR p = SysAllocString(path);
 	psd->ShellExecuteW(p, args, dir, operation, show);
+
+	SysFreeString(p);
+	SysFreeString(operation.bstrVal);
+	SysFreeString(args.bstrVal);
 }
