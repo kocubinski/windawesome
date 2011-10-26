@@ -490,6 +490,11 @@ namespace Windawesome
 			return windows.Where(w => !w.IsFloating && !w.IsMinimized);
 		}
 
+		public IEnumerable<Window> GetWindows()
+		{
+			return windows;
+		}
+
 		public Window GetTopmostZOrderWindow()
 		{
 			var window = windowsZOrder.FirstOrDefault();
