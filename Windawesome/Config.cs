@@ -236,7 +236,7 @@ namespace Windawesome
 		public ProgramRule(string className = ".*", string displayName = ".*", string processName = ".*",
 			NativeMethods.WS styleContains = (NativeMethods.WS) 0, NativeMethods.WS styleNotContains = (NativeMethods.WS) 0,
 			NativeMethods.WS_EX exStyleContains = (NativeMethods.WS_EX) 0, NativeMethods.WS_EX exStyleNotContains = (NativeMethods.WS_EX) 0,
-			CustomMatchingFunction customMatchingFunction = null,
+			CustomMatchingFunction customMatchingFunction = null, CustomMatchingFunction customOwnedWindowMatchingFunction = null,
 
 			bool isManaged = true, int tryAgainAfter = -1, int windowCreatedDelay = -1, bool redrawDesktopOnWindowCreated = false, bool showMenu = true,
 			OnWindowCreatedOnCurrentWorkspaceAction onWindowCreatedOnCurrentWorkspaceAction = OnWindowCreatedOnCurrentWorkspaceAction.ActivateWindow,
@@ -252,7 +252,7 @@ namespace Windawesome
 			this.exStyleContains = exStyleContains;
 			this.exStyleNotContains = exStyleNotContains;
 			this.customMatchingFunction = customMatchingFunction ?? DefaultMatchingFunction;
-			this.customOwnedWindowMatchingFunction = DefaultOwnedWindowMatchingFunction;
+			this.customOwnedWindowMatchingFunction = customOwnedWindowMatchingFunction ?? DefaultOwnedWindowMatchingFunction;
 
 			this.isManaged = isManaged;
 			if (isManaged)
