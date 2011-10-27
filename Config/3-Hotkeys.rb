@@ -54,7 +54,7 @@ subscribe modifiers.Alt, key.A do
 end
 
 # maximize or restore application
-subscribe modifiers.Alt, key.Z do
+subscribe modifiers.Alt, key.S do
 	window = Windawesome::NativeMethods.get_foreground_window
 	ws = Windawesome::NativeMethods.get_window_style_long_ptr.invoke window
 	if ws.has_flag Windawesome::NativeMethods::WS.WS_MAXIMIZE

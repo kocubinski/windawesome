@@ -642,8 +642,7 @@ namespace Windawesome
 				}
 				else
 				{
-					NativeMethods.SetWindowPos(hWnd, NativeMethods.HWND_TOP, 0, 0, 0, 0,
-						NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
+					NativeMethods.SetWindowPos(hWnd, NativeMethods.HWND_TOP, 0, 0, 0, 0, NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
 				}
 			}
 		}
@@ -656,7 +655,7 @@ namespace Windawesome
 			{
 			}
 
-			if (count == 5)
+			if (count == tryCount)
 			{
 				System.Threading.Thread.Sleep(10);
 				if (NativeMethods.GetForegroundWindow() != hWnd)
@@ -665,8 +664,7 @@ namespace Windawesome
 				}
 			}
 
-			NativeMethods.SetWindowPos(hWnd, NativeMethods.HWND_TOP, 0, 0, 0, 0,
-				NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
+			NativeMethods.SetWindowPos(hWnd, NativeMethods.HWND_TOP, 0, 0, 0, 0, NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
 
 			return true;
 		}

@@ -329,7 +329,7 @@ using WPARAM = UIntPtr; // UINT_PTR
 
 		// window stuff
 
-		public static readonly HWND HWND_MESSAGE = (IntPtr) (-3);
+		public static readonly HWND HWND_MESSAGE = (HWND) (-3);
 
 		public const int minimizeRestoreDelay = 300;
 
@@ -406,10 +406,6 @@ using WPARAM = UIntPtr; // UINT_PTR
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
 		public static extern bool IsWindowVisible(HWND hWnd);
-
-		[DllImport("user32.dll")]
-		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool IsWindowEnabled(HWND hWnd);
 
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
