@@ -15,7 +15,7 @@ namespace Windawesome
 		 * This is called for every instance of the Widget and is given its Bar
 		 */
 		void InitializeWidget(Bar bar);
-		
+
 		void RepositionControls(int left, int right);
 
 		/*
@@ -56,7 +56,7 @@ namespace Windawesome
 		/*
 		 * GetInitialControls is called only once in the beginning. After that,
 		 * when any changes occur, RepositionControls will be called
-		 * 
+		 *
 		 * The argument isLeft specifies whether the Widget is on the left or the right side of the Bar
 		 */
 		IEnumerable<Control> GetInitialControls(bool isLeft);

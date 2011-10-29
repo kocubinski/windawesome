@@ -325,7 +325,7 @@ namespace Windawesome
 
 			#region System Changes
 
-			new System.Threading.Thread(() =>
+			var thread = new System.Threading.Thread(() => // this has to be a foreground thread
 				{
 					// revert the hiding of the mouse when typing
 					if (config.HideMouseWhenTyping != originalHideMouseWhenTyping)
@@ -373,17 +373,28 @@ namespace Windawesome
 					}
 
 					// revert the size of non-client area of windows
-					var metrics = originalNonClientMetrics;
-					if ((config.WindowBorderWidth >= 0 && metrics.iBorderWidth != config.WindowBorderWidth) ||
-						(isAtLeastVista && config.WindowPaddedBorderWidth >= 0 && metrics.iPaddedBorderWidth != config.WindowPaddedBorderWidth))
+					if ((config.WindowBorderWidth >= 0 && originalNonClientMetrics.iBorderWidth != config.WindowBorderWidth) ||
+						(isAtLeastVista && config.WindowPaddedBorderWidth >= 0 && originalNonClientMetrics.iPaddedBorderWidth != config.WindowPaddedBorderWidth))
 					{
+						var metrics = originalNonClientMetrics;
 						NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_SETNONCLIENTMETRICS, metrics.cbSize,
-							ref metrics, 0);
+							ref metrics, NativeMethods.SPIF.SPIF_UPDATEINIFILE);
 
 						NativeMethods.SendNotifyMessage(NativeMethods.HWND_BROADCAST, NativeMethods.WM_SETTINGCHANGE,
 							(UIntPtr) (uint) NativeMethods.SPI.SPI_SETNONCLIENTMETRICS, IntPtr.Zero);
 					}
-				}).Start(); // this has to be a foreground thread
+				});
+			thread.Start();
+			new System.Threading.Timer(_ =>
+				{
+					// SystemParametersInfo sometimes hangs because of SPI_SETNONCLIENTMETRICS,
+					// even though SPIF_SENDCHANGE is not added to the flags
+					if (thread.IsAlive)
+					{
+						thread.Abort();
+						Environment.Exit(0);
+					}
+				}, null, 5000, 0);
 
 			#endregion
 
@@ -678,11 +689,16 @@ namespace Windawesome
 
 			if (count == tryCount)
 			{
-				System.Threading.Thread.Sleep(10);
+				System.Threading.Thread.Sleep(50);
 				if (NativeMethods.GetForegroundWindow() != hWnd)
 				{
 					return false;
 				}
+			}
+
+			while (NativeMethods.GetForegroundWindow() != hWnd)
+			{
+				System.Threading.Thread.Sleep(30);
 			}
 
 			NativeMethods.SetWindowPos(hWnd, NativeMethods.HWND_TOP, 0, 0, 0, 0, NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);

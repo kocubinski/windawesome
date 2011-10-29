@@ -725,7 +725,7 @@ namespace Windawesome
 				{
 					windows.Remove(node);
 					windows.AddFirst(node);
-	
+
 					this.Reposition();
 					DoWorkspaceWindowOrderChanged(this, window, i, true);
 				}
