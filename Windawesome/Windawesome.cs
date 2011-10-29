@@ -44,9 +44,7 @@ namespace Windawesome
 
 		#region System Changes
 
-#if !DEBUG
 		private static readonly NativeMethods.NONCLIENTMETRICS originalNonClientMetrics;
-#endif
 		private static readonly NativeMethods.ANIMATIONINFO originalAnimationInfo;
 		private static readonly bool originalHideMouseWhenTyping;
 		private static readonly bool originalFocusFollowsMouse;
@@ -105,11 +103,9 @@ namespace Windawesome
 
 			#region System Changes
 
-#if !DEBUG
 			originalNonClientMetrics = NativeMethods.NONCLIENTMETRICS.Default;
 			NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_GETNONCLIENTMETRICS, originalNonClientMetrics.cbSize,
 				ref originalNonClientMetrics, 0);
-#endif
 
 			originalAnimationInfo = NativeMethods.ANIMATIONINFO.Default;
 			NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_GETANIMATION, originalAnimationInfo.cbSize,
@@ -181,59 +177,68 @@ namespace Windawesome
 
 			#region System Changes
 
-#if !DEBUG
-			// set the global border and padded border widths
-			var metrics = originalNonClientMetrics;
-			if (config.WindowBorderWidth >= 0 && metrics.iBorderWidth != config.WindowBorderWidth)
-			{
-				metrics.iBorderWidth = config.WindowBorderWidth;
-			}
-			if (isAtLeastVista && config.WindowPaddedBorderWidth >= 0 && metrics.iPaddedBorderWidth != config.WindowPaddedBorderWidth)
-			{
-				metrics.iPaddedBorderWidth = config.WindowPaddedBorderWidth;
-			}
-			if ((config.WindowBorderWidth >= 0 && metrics.iBorderWidth != config.WindowBorderWidth) ||
-				(isAtLeastVista && config.WindowPaddedBorderWidth >= 0 && metrics.iPaddedBorderWidth != config.WindowPaddedBorderWidth))
-			{
-				System.Threading.Tasks.Task.Factory.StartNew(() =>
-					NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_SETNONCLIENTMETRICS, metrics.cbSize,
-						ref metrics, NativeMethods.SPIF.SPIF_SENDCHANGE));
-			}
-#endif
+			System.Threading.Tasks.Task.Factory.StartNew(() =>
+				{
+					// set the "hide mouse when typing"
+					if (config.HideMouseWhenTyping != originalHideMouseWhenTyping)
+					{
+						var hideMouseWhenTyping = config.HideMouseWhenTyping;
+						NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_SETMOUSEVANISH, 0,
+							ref hideMouseWhenTyping, 0);
 
-			// set the minimize/maximize/restore animations
-			if ((originalAnimationInfo.iMinAnimate == 1 && !config.ShowMinimizeMaximizeRestoreAnimations) ||
-				(originalAnimationInfo.iMinAnimate == 0 &&  config.ShowMinimizeMaximizeRestoreAnimations))
-			{
-				var animationInfo = originalAnimationInfo;
-				animationInfo.iMinAnimate = config.ShowMinimizeMaximizeRestoreAnimations ? 1 : 0;
-				NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_SETANIMATION, animationInfo.cbSize,
-					ref animationInfo, NativeMethods.SPIF.SPIF_SENDCHANGE);
-			}
+						NativeMethods.SendNotifyMessage(NativeMethods.HWND_BROADCAST, NativeMethods.WM_SETTINGCHANGE,
+							(UIntPtr) (uint) NativeMethods.SPI.SPI_SETMOUSEVANISH, IntPtr.Zero);
+					}
 
-			// set the "hide mouse when typing"
-			if (config.HideMouseWhenTyping != originalHideMouseWhenTyping)
-			{
-				var hideMouseWhenTyping = config.HideMouseWhenTyping;
-				NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_SETMOUSEVANISH, 0,
-					ref hideMouseWhenTyping, NativeMethods.SPIF.SPIF_SENDCHANGE);
-			}
+					// set the "focus follows mouse"
+					if (config.FocusFollowsMouse != originalFocusFollowsMouse)
+					{
+						var focusFollowsMouse = config.FocusFollowsMouse;
+						NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_SETACTIVEWINDOWTRACKING, 0,
+							ref focusFollowsMouse, 0);
 
-			// set the "focus follows mouse"
-			if (config.FocusFollowsMouse != originalFocusFollowsMouse)
-			{
-				var focusFollowsMouse = config.FocusFollowsMouse;
-				NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_SETACTIVEWINDOWTRACKING, 0,
-					ref focusFollowsMouse, NativeMethods.SPIF.SPIF_SENDCHANGE);
-			}
+						NativeMethods.SendNotifyMessage(NativeMethods.HWND_BROADCAST, NativeMethods.WM_SETTINGCHANGE,
+							(UIntPtr) (uint) NativeMethods.SPI.SPI_SETACTIVEWINDOWTRACKING, IntPtr.Zero);
+					}
 
-			// set the "set window on top on focus follows mouse"
-			if (config.FocusFollowsMouseSetOnTop != originalFocusFollowsMouseSetOnTop)
-			{
-				var focusFollowsMouseSetOnTop = config.FocusFollowsMouseSetOnTop;
-				NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_SETACTIVEWNDTRKZORDER, 0,
-					ref focusFollowsMouseSetOnTop, NativeMethods.SPIF.SPIF_SENDCHANGE);
-			}
+					// set the "set window on top on focus follows mouse"
+					if (config.FocusFollowsMouseSetOnTop != originalFocusFollowsMouseSetOnTop)
+					{
+						var focusFollowsMouseSetOnTop = config.FocusFollowsMouseSetOnTop;
+						NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_SETACTIVEWNDTRKZORDER, 0,
+							ref focusFollowsMouseSetOnTop, 0);
+
+						NativeMethods.SendNotifyMessage(NativeMethods.HWND_BROADCAST, NativeMethods.WM_SETTINGCHANGE,
+							(UIntPtr) (uint) NativeMethods.SPI.SPI_SETACTIVEWNDTRKZORDER, IntPtr.Zero);
+					}
+
+					// set the minimize/maximize/restore animations
+					if ((originalAnimationInfo.iMinAnimate == 1 && !config.ShowMinimizeMaximizeRestoreAnimations) ||
+						(originalAnimationInfo.iMinAnimate == 0 && config.ShowMinimizeMaximizeRestoreAnimations))
+					{
+						var animationInfo = originalAnimationInfo;
+						animationInfo.iMinAnimate = config.ShowMinimizeMaximizeRestoreAnimations ? 1 : 0;
+						NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_SETANIMATION, animationInfo.cbSize,
+							ref animationInfo, 0);
+
+						NativeMethods.SendNotifyMessage(NativeMethods.HWND_BROADCAST, NativeMethods.WM_SETTINGCHANGE,
+							(UIntPtr) (uint) NativeMethods.SPI.SPI_SETANIMATION, IntPtr.Zero);
+					}
+
+					// set the global border and padded border widths
+					if ((config.WindowBorderWidth >= 0 && originalNonClientMetrics.iBorderWidth != config.WindowBorderWidth) ||
+						(isAtLeastVista && config.WindowPaddedBorderWidth >= 0 && originalNonClientMetrics.iPaddedBorderWidth != config.WindowPaddedBorderWidth))
+					{
+						var metrics = originalNonClientMetrics;
+						metrics.iBorderWidth = config.WindowBorderWidth;
+						metrics.iPaddedBorderWidth = config.WindowPaddedBorderWidth;
+						NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_SETNONCLIENTMETRICS, metrics.cbSize,
+							ref metrics, 0);
+
+						NativeMethods.SendNotifyMessage(NativeMethods.HWND_BROADCAST, NativeMethods.WM_SETTINGCHANGE,
+							(UIntPtr) (uint) NativeMethods.SPI.SPI_SETNONCLIENTMETRICS, IntPtr.Zero);
+					}
+				});
 
 			#endregion
 
@@ -320,49 +325,65 @@ namespace Windawesome
 
 			#region System Changes
 
-#if !DEBUG
-			// revert the size of non-client area of windows
-			var metrics = originalNonClientMetrics;
-			if ((config.WindowBorderWidth >= 0 && metrics.iBorderWidth != config.WindowBorderWidth) ||
-				(isAtLeastVista && config.WindowPaddedBorderWidth >= 0 && metrics.iPaddedBorderWidth != config.WindowPaddedBorderWidth))
-			{
-				NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_SETNONCLIENTMETRICS, metrics.cbSize,
-					ref metrics, NativeMethods.SPIF.SPIF_SENDCHANGE);
-			}
-#endif
+			new System.Threading.Thread(() =>
+				{
+					// revert the hiding of the mouse when typing
+					if (config.HideMouseWhenTyping != originalHideMouseWhenTyping)
+					{
+						var hideMouseWhenTyping = originalHideMouseWhenTyping;
+						NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_SETMOUSEVANISH, 0,
+							ref hideMouseWhenTyping, NativeMethods.SPIF.SPIF_UPDATEINIFILE);
 
-			// revert the minimize/maximize/restore animations
-			if ((originalAnimationInfo.iMinAnimate == 1 && !config.ShowMinimizeMaximizeRestoreAnimations) ||
-				(originalAnimationInfo.iMinAnimate == 0 &&  config.ShowMinimizeMaximizeRestoreAnimations))
-			{
-				var animationInfo = originalAnimationInfo;
-				NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_SETANIMATION, animationInfo.cbSize,
-					ref animationInfo, NativeMethods.SPIF.SPIF_UPDATEINIFILE | NativeMethods.SPIF.SPIF_SENDCHANGE);
-			}
+						NativeMethods.SendNotifyMessage(NativeMethods.HWND_BROADCAST, NativeMethods.WM_SETTINGCHANGE,
+							(UIntPtr) (uint) NativeMethods.SPI.SPI_SETMOUSEVANISH, IntPtr.Zero);
+					}
 
-			// revert the hiding of the mouse when typing
-			if (config.HideMouseWhenTyping != originalHideMouseWhenTyping)
-			{
-				var hideMouseWhenTyping = originalHideMouseWhenTyping;
-				NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_SETMOUSEVANISH, 0,
-					ref hideMouseWhenTyping, NativeMethods.SPIF.SPIF_UPDATEINIFILE | NativeMethods.SPIF.SPIF_SENDCHANGE);
-			}
+					// revert the "focus follows mouse"
+					if (config.FocusFollowsMouse != originalFocusFollowsMouse)
+					{
+						var focusFollowsMouse = originalFocusFollowsMouse;
+						NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_SETACTIVEWINDOWTRACKING, 0,
+							ref focusFollowsMouse, NativeMethods.SPIF.SPIF_UPDATEINIFILE);
 
-			// revert the "focus follows mouse"
-			if (config.FocusFollowsMouse != originalFocusFollowsMouse)
-			{
-				var focusFollowsMouse = originalFocusFollowsMouse;
-				NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_SETACTIVEWINDOWTRACKING, 0,
-					ref focusFollowsMouse, NativeMethods.SPIF.SPIF_UPDATEINIFILE | NativeMethods.SPIF.SPIF_SENDCHANGE);
-			}
+						NativeMethods.SendNotifyMessage(NativeMethods.HWND_BROADCAST, NativeMethods.WM_SETTINGCHANGE,
+							(UIntPtr) (uint) NativeMethods.SPI.SPI_SETACTIVEWINDOWTRACKING, IntPtr.Zero);
+					}
 
-			// revert the "set window on top on focus follows mouse"
-			if (config.FocusFollowsMouseSetOnTop != originalFocusFollowsMouseSetOnTop)
-			{
-				var focusFollowsMouseSetOnTop = originalFocusFollowsMouseSetOnTop;
-				NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_SETACTIVEWNDTRKZORDER, 0,
-					ref focusFollowsMouseSetOnTop, NativeMethods.SPIF.SPIF_UPDATEINIFILE | NativeMethods.SPIF.SPIF_SENDCHANGE);
-			}
+					// revert the "set window on top on focus follows mouse"
+					if (config.FocusFollowsMouseSetOnTop != originalFocusFollowsMouseSetOnTop)
+					{
+						var focusFollowsMouseSetOnTop = originalFocusFollowsMouseSetOnTop;
+						NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_SETACTIVEWNDTRKZORDER, 0,
+							ref focusFollowsMouseSetOnTop, NativeMethods.SPIF.SPIF_UPDATEINIFILE);
+
+						NativeMethods.SendNotifyMessage(NativeMethods.HWND_BROADCAST, NativeMethods.WM_SETTINGCHANGE,
+							(UIntPtr) (uint) NativeMethods.SPI.SPI_SETACTIVEWNDTRKZORDER, IntPtr.Zero);
+					}
+
+					// revert the minimize/maximize/restore animations
+					if ((originalAnimationInfo.iMinAnimate == 1 && !config.ShowMinimizeMaximizeRestoreAnimations) ||
+						(originalAnimationInfo.iMinAnimate == 0 && config.ShowMinimizeMaximizeRestoreAnimations))
+					{
+						var animationInfo = originalAnimationInfo;
+						NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_SETANIMATION, animationInfo.cbSize,
+							ref animationInfo, NativeMethods.SPIF.SPIF_UPDATEINIFILE);
+
+						NativeMethods.SendNotifyMessage(NativeMethods.HWND_BROADCAST, NativeMethods.WM_SETTINGCHANGE,
+							(UIntPtr) (uint) NativeMethods.SPI.SPI_SETANIMATION, IntPtr.Zero);
+					}
+
+					// revert the size of non-client area of windows
+					var metrics = originalNonClientMetrics;
+					if ((config.WindowBorderWidth >= 0 && metrics.iBorderWidth != config.WindowBorderWidth) ||
+						(isAtLeastVista && config.WindowPaddedBorderWidth >= 0 && metrics.iPaddedBorderWidth != config.WindowPaddedBorderWidth))
+					{
+						NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_SETNONCLIENTMETRICS, metrics.cbSize,
+							ref metrics, 0);
+
+						NativeMethods.SendNotifyMessage(NativeMethods.HWND_BROADCAST, NativeMethods.WM_SETTINGCHANGE,
+							(UIntPtr) (uint) NativeMethods.SPI.SPI_SETNONCLIENTMETRICS, IntPtr.Zero);
+					}
+				}).Start(); // this has to be a foreground thread
 
 			#endregion
 

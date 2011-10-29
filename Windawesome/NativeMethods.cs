@@ -206,7 +206,7 @@ using WPARAM = UIntPtr; // UINT_PTR
 			SMTO_ERRORONEXIT = 0x0020
 		}
 
-		public static readonly HWND HWND_BROADCAST = (HWND) 0xFFFF;
+		public static readonly HWND HWND_BROADCAST = (HWND) 0xFFFFFFFF;
 		public const int WM_MOUSEACTIVATE = 0x0021;
 		public static readonly IntPtr MA_NOACTIVATE = (IntPtr) 0x0003;
 		public const UINT WM_SYSCOMMAND = 0x0112;
@@ -227,6 +227,9 @@ using WPARAM = UIntPtr; // UINT_PTR
 		public static readonly WPARAM SC_CLOSE = (WPARAM) 0xF060;
 
 		public static readonly WPARAM ICON_SMALL = UIntPtr.Zero;
+
+		public const uint WM_WININICHANGE = 0x001A;
+		public const uint WM_SETTINGCHANGE = WM_WININICHANGE;
 
 		#endregion
 
