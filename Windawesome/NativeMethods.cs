@@ -778,16 +778,9 @@ using WPARAM = UIntPtr; // UINT_PTR
 
 		#endregion
 
-		#region GetLastActivePopup/ShowOwnedPopups
-
-		[DllImport("user32.dll")]
-		public static extern HWND GetLastActivePopup(HWND hWnd);
-
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool ShowOwnedPopups(IntPtr HWND, [MarshalAs(UnmanagedType.Bool)] bool fShow);
-
-		#endregion
+		public static extern bool BringWindowToTop(IntPtr hWnd);
 
 		// icon stuff
 
@@ -1965,6 +1958,8 @@ using WPARAM = UIntPtr; // UINT_PTR
 			SPI_SETACTIVEWINDOWTRACKING = 0x1001,
 			SPI_GETACTIVEWNDTRKZORDER = 0x100C,
 			SPI_SETACTIVEWNDTRKZORDER = 0x100D,
+			SPI_GETFOREGROUNDLOCKTIMEOUT = 0x2000,
+			SPI_SETFOREGROUNDLOCKTIMEOUT = 0x2001
 		}
 
 		[DllImport("user32.dll", CharSet = CharSet.Auto)]
@@ -1978,6 +1973,10 @@ using WPARAM = UIntPtr; // UINT_PTR
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
 		public static extern bool SystemParametersInfo(SPI uiAction, int uiParam, [In, Out, MarshalAs(UnmanagedType.Bool)] ref bool pvParam, SPIF fWinIni);
+
+		[DllImport("user32.dll")]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		public static extern bool SystemParametersInfo(SPI uiAction, int uiParam, [In, Out] IntPtr pvParam, SPIF fWinIni);
 
 		private static readonly int ANIMATIONINFOSize = Marshal.SizeOf(typeof (ANIMATIONINFO));
 

@@ -661,7 +661,19 @@ namespace Windawesome
 						var foregroundWindowThreadId = NativeMethods.GetWindowThreadProcessId(foregroundWindow, IntPtr.Zero);
 						if (NativeMethods.AttachThreadInput(windawesomeThreadId, foregroundWindowThreadId, true))
 						{
+							var targetWindowThreadId = NativeMethods.GetWindowThreadProcessId(hWnd, IntPtr.Zero);
+							var successfullyAttached = NativeMethods.AttachThreadInput(foregroundWindowThreadId, targetWindowThreadId, true);
+
+							var foregroundLockTimeout = IntPtr.Zero;
+							NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_GETFOREGROUNDLOCKTIMEOUT, 0, foregroundLockTimeout, 0);
+							NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_SETFOREGROUNDLOCKTIMEOUT, 0, IntPtr.Zero, 0);
 							successfullyChanged = TrySetForegroundWindow(hWnd);
+							NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_SETFOREGROUNDLOCKTIMEOUT, 0, foregroundLockTimeout, 0);
+
+							if (successfullyAttached)
+							{
+								NativeMethods.AttachThreadInput(foregroundWindowThreadId, targetWindowThreadId, false);
+							}
 							NativeMethods.AttachThreadInput(windawesomeThreadId, foregroundWindowThreadId, false);
 						}
 					}
@@ -674,20 +686,21 @@ namespace Windawesome
 				}
 				else
 				{
-					NativeMethods.SetWindowPos(hWnd, NativeMethods.HWND_TOP, 0, 0, 0, 0, NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
+					NativeMethods.BringWindowToTop(hWnd);
 				}
 			}
 		}
 
 		private static bool TrySetForegroundWindow(IntPtr hWnd)
 		{
-			const int tryCount = 5;
+			const int setForegroundTryCount = 5;
 			var count = 0;
-			while (!NativeMethods.SetForegroundWindow(hWnd) && ++count < tryCount)
+			while (!NativeMethods.SetForegroundWindow(hWnd) && ++count < setForegroundTryCount)
 			{
+				System.Threading.Thread.Sleep(10);
 			}
 
-			if (count == tryCount)
+			if (count == setForegroundTryCount)
 			{
 				System.Threading.Thread.Sleep(50);
 				if (NativeMethods.GetForegroundWindow() != hWnd)
@@ -695,13 +708,22 @@ namespace Windawesome
 					return false;
 				}
 			}
-
-			while (NativeMethods.GetForegroundWindow() != hWnd)
+			else
 			{
-				System.Threading.Thread.Sleep(30);
+				const int getForegroundTryCount = 20;
+				count = 0;
+				while (NativeMethods.GetForegroundWindow() != hWnd && ++count < getForegroundTryCount)
+				{
+					System.Threading.Thread.Sleep(30);
+				}
+
+				if (count == getForegroundTryCount)
+				{
+					return false;
+				}
 			}
 
-			NativeMethods.SetWindowPos(hWnd, NativeMethods.HWND_TOP, 0, 0, 0, 0, NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
+			NativeMethods.BringWindowToTop(hWnd);
 
 			return true;
 		}
