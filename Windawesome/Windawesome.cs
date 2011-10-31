@@ -288,7 +288,7 @@ namespace Windawesome
 			windowMinimizedOrRestoredWinEventHook = NativeMethods.SetWinEventHook(NativeMethods.EVENT.EVENT_SYSTEM_MINIMIZESTART, NativeMethods.EVENT.EVENT_SYSTEM_MINIMIZEEND,
 				IntPtr.Zero, winEventDelegate, 0, 0,
 				NativeMethods.WINEVENT.WINEVENT_OUTOFCONTEXT | NativeMethods.WINEVENT.WINEVENT_SKIPOWNTHREAD);
-			windowFocusedWinEventHook = NativeMethods.SetWinEventHook(NativeMethods.EVENT.EVENT_OBJECT_FOCUS, NativeMethods.EVENT.EVENT_OBJECT_FOCUS,
+			windowFocusedWinEventHook = NativeMethods.SetWinEventHook(NativeMethods.EVENT.EVENT_SYSTEM_FOREGROUND, NativeMethods.EVENT.EVENT_SYSTEM_FOREGROUND,
 				IntPtr.Zero, winEventDelegate, 0, 0,
 				NativeMethods.WINEVENT.WINEVENT_OUTOFCONTEXT | NativeMethods.WINEVENT.WINEVENT_SKIPOWNTHREAD);
 		}
@@ -1581,12 +1581,7 @@ namespace Windawesome
 		private void WinEventDelegate(IntPtr hWinEventHook, NativeMethods.EVENT eventType,
 			IntPtr hWnd, NativeMethods.OBJID idObject, int idChild, uint dwEventThread, uint dwmsEventTime)
 		{
-			if (eventType == NativeMethods.EVENT.EVENT_OBJECT_FOCUS)
-			{
-				// HSHELL_WINDOWACTIVATED/HSHELL_RUDEAPPACTIVATED doesn't work for some windows like Digsby Buddy List
-				OnWindowActivated(NativeMethods.GetForegroundWindow());
-			}
-			else if (idChild == NativeMethods.CHILDID_SELF && idObject == NativeMethods.OBJID.OBJID_WINDOW && hWnd != IntPtr.Zero)
+			if (idChild == NativeMethods.CHILDID_SELF && idObject == NativeMethods.OBJID.OBJID_WINDOW && hWnd != IntPtr.Zero)
 			{
 				switch (eventType)
 				{
@@ -1628,6 +1623,10 @@ namespace Windawesome
 						break;
 					case NativeMethods.EVENT.EVENT_SYSTEM_MINIMIZEEND:
 						CurrentWorkspace.WindowRestored(hWnd);
+						break;
+					// HSHELL_WINDOWACTIVATED/HSHELL_RUDEAPPACTIVATED doesn't work for some windows like Digsby Buddy List
+					case NativeMethods.EVENT.EVENT_SYSTEM_FOREGROUND:
+						OnWindowActivated(NativeMethods.GetForegroundWindow());
 						break;
 				}
 			}
