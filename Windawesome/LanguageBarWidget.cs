@@ -14,14 +14,16 @@ namespace Windawesome
 		private Label label;
 		private bool isLeft;
 		private readonly Color backgroundColor;
+		private readonly Color foregroundColor;
 		private readonly static StringBuilder stringBuilder = new StringBuilder(10);
 
 		private delegate void InputLanguageChangedEventHandler(string language);
 		private static event InputLanguageChangedEventHandler InputLanguageChanged;
 
-		public LanguageBarWidget(Color? backgroundColor = null)
+		public LanguageBarWidget(Color? backgroundColor = null, Color? foregroundColor = null)
 		{
 			this.backgroundColor = backgroundColor ?? Color.White;
+			this.foregroundColor = foregroundColor ?? Color.Black;
 		}
 
 		private static bool OnGlobalShellHookMessage(ref Message m)
@@ -96,6 +98,7 @@ namespace Windawesome
 
 			label = bar.CreateLabel("", 0);
 			label.BackColor = backgroundColor;
+			label.ForeColor = foregroundColor;
 			label.TextAlign = ContentAlignment.MiddleCenter;
 
 			Workspace.WindowActivatedEvent += OnWindowActivatedEvent;

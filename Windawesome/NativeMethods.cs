@@ -915,11 +915,15 @@ using WPARAM = UIntPtr; // UINT_PTR
 
 		#endregion
 
+		#region Keyboard Layout Stuff
+
 		[DllImport("user32.dll")]
 		public static extern IntPtr GetKeyboardLayout(DWORD idThread);
 
 		[DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
 		public static extern int LCIDToLocaleName(uint Locale, [Optional, Out] StringBuilder lpName, int cchName, DWORD dwFlags);
+
+		#endregion
 
 		// process and thread stuff
 

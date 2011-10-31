@@ -16,8 +16,10 @@ namespace Windawesome
 		private readonly string prefix;
 		private readonly string postfix;
 		private readonly Color backgroundColor;
+		private readonly Color foregroundColor;
 
-		public CpuMonitorWidget(string prefix = "CPU:", string postfix = "%", int updateTime = 1000, Color? backgroundColor = null)
+		public CpuMonitorWidget(string prefix = "CPU:", string postfix = "%", int updateTime = 1000,
+			Color? backgroundColor = null, Color? foregroundColor = null)
 		{
 			updateTimer = new Timer { Interval = updateTime };
 			updateTimer.Tick += OnTimerTick;
@@ -26,6 +28,7 @@ namespace Windawesome
 			this.postfix = postfix;
 
 			this.backgroundColor = backgroundColor ?? Color.White;
+			this.foregroundColor = foregroundColor ?? Color.Black;
 
 			counter = new PerformanceCounter("Processor", "% Processor Time", "_Total");
 		}
@@ -57,6 +60,7 @@ namespace Windawesome
 
 			label = bar.CreateLabel(prefix + counter.NextValue().ToString("00") + postfix, 0);
 			label.BackColor = backgroundColor;
+			label.ForeColor = foregroundColor;
 			label.TextAlign = ContentAlignment.MiddleCenter;
 
 			bar.BarShown += () => updateTimer.Start();

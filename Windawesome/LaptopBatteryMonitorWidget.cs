@@ -16,9 +16,11 @@ namespace Windawesome
 		private readonly string prefix;
 		private readonly string postfix;
 		private readonly Color backgroundColor;
+		private readonly Color foregroundColor;
 
 		public LaptopBatteryMonitorWidget(string textForCharging = "C", string textForNotCharging = "B",
-			string prefix = " ", string postfix = "%", int updateTime = 60000, Color? backgroundColor = null)
+			string prefix = " ", string postfix = "%", int updateTime = 60000,
+			Color? backgroundColor = null, Color? foregroundColor = null)
 		{
 			updateTimer = new Timer { Interval = updateTime };
 			updateTimer.Tick += OnTimerTick;
@@ -30,6 +32,7 @@ namespace Windawesome
 			this.postfix = postfix;
 
 			this.backgroundColor = backgroundColor ?? Color.White;
+			this.foregroundColor = foregroundColor ?? Color.Black;
 		}
 
 		private void OnTimerTick(object sender, System.EventArgs e)
@@ -74,6 +77,7 @@ namespace Windawesome
 			label = bar.CreateLabel((powerStatus.PowerLineStatus == PowerLineStatus.Offline ?
 				textForNotCharging : textForCharging) + prefix + (powerStatus.BatteryLifePercent * 100) + postfix, 0);
 			label.BackColor = backgroundColor;
+			label.ForeColor = foregroundColor;
 			label.TextAlign = ContentAlignment.MiddleCenter;
 			switch (powerStatus.BatteryChargeStatus)
 			{
