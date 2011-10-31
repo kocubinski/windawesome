@@ -23,12 +23,14 @@ config.UniqueHotkey = Tuple[MOD, Keys](MOD.MOD_ALT, Keys.D0)
 config.Bars = Enumerable.ToArray[Bar]([
 	Bar(windawesome.monitors[0],
 		[WorkspacesWidget(), LayoutWidget(onClick = onLayoutLabelClick)],
-		[SystemTrayWidget(), LanguageBarWidget(), DateTimeWidget("ddd, d-MMM"), DateTimeWidget("h:mm tt", Color.FromArgb(0xA8, 0xA8, 0xA8))],
+		[SystemTrayWidget(), LanguageBarWidget(Color.FromArgb(0x99, 0xB4, 0xD1)),
+			DateTimeWidget("ddd, d-MMM"), DateTimeWidget("h:mm tt", Color.FromArgb(0xA8, 0xA8, 0xA8))],
 		[ApplicationTabsWidget()]
 	),
 	Bar(windawesome.monitors[0],
 		[WorkspacesWidget(), LayoutWidget(onClick = onLayoutLabelClick)],
-		[SystemTrayWidget(True), LanguageBarWidget(), DateTimeWidget("ddd, d-MMM"), DateTimeWidget("h:mm tt", Color.FromArgb(0xA8, 0xA8, 0xA8))],
+		[SystemTrayWidget(True), LanguageBarWidget(Color.FromArgb(0x99, 0xB4, 0xD1)),
+			DateTimeWidget("ddd, d-MMM"), DateTimeWidget("h:mm tt", Color.FromArgb(0xA8, 0xA8, 0xA8))],
 		[ApplicationTabsWidget()]
 	)
  ])
