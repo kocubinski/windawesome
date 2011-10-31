@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WindowSubclassingCSharp", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShortcutsManager", "ShortcutsManager\ShortcutsManager.csproj", "{F708858D-F410-437B-997E-1373E44C5DA4}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GlobalShellHook", "GlobalShellHook\GlobalShellHook.vcxproj", "{A16BB20E-4E10-4C13-9BF4-F945FCE4E87C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -109,6 +111,18 @@ Global
 		{F708858D-F410-437B-997E-1373E44C5DA4}.Release|x64.Build.0 = Release|x64
 		{F708858D-F410-437B-997E-1373E44C5DA4}.Release|x86.ActiveCfg = Release|x86
 		{F708858D-F410-437B-997E-1373E44C5DA4}.Release|x86.Build.0 = Release|x86
+		{A16BB20E-4E10-4C13-9BF4-F945FCE4E87C}.Debug|x64.ActiveCfg = Debug|x64
+		{A16BB20E-4E10-4C13-9BF4-F945FCE4E87C}.Debug|x64.Build.0 = Debug|x64
+		{A16BB20E-4E10-4C13-9BF4-F945FCE4E87C}.Debug|x86.ActiveCfg = Debug|Win32
+		{A16BB20E-4E10-4C13-9BF4-F945FCE4E87C}.Debug|x86.Build.0 = Debug|Win32
+		{A16BB20E-4E10-4C13-9BF4-F945FCE4E87C}.Release Profiling|x64.ActiveCfg = Release|x64
+		{A16BB20E-4E10-4C13-9BF4-F945FCE4E87C}.Release Profiling|x64.Build.0 = Release|x64
+		{A16BB20E-4E10-4C13-9BF4-F945FCE4E87C}.Release Profiling|x86.ActiveCfg = Release|Win32
+		{A16BB20E-4E10-4C13-9BF4-F945FCE4E87C}.Release Profiling|x86.Build.0 = Release|Win32
+		{A16BB20E-4E10-4C13-9BF4-F945FCE4E87C}.Release|x64.ActiveCfg = Release|x64
+		{A16BB20E-4E10-4C13-9BF4-F945FCE4E87C}.Release|x64.Build.0 = Release|x64
+		{A16BB20E-4E10-4C13-9BF4-F945FCE4E87C}.Release|x86.ActiveCfg = Release|Win32
+		{A16BB20E-4E10-4C13-9BF4-F945FCE4E87C}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

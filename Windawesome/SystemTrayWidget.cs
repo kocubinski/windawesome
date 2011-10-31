@@ -297,21 +297,21 @@ namespace Windawesome
 
 		void IWidget.StaticInitializeWidget(Windawesome windawesome)
 		{
-			if (Windawesome.isAtLeastVista && Windawesome.isRunningElevated)
-			{
-				if (Windawesome.isAtLeast7)
-				{
-					NativeMethods.ChangeWindowMessageFilterEx(windawesome.Handle, NativeMethods.WM_COPYDATA, NativeMethods.MSGFLTEx.MSGFLT_ALLOW, IntPtr.Zero);
-				}
-				else
-				{
-					NativeMethods.ChangeWindowMessageFilter(NativeMethods.WM_COPYDATA, NativeMethods.MSGFLT.MSGFLT_ADD);
-				}
-			}
-
 			// system tray hook
 			if (NativeMethods.RegisterSystemTrayHook(windawesome.Handle))
 			{
+				if (Windawesome.isAtLeastVista && Windawesome.isRunningElevated)
+				{
+					if (Windawesome.isAtLeast7)
+					{
+						NativeMethods.ChangeWindowMessageFilterEx(windawesome.Handle, NativeMethods.WM_COPYDATA, NativeMethods.MSGFLTEx.MSGFLT_ALLOW, IntPtr.Zero);
+					}
+					else
+					{
+						NativeMethods.ChangeWindowMessageFilter(NativeMethods.WM_COPYDATA, NativeMethods.MSGFLT.MSGFLT_ADD);
+					}
+				}
+
 				windawesome.RegisterMessage(NativeMethods.WM_COPYDATA, OnSystemTrayMessage);
 			}
 		}

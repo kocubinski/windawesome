@@ -44,7 +44,9 @@ namespace Windawesome
 									"64-bit OS: " + Environment.Is64BitOperatingSystem,
 									"64-bit process: " + Environment.Is64BitProcess,
 									"Elevated: " + Windawesome.isRunningElevated,
-									e.ToString()
+									e.ToString(),
+									"Inner Exception:",
+									e.InnerException != null ? e.InnerException.ToString() : "none"
 								}));
 
 						if (windawesome != null)

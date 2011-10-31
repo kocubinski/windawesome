@@ -8,32 +8,42 @@
 #pragma comment(linker, "/SECTION:.shared,RWS")
 
 HWND applicationHandle = NULL;
-UINT MESSAGE_ARA = 0;
+UINT globalShellHookMessage = 0;
 
 #pragma data_seg()
 
-HINSTANCE hInstance;
-HHOOK hook;
+HINSTANCE hInstance = NULL;
+static HHOOK hook = NULL;
 
 static LRESULT CALLBACK ShellHookProc(int code, WPARAM wParam, LPARAM lParam);
 
-void RegisterGlobalShellHook(HWND handle)
+BOOL RegisterGlobalShellHook(HWND hWnd)
 {
-	MESSAGE_ARA = RegisterWindowMessage(TEXT("MESSAGE_ARA"));
+	applicationHandle = hWnd;
+
+	globalShellHookMessage = RegisterWindowMessage(TEXT("GLOBAL_SHELL_HOOK"));
+
 	hook = SetWindowsHookEx(WH_SHELL, (HOOKPROC) ShellHookProc, hInstance, 0);
-	applicationHandle = handle;
+	return hook != NULL;
 }
 
-void UnregisterGlobalShellHook()
+BOOL UnregisterGlobalShellHook()
 {
-	UnhookWindowsHookEx(hook);
+	if (hook != NULL)
+	{
+		return UnhookWindowsHookEx(hook);
+	}
+	else
+	{
+		return TRUE;
+	}
 }
 
 static LRESULT CALLBACK ShellHookProc(int code, WPARAM wParam, LPARAM lParam)
 {
-	if (code >= 0)
+	if (code == HSHELL_LANGUAGE)
 	{
-		PostMessage(applicationHandle, MESSAGE_ARA, wParam, code);
+		PostMessage(applicationHandle, globalShellHookMessage, wParam, lParam);
 
 		return 0;
 	}

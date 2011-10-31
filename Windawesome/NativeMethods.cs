@@ -46,6 +46,8 @@ using WPARAM = UIntPtr; // UINT_PTR
 				RunApplicationNonElevated = RunApplicationNonElevated64;
 				RegisterSystemTrayHook = RegisterSystemTrayHook64;
 				UnregisterSystemTrayHook = UnregisterSystemTrayHook64;
+				RegisterGlobalShellHook = RegisterGlobalShellHook64;
+				UnregisterGlobalShellHook = UnregisterGlobalShellHook64;
 			}
 			else
 			{
@@ -60,11 +62,15 @@ using WPARAM = UIntPtr; // UINT_PTR
 				{
 					RegisterSystemTrayHook = _ => false;
 					UnregisterSystemTrayHook = () => true;
+					RegisterGlobalShellHook = _ => false;
+					UnregisterGlobalShellHook = () => true;
 				}
 				else
 				{
 					RegisterSystemTrayHook = RegisterSystemTrayHook32;
 					UnregisterSystemTrayHook = UnregisterSystemTrayHook32;
+					RegisterGlobalShellHook = RegisterGlobalShellHook32;
+					UnregisterGlobalShellHook = UnregisterGlobalShellHook32;
 				}
 			}
 
@@ -909,6 +915,12 @@ using WPARAM = UIntPtr; // UINT_PTR
 
 		#endregion
 
+		[DllImport("user32.dll")]
+		public static extern IntPtr GetKeyboardLayout(DWORD idThread);
+
+		[DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
+		public static extern int LCIDToLocaleName(uint Locale, [Optional, Out] StringBuilder lpName, int cchName, DWORD dwFlags);
+
 		// process and thread stuff
 
 		#region Is64BitProcess
@@ -1278,6 +1290,12 @@ using WPARAM = UIntPtr; // UINT_PTR
 		public delegate bool UnregisterSystemTrayHookDelegate();
 		public static readonly UnregisterSystemTrayHookDelegate UnregisterSystemTrayHook;
 
+		public delegate bool RegisterGlobalShellHookDelegate(IntPtr hwnd);
+		public static readonly RegisterGlobalShellHookDelegate RegisterGlobalShellHook;
+
+		public delegate bool UnregisterGlobalShellHookDelegate();
+		public static readonly UnregisterGlobalShellHookDelegate UnregisterGlobalShellHook;
+
 		[DllImport("Helpers32.dll", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Unicode, EntryPoint = "RunApplicationNonElevated")]
 		private static extern void RunApplicationNonElevated32([MarshalAs(UnmanagedType.LPWStr)] string path, [MarshalAs(UnmanagedType.LPWStr)] string arguments);
 
@@ -1315,6 +1333,22 @@ using WPARAM = UIntPtr; // UINT_PTR
 		[DllImport("SystemTrayHook64.dll", CallingConvention = CallingConvention.Cdecl, EntryPoint = "UnregisterSystemTrayHook")]
 		[return: MarshalAs(UnmanagedType.Bool)]
 		private static extern bool UnregisterSystemTrayHook64();
+
+		[DllImport("GlobalShellHook32.dll", CallingConvention = CallingConvention.Cdecl, EntryPoint = "RegisterGlobalShellHook")]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		private static extern bool RegisterGlobalShellHook32(IntPtr hwnd);
+
+		[DllImport("GlobalShellHook64.dll", CallingConvention = CallingConvention.Cdecl, EntryPoint = "RegisterGlobalShellHook")]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		private static extern bool RegisterGlobalShellHook64(IntPtr hwnd);
+
+		[DllImport("GlobalShellHook32.dll", CallingConvention = CallingConvention.Cdecl, EntryPoint = "UnregisterGlobalShellHook")]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		private static extern bool UnregisterGlobalShellHook32();
+
+		[DllImport("GlobalShellHook64.dll", CallingConvention = CallingConvention.Cdecl, EntryPoint = "UnregisterGlobalShellHook")]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		private static extern bool UnregisterGlobalShellHook64();
 
 		#endregion
 
@@ -1976,9 +2010,9 @@ using WPARAM = UIntPtr; // UINT_PTR
 
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool SystemParametersInfo(SPI uiAction, int uiParam, [In, Out] IntPtr pvParam, SPIF fWinIni);
+		public static extern bool SystemParametersInfo(SPI uiAction, int uiParam, [In, Out] ref uint pvParam, SPIF fWinIni);
 
-		private static readonly int ANIMATIONINFOSize = Marshal.SizeOf(typeof (ANIMATIONINFO));
+		private static readonly int ANIMATIONINFOSize = Marshal.SizeOf(typeof(ANIMATIONINFO));
 
 		[StructLayout(LayoutKind.Sequential)]
 		public struct ANIMATIONINFO

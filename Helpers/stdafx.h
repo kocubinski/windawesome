@@ -9,7 +9,6 @@
 
 // Windows Header Files:
 #include <windows.h>
-#include <Exdisp.h>
 #include <Shobjidl.h>
 #include <Shlwapi.h>
 #include <Shlguid.h>

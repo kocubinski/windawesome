@@ -1,7 +1,7 @@
 from System.Drawing import Font, Color
 from System.Linq import Enumerable
 from Windawesome import ILayout, TileLayout, FullScreenLayout, FloatingLayout, IPlugin, Workspace
-from Windawesome import Bar, LayoutWidget, WorkspacesWidget, ApplicationTabsWidget, SystemTrayWidget, CpuMonitorWidget, LaptopBatteryMonitorWidget
+from Windawesome import Bar, LayoutWidget, WorkspacesWidget, ApplicationTabsWidget, SystemTrayWidget, CpuMonitorWidget, LaptopBatteryMonitorWidget, LanguageBarWidget
 from Windawesome import LoggerPlugin, ShortcutsManager
 from Windawesome.NativeMethods import MOD
 from System import Tuple
@@ -23,12 +23,12 @@ config.UniqueHotkey = Tuple[MOD, Keys](MOD.MOD_ALT, Keys.D0)
 config.Bars = Enumerable.ToArray[Bar]([
 	Bar(windawesome.monitors[0],
 		[WorkspacesWidget(), LayoutWidget(onClick = onLayoutLabelClick)],
-		[SystemTrayWidget(), DateTimeWidget("ddd, d-MMM"), DateTimeWidget("h:mm tt", Color.FromArgb(0xA8, 0xA8, 0xA8))],
+		[SystemTrayWidget(), LanguageBarWidget(), DateTimeWidget("ddd, d-MMM"), DateTimeWidget("h:mm tt", Color.FromArgb(0xA8, 0xA8, 0xA8))],
 		[ApplicationTabsWidget()]
 	),
 	Bar(windawesome.monitors[0],
 		[WorkspacesWidget(), LayoutWidget(onClick = onLayoutLabelClick)],
-		[SystemTrayWidget(True), DateTimeWidget("ddd, d-MMM"), DateTimeWidget("h:mm tt", Color.FromArgb(0xA8, 0xA8, 0xA8))],
+		[SystemTrayWidget(True), LanguageBarWidget(), DateTimeWidget("ddd, d-MMM"), DateTimeWidget("h:mm tt", Color.FromArgb(0xA8, 0xA8, 0xA8))],
 		[ApplicationTabsWidget()]
 	)
  ])
