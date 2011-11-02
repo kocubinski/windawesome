@@ -122,10 +122,14 @@ namespace Windawesome
 
 		private IntPtr PositionAreaWindows(IntPtr winPosInfo, Rectangle workingArea, bool master)
 		{
-			var count = master ? masterAreaWindowsCount : windows.Count() - masterAreaWindowsCount;
+			var count = master ?
+				Math.Min(masterAreaWindowsCount, windows.Count()) :
+				Math.Max(windows.Count() - masterAreaWindowsCount, 0);
 			if (count > 0)
 			{
-				var otherWindowsCount = master ? windows.Count() - masterAreaWindowsCount : masterAreaWindowsCount;
+				var otherWindowsCount = master ?
+					Math.Max(windows.Count() - masterAreaWindowsCount, 0) :
+					Math.Min(masterAreaWindowsCount, windows.Count());
 				var factor = otherWindowsCount == 0 ? 1 : (master ? masterAreaFactor : 1 - masterAreaFactor);
 				var axis = master ? masterAreaAxis : stackAreaAxis;
 

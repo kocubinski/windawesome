@@ -39,7 +39,7 @@ config.Workspaces = Enumerable.ToArray[Workspace]([
 	Workspace(windawesome.monitors[0], FloatingLayout(), [config.Bars[1]], name = 'main'),
 	Workspace(windawesome.monitors[0], FullScreenLayout(), [config.Bars[0]], name = 'web'),
 	Workspace(windawesome.monitors[0], FullScreenLayout(), [config.Bars[0]]),
-	Workspace(windawesome.monitors[0], TileLayout(), [config.Bars[0]], name = 'chat'),
+	Workspace(windawesome.monitors[0], TileLayout(masterAreaAxis = TileLayout.LayoutAxis.TopToBottom, masterAreaWindowsCount = 2), [config.Bars[0]], name = 'chat'),
 	Workspace(windawesome.monitors[0], FullScreenLayout(), [config.Bars[0]]),
 	Workspace(windawesome.monitors[0], FullScreenLayout(), [config.Bars[0]]),
 	Workspace(windawesome.monitors[0], FullScreenLayout(), [config.Bars[0]]),
