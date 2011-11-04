@@ -97,6 +97,19 @@ config.ProgramRules = [
 		rules = [ProgramRule.Rule(workspace = 1, isFloating = True)]
 	),
 	ProgramRule(
+		className = "^Miranda$",
+		displayName = "^Miranda IM$",
+		processName = "^miranda64$",
+		onWindowCreatedAction = OnWindowShownAction.TemporarilyShowWindowOnCurrentWorkspace,
+		rules = [ProgramRule.Rule(workspace = 4, isFloating = True)]
+	),
+	ProgramRule(
+		displayName = ": Message Session$",
+		processName = "^miranda64$",
+		onWindowCreatedAction = OnWindowShownAction.HideWindow,
+		rules = [ProgramRule.Rule(workspace = 4, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
+	),
+	ProgramRule(
 		className = "^wxWindowClassNR$", # digsby Buddy List
 		displayName = "^Buddy List$",
 		processName = "^digsby-app$",
