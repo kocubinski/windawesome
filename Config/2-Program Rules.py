@@ -168,6 +168,9 @@ config.ProgramRules = [
 		isManaged = False
 	),
 	ProgramRule(
+		className = "^\$\$\$Secure UAP Dummy Window Class For Interim Dialog$"
+	),
+	ProgramRule(
 		className = "^#32770$", # all dialogs
 		rules = [ProgramRule.Rule(isFloating = True)] # should be floating
 	),
