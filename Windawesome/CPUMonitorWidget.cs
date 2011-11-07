@@ -5,7 +5,7 @@ using System.Windows.Forms;
 
 namespace Windawesome
 {
-	public class CpuMonitorWidget : IFixedWidthWidget
+	public sealed class CpuMonitorWidget : IFixedWidthWidget
 	{
 		private Bar bar;
 

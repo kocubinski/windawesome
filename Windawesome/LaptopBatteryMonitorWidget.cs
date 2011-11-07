@@ -4,7 +4,7 @@ using System.Windows.Forms;
 
 namespace Windawesome
 {
-	public class LaptopBatteryMonitorWidget : IFixedWidthWidget
+	public sealed class LaptopBatteryMonitorWidget : IFixedWidthWidget
 	{
 		private Bar bar;
 

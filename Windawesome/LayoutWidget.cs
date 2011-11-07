@@ -5,7 +5,7 @@ using System.Windows.Forms;
 
 namespace Windawesome
 {
-	public class LayoutWidget : IFixedWidthWidget
+	public sealed class LayoutWidget : IFixedWidthWidget
 	{
 		private Label layoutLabel;
 		private readonly Color backgroundColor;

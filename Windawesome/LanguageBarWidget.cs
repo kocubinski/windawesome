@@ -6,7 +6,7 @@ using System.Windows.Forms;
 
 namespace Windawesome
 {
-	public class LanguageBarWidget : IFixedWidthWidget
+	public sealed class LanguageBarWidget : IFixedWidthWidget
 	{
 		private uint globalShellHookMessage;
 		private Bar bar;

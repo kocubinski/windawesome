@@ -6,7 +6,7 @@ using System.Windows.Forms;
 
 namespace Windawesome
 {
-	public class WorkspacesWidget : IFixedWidthWidget
+	public sealed class WorkspacesWidget : IFixedWidthWidget
 	{
 		private Label[] workspaceLabels;
 		private readonly Color[] normalForegroundColor;

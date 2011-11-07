@@ -1,7 +1,7 @@
 ﻿
 namespace Windawesome
 {
-	public class FullScreenLayout : ILayout
+	public sealed class FullScreenLayout : ILayout
 	{
 		private Workspace workspace;
 

@@ -6,7 +6,7 @@ using System.Windows.Forms;
 
 namespace Windawesome
 {
-	public class ApplicationTabsWidget : ISpanWidget
+	public sealed class ApplicationTabsWidget : ISpanWidget
 	{
 		private static Windawesome windawesome;
 

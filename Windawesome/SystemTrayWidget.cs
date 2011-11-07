@@ -8,7 +8,7 @@ using System.Windows.Forms;
 
 namespace Windawesome
 {
-	public class SystemTrayWidget : IFixedWidthWidget
+	public sealed class SystemTrayWidget : IFixedWidthWidget
 	{
 		private readonly Dictionary<Tuple<int, uint>, Tuple<SystemTray.TrayIcon, PictureBox, ToolTip>> icons; // (hWnd, uID) -> (TrayIcon, PictureBox, ToolTip)
 

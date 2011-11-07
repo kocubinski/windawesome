@@ -3,7 +3,7 @@ using System.IO;
 
 namespace Windawesome
 {
-	public class LoggerPlugin : IPlugin
+	public sealed class LoggerPlugin : IPlugin
 	{
 		private readonly bool logRuleMatching;
 		private readonly bool logCreation;

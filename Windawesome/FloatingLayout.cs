@@ -1,7 +1,7 @@
 ﻿
 namespace Windawesome
 {
-	public class FloatingLayout : ILayout
+	public sealed class FloatingLayout : ILayout
 	{
 		#region ILayout Members
 

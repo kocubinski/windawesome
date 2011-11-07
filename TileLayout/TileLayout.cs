@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace Windawesome
 {
-	public class TileLayout : ILayout
+	public sealed class TileLayout : ILayout
 	{
 		public enum LayoutAxis
 		{
