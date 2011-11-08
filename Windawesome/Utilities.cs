@@ -63,6 +63,11 @@ namespace Windawesome
 			return RemoveResult.NotFound;
 		}
 
+		public RemoveResult RemoveAll(T item)
+		{
+			return set.Remove(item) ? RemoveResult.RemovedLast : RemoveResult.NotFound;
+		}
+
 		public bool Contains(T item)
 		{
 			return set.ContainsKey(item);

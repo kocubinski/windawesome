@@ -1609,6 +1609,7 @@ namespace Windawesome
 					// differentiating between hiding and destroying a window is nice - therefore HSHELL_WINDOWDESTROYED is not enough
 					case NativeMethods.EVENT.EVENT_OBJECT_DESTROY:
 						RemoveApplicationFromAllWorkspaces(hWnd, true);
+						hiddenApplications.RemoveAll(hWnd);
 						break;
 					case NativeMethods.EVENT.EVENT_OBJECT_HIDE:
 						if (hiddenApplications.Remove(hWnd) == HashMultiSet<IntPtr>.RemoveResult.NotFound)
@@ -1625,6 +1626,7 @@ namespace Windawesome
 						CurrentWorkspace.WindowRestored(hWnd);
 						break;
 					// HSHELL_WINDOWACTIVATED/HSHELL_RUDEAPPACTIVATED doesn't work for some windows like Digsby Buddy List
+					// EVENT_OBJECT_FOCUS doesn't work with Firefox on the other hand
 					case NativeMethods.EVENT.EVENT_SYSTEM_FOREGROUND:
 						OnWindowActivated(NativeMethods.GetForegroundWindow());
 						break;
