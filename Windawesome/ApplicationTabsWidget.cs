@@ -152,13 +152,27 @@ namespace Windawesome
 					First(tuple => tuple.Item2 == (((Control) sender).Parent as Panel)).Item1);
 		}
 
-		private void OnWindowTitleOrIconChanged(Workspace workspace, Window window, string newText)
+		private void OnWindowTitleOrIconChanged(Workspace workspace, Window window, string newText, Bitmap newIcon)
 		{
-			Tuple<IntPtr, Panel> tuple;
-			var applications = applicationPanels[workspace.id - 1];
-			if (workspace.Monitor == bar.Monitor && (tuple = applications.FirstOrDefault(t => t.Item1 == window.hWnd)) != null)
+			if (newText != null) // text changed
 			{
-				tuple.Item2.Controls[1].Text = newText;
+				Tuple<IntPtr, Panel> tuple;
+				var applications = applicationPanels[workspace.id - 1];
+				if (workspace.Monitor == bar.Monitor &&
+					(tuple = applications.FirstOrDefault(t => t.Item1 == window.hWnd)) != null)
+				{
+					tuple.Item2.Controls[1].Text = newText;
+				}
+			}
+			else // icon changed
+			{
+				Tuple<IntPtr, Panel> tuple;
+				var applications = applicationPanels[workspace.id - 1];
+				if (workspace.Monitor == bar.Monitor &&
+					(tuple = applications.FirstOrDefault(t => t.Item1 == window.hWnd)) != null)
+				{
+					((PictureBox) tuple.Item2.Controls[0]).Image = newIcon;
+				}
 			}
 		}
 

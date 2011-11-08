@@ -54,7 +54,7 @@ namespace Windawesome
 
 		#region Events
 
-		public delegate void WindowTitleOrIconChangedEventHandler(Workspace workspace, Window window, string newText);
+		public delegate void WindowTitleOrIconChangedEventHandler(Workspace workspace, Window window, string newText, Bitmap newIcon);
 		public static event WindowTitleOrIconChangedEventHandler WindowTitleOrIconChanged;
 
 		public delegate void WindowFlashingEventHandler(LinkedList<Tuple<Workspace, Window>> list);
@@ -66,11 +66,11 @@ namespace Windawesome
 		public delegate void WindawesomeExitingEventHandler();
 		public static event WindawesomeExitingEventHandler WindawesomeExiting;
 
-		private static void DoWindowTitleOrIconChanged(Workspace workspace, Window window, string newText)
+		private static void DoWindowTitleOrIconChanged(Workspace workspace, Window window, string newText, Bitmap newIcon)
 		{
 			if (WindowTitleOrIconChanged != null)
 			{
-				WindowTitleOrIconChanged(workspace, window, newText);
+				WindowTitleOrIconChanged(workspace, window, newText, newIcon);
 			}
 		}
 
@@ -1706,10 +1706,18 @@ namespace Windawesome
 						if (applications.TryGetValue(m.LParam, out list))
 						{
 							var text = NativeMethods.GetText(m.LParam);
-							foreach (var t in list)
+							if (text != list.First.Value.Item2.DisplayName)
 							{
-								t.Item2.DisplayName = text;
-								DoWindowTitleOrIconChanged(t.Item1, t.Item2, text);
+								foreach (var t in list)
+								{
+									t.Item2.DisplayName = text;
+									DoWindowTitleOrIconChanged(t.Item1, t.Item2, text, null);
+								}
+							}
+							else
+							{
+								GetWindowSmallIconAsBitmap(list.First.Value.Item2.hWnd, bitmap =>
+									list.ForEach(t => DoWindowTitleOrIconChanged(t.Item1, t.Item2, null, bitmap)));
 							}
 						}
 						break;
