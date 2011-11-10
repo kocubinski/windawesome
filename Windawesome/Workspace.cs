@@ -45,7 +45,7 @@ namespace Windawesome
 		internal int sharedWindowsCount;
 		internal int ownedWindowsCount;
 		internal readonly LinkedList<Window> windowsZOrder; // all windows, sorted in Z-order, topmost window first
-		private readonly LinkedList<Window> windows; // non-minimized and non-floating windows, sorted in tab-order, topmost window first
+		private readonly LinkedList<Window> windows; // all windows, sorted in tab-order, topmost window first
 
 		private bool hasChanges;
 
