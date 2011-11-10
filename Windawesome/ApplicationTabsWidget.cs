@@ -92,10 +92,10 @@ namespace Windawesome
 			if (isShown && (!showSingleApplicationTab || bar.Monitor.CurrentVisibleWorkspace.IsCurrentWorkspace))
 			{
 				Panel panel = null;
-				var workspaceId = bar.Monitor.CurrentVisibleWorkspace.id - 1;
-				var applications = applicationPanels[workspaceId];
+				var applications = applicationPanels[bar.Monitor.CurrentVisibleWorkspace.id - 1];
 
-				if ((hWnd = Windawesome.DoForSelfAndOwnersWhile(hWnd, h => applications.All(t => t.Item1 != h))) != IntPtr.Zero)
+				if (applications.Count > 0 &&
+					(hWnd = Windawesome.DoForSelfAndOwnersWhile(hWnd, h => applications.All(t => t.Item1 != h))) != IntPtr.Zero)
 				{
 					panel = applications.First(t => t.Item1 == hWnd).Item2;
 					if (panel == currentlyHighlightedPanel)
