@@ -87,6 +87,9 @@ namespace Windawesome
 			menu = window.menu;
 			this.hideFromAltTabAndTaskbarWhenOnInactiveWorkspace = window.hideFromAltTabAndTaskbarWhenOnInactiveWorkspace;
 
+			this.originalStyle = window.originalStyle;
+			this.originalExStyle = window.originalExStyle;
+
 			windowPlacement = window.windowPlacement;
 			originalWindowPlacement = window.originalWindowPlacement;
 
