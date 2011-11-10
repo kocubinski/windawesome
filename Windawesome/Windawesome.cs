@@ -248,7 +248,7 @@ namespace Windawesome
 			{
 				OutputWarning("There was a problem registering the unique hotkey! Probably this key-combination is in " +
 					"use by some other program! Please use a unique one, otherwise Windawesome will sometimes have a problem " +
-					" switching to windows as you change workspaces!");
+					"switching to windows as you change workspaces!");
 			}
 
 			// initialize all workspaces and hide windows not on StartingWorkspaces
@@ -858,13 +858,14 @@ namespace Windawesome
 		{
 			if (NativeMethods.IsWindowVisible(window.hWnd))
 			{
-				hiddenApplications.Add(window.hWnd);
 				if (async)
 				{
+					hiddenApplications.Add(window.hWnd);
 					window.HideAsync();
 				}
 				else if (WindowIsNotHung(window))
 				{
+					hiddenApplications.Add(window.hWnd);
 					window.Hide();
 				}
 			}
