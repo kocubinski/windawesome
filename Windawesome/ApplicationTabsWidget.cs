@@ -178,7 +178,7 @@ namespace Windawesome
 
 		private void OnWorkspaceWindowAdded(Workspace workspace, Window window)
 		{
-			if (workspace.Monitor == bar.Monitor)
+			if (WorkspaceContainsBarOnCurrentMonitor(workspace, bar))
 			{
 				var workspaceId = workspace.id - 1;
 				var newPanel = CreatePanel(window);
@@ -227,7 +227,7 @@ namespace Windawesome
 
 		private void OnWorkspaceWindowOrderChanged(Workspace workspace, Window window, int positions, bool backwards)
 		{
-			if (bar.Monitor == workspace.Monitor)
+			if (WorkspaceContainsBarOnCurrentMonitor(workspace, bar))
 			{
 				var applications = applicationPanels[workspace.id - 1];
 				for (var node = applications.First; node != null; node = node.Next)
@@ -265,7 +265,7 @@ namespace Windawesome
 
 		private void OnWorkspaceShown(Workspace workspace)
 		{
-			if (isShown && workspace.Monitor == bar.Monitor)
+			if (WorkspaceContainsBarOnCurrentMonitor(workspace, bar))
 			{
 				var workspaceId = workspace.id - 1;
 				if (applicationPanels[workspaceId].Count > 0)
@@ -285,7 +285,7 @@ namespace Windawesome
 
 		private void OnWorkspaceHidden(Workspace workspace)
 		{
-			if (isShown && workspace.Monitor == bar.Monitor)
+			if (WorkspaceContainsBarOnCurrentMonitor(workspace, bar))
 			{
 				var workspaceId = workspace.id - 1;
 				if (applicationPanels[workspaceId].Count > 0)
@@ -304,7 +304,7 @@ namespace Windawesome
 
 		private void ActivateTopmost(Workspace workspace)
 		{
-			if (workspace.Monitor == bar.Monitor)
+			if (bar.Monitor.CurrentVisibleWorkspace.IsCurrentWorkspace)
 			{
 				var topmost = workspace.GetTopmostZOrderWindow();
 				if (topmost != null)
@@ -324,6 +324,11 @@ namespace Windawesome
 		{
 			windawesome.monitors.ForEach(m => OnWorkspaceHidden(m.CurrentVisibleWorkspace));
 			isShown = false;
+		}
+
+		private static bool WorkspaceContainsBarOnCurrentMonitor(Workspace workspace, IBar bar)
+		{
+			return workspace.BarsForCurrentMonitor.Contains(bar);
 		}
 
 		#region IWidget Members

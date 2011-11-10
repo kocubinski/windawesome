@@ -277,8 +277,8 @@ namespace Windawesome
 
 		void IWidget.Refresh()
 		{
-			// remove all flashing windows that no longer exist
-			flashingWindows.Keys.Unless(NativeMethods.IsWindow).ForEach(StopFlashingApplication);
+			// remove all flashing windows
+			flashingWindows.Keys.ForEach(StopFlashingApplication);
 		}
 
 		#endregion
