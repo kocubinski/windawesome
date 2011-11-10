@@ -1404,7 +1404,7 @@ namespace Windawesome
 			if (!SwitchToApplicationInCurrentWorkspace(hWnd))
 			{
 				LinkedList<Tuple<Workspace, Window>> list;
-				if (applications.TryGetValue(hWnd, out list))
+				if (ApplicationsTryGetValue(hWnd, out list))
 				{
 					SwitchToWorkspace(list.First.Value.Item1.id, false);
 					SwitchToApplicationInCurrentWorkspace(hWnd);
