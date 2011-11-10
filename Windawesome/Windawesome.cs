@@ -437,10 +437,9 @@ namespace Windawesome
 			if (ApplicationsTryGetValue(hWnd, out workspacesWindowsList))
 			{
 				if (workspacesWindowsList.First.Value.Item2.IsMatchOwnedWindow(hWnd) &&
-					workspacesWindowsList.First.Value.Item2.ownedWindows.FindLast(hWnd) == null)
+					workspacesWindowsList.First.Value.Item2.OwnedWindows.FindLast(hWnd) == null)
 				{
-					workspacesWindowsList.First.Value.Item2.ownedWindows.AddLast(hWnd);
-					workspacesWindowsList.ForEach(t => t.Item1.ownedWindowsCount++);
+					workspacesWindowsList.First.Value.Item2.OwnedWindows.AddLast(hWnd);
 					return true;
 				}
 				return false;
@@ -641,7 +640,7 @@ namespace Windawesome
 
 		private void ForceForegroundWindow(Window window)
 		{
-			ForceForegroundWindow(window.ownedWindows.Last.Value);
+			ForceForegroundWindow(window.OwnedWindows.Last.Value);
 		}
 
 		private void ForceForegroundWindow(IntPtr hWnd)
@@ -873,12 +872,12 @@ namespace Windawesome
 
 		private void ShowHideWindows(Workspace oldWorkspace, Workspace newWorkspace, bool setForeground)
 		{
-			var winPosInfo = NativeMethods.BeginDeferWindowPos(newWorkspace.GetWindowsCount() + newWorkspace.ownedWindowsCount + oldWorkspace.GetWindowsCount() + oldWorkspace.ownedWindowsCount);
+			var winPosInfo = NativeMethods.BeginDeferWindowPos(newWorkspace.GetWindowsCount() + oldWorkspace.GetWindowsCount());
 
 			var showWindows = newWorkspace.windowsZOrder;
 			foreach (var window in showWindows)
 			{
-				winPosInfo = window.ownedWindows.Where(WindowIsNotHung).Aggregate(winPosInfo, (current, hWnd) =>
+				winPosInfo = window.OwnedWindows.Where(WindowIsNotHung).Aggregate(winPosInfo, (current, hWnd) =>
 					NativeMethods.DeferWindowPos(current, hWnd, IntPtr.Zero, 0, 0, 0, 0,
 						NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE |
 						NativeMethods.SWP.SWP_NOSIZE | NativeMethods.SWP.SWP_NOZORDER |
@@ -892,7 +891,7 @@ namespace Windawesome
 			var hideWindows = oldWorkspace.sharedWindowsCount > 0 && newWorkspace.sharedWindowsCount > 0 ?
 				oldWorkspace.windowsZOrder.Except(showWindows) : oldWorkspace.windowsZOrder;
 			// if the window is not visible we shouldn't add it to hiddenApplications as EVENT_OBJECT_HIDE won't be sent
-			foreach (var hWnd in hideWindows.SelectMany(w => w.ownedWindows).Where(h => NativeMethods.IsWindowVisible(h) && WindowIsNotHung(h)))
+			foreach (var hWnd in hideWindows.SelectMany(w => w.OwnedWindows).Where(h => NativeMethods.IsWindowVisible(h) && WindowIsNotHung(h)))
 			{
 				this.hiddenApplications.Add(hWnd);
 				winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, hWnd, IntPtr.Zero, 0, 0, 0, 0,
@@ -1131,7 +1130,7 @@ namespace Windawesome
 		public void RemoveApplicationFromAllWorkspaces(IntPtr hWnd, bool windowHidden) // sort of UnmanageWindow
 		{
 			LinkedList<Tuple<Workspace, Window>> list;
-			if (ApplicationsTryGetValue(hWnd, out list))
+			if (applications.TryGetValue(hWnd, out list))
 			{
 				if (list.First.Value.Item2.hWnd == hWnd)
 				{
@@ -1191,15 +1190,6 @@ namespace Windawesome
 					}
 					applications.Remove(hWnd);
 					monitors.ForEach(m => m.temporarilyShownWindows.Remove(hWnd));
-				}
-				else
-				{
-					var node = list.First.Value.Item2.ownedWindows.FindLast(hWnd);
-					if (node != null)
-					{
-						list.First.Value.Item2.ownedWindows.Remove(node);
-						list.ForEach(t => t.Item1.ownedWindowsCount--);
-					}
 				}
 			}
 		}

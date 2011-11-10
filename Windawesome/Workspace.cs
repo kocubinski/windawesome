@@ -43,7 +43,6 @@ namespace Windawesome
 
 		internal int hideFromAltTabWhenOnInactiveWorkspaceCount;
 		internal int sharedWindowsCount;
-		internal int ownedWindowsCount;
 		internal readonly LinkedList<Window> windowsZOrder; // all windows, sorted in Z-order, topmost window first
 		private readonly LinkedList<Window> windows; // all windows, sorted in tab-order, topmost window first
 
@@ -437,7 +436,6 @@ namespace Windawesome
 			{
 				window.Initialize();
 			}
-			ownedWindowsCount += window.ownedWindows.Count - 1;
 
 			if (!window.IsMinimized && !window.IsFloating)
 			{
@@ -461,7 +459,6 @@ namespace Windawesome
 			{
 				sharedWindowsCount--;
 			}
-			ownedWindowsCount -= window.ownedWindows.Count - 1;
 
 			if (!window.IsMinimized && !window.IsFloating)
 			{

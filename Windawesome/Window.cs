@@ -29,7 +29,19 @@ namespace Windawesome
 		private readonly NativeMethods.WINDOWPLACEMENT originalWindowPlacement;
 
 		private readonly ProgramRule.CustomMatchingFunction customOwnedWindowMatchingFunction;
-		internal readonly LinkedList<IntPtr> ownedWindows;
+		private readonly LinkedList<IntPtr> ownedWindows;
+
+		internal LinkedList<IntPtr> OwnedWindows
+		{
+			get
+			{
+				while (!NativeMethods.IsWindow(ownedWindows.Last.Value))
+				{
+					ownedWindows.RemoveLast();
+				} 
+				return ownedWindows;
+			}
+		}
 
 		internal bool IsMatchOwnedWindow(IntPtr hWnd)
 		{
