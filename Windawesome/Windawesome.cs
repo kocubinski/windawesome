@@ -853,20 +853,17 @@ namespace Windawesome
 			}
 		}
 
-		private void HideWindow(Window window, bool async = true)
+		private static bool IsVisibleAndNotHung(IntPtr hWnd)
 		{
-			if (NativeMethods.IsWindowVisible(window.hWnd))
+			return NativeMethods.IsWindowVisible(hWnd) && WindowIsNotHung(hWnd);
+		}
+
+		private void HideWindow(Window window)
+		{
+			foreach (var hWnd in window.OwnedWindows.Where(IsVisibleAndNotHung))
 			{
-				if (async)
-				{
-					hiddenApplications.Add(window.hWnd);
-					window.HideAsync();
-				}
-				else if (WindowIsNotHung(window))
-				{
-					hiddenApplications.Add(window.hWnd);
-					window.Hide();
-				}
+				hiddenApplications.Add(hWnd);
+				NativeMethods.ShowWindow(hWnd, NativeMethods.SW.SW_HIDE);
 			}
 		}
 
@@ -891,7 +888,7 @@ namespace Windawesome
 			var hideWindows = oldWorkspace.sharedWindowsCount > 0 && newWorkspace.sharedWindowsCount > 0 ?
 				oldWorkspace.windowsZOrder.Except(showWindows) : oldWorkspace.windowsZOrder;
 			// if the window is not visible we shouldn't add it to hiddenApplications as EVENT_OBJECT_HIDE won't be sent
-			foreach (var hWnd in hideWindows.SelectMany(w => w.OwnedWindows).Where(h => NativeMethods.IsWindowVisible(h) && WindowIsNotHung(h)))
+			foreach (var hWnd in hideWindows.SelectMany(w => w.OwnedWindows).Where(IsVisibleAndNotHung))
 			{
 				this.hiddenApplications.Add(hWnd);
 				winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, hWnd, IntPtr.Zero, 0, 0, 0, 0,
@@ -1217,7 +1214,7 @@ namespace Windawesome
 
 					if (CurrentWorkspace.Monitor.temporarilyShownWindows.Count > 0)
 					{
-						CurrentWorkspace.Monitor.temporarilyShownWindows.ForEach(hWnd => HideWindow(applications[hWnd].First.Value.Item2, false));
+						CurrentWorkspace.Monitor.temporarilyShownWindows.ForEach(hWnd => HideWindow(applications[hWnd].First.Value.Item2));
 						CurrentWorkspace.Monitor.temporarilyShownWindows.Clear();
 					}
 

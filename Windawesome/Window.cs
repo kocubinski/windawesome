@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Windawesome
 {
@@ -276,17 +277,7 @@ namespace Windawesome
 			{
 				this.Redraw();
 			}
-			ownedWindows.ForEach(h => NativeMethods.ShowWindowAsync(h, NativeMethods.SW.SW_SHOWNA));
-		}
-
-		internal void Hide()
-		{
-			ownedWindows.ForEach(h => NativeMethods.ShowWindow(h, NativeMethods.SW.SW_HIDE));
-		}
-
-		internal void HideAsync()
-		{
-			ownedWindows.ForEach(h => NativeMethods.ShowWindowAsync(h, NativeMethods.SW.SW_HIDE));
+			OwnedWindows.ForEach(h => NativeMethods.ShowWindowAsync(h, NativeMethods.SW.SW_SHOWNA));
 		}
 
 		internal void ShowWindowMenu()
