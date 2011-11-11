@@ -36,7 +36,7 @@ namespace Windawesome
 		{
 			get
 			{
-				while (!NativeMethods.IsWindow(ownedWindows.Last.Value))
+				while (ownedWindows.Count > 1 && !NativeMethods.IsWindow(ownedWindows.Last.Value))
 				{
 					ownedWindows.RemoveLast();
 				} 
