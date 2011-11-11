@@ -115,10 +115,10 @@ Global
 		{A16BB20E-4E10-4C13-9BF4-F945FCE4E87C}.Debug|x64.Build.0 = Debug|x64
 		{A16BB20E-4E10-4C13-9BF4-F945FCE4E87C}.Debug|x86.ActiveCfg = Debug|Win32
 		{A16BB20E-4E10-4C13-9BF4-F945FCE4E87C}.Debug|x86.Build.0 = Debug|Win32
-		{A16BB20E-4E10-4C13-9BF4-F945FCE4E87C}.Release Profiling|x64.ActiveCfg = Release|x64
-		{A16BB20E-4E10-4C13-9BF4-F945FCE4E87C}.Release Profiling|x64.Build.0 = Release|x64
-		{A16BB20E-4E10-4C13-9BF4-F945FCE4E87C}.Release Profiling|x86.ActiveCfg = Release|Win32
-		{A16BB20E-4E10-4C13-9BF4-F945FCE4E87C}.Release Profiling|x86.Build.0 = Release|Win32
+		{A16BB20E-4E10-4C13-9BF4-F945FCE4E87C}.Release Profiling|x64.ActiveCfg = Release Profiling|x64
+		{A16BB20E-4E10-4C13-9BF4-F945FCE4E87C}.Release Profiling|x64.Build.0 = Release Profiling|x64
+		{A16BB20E-4E10-4C13-9BF4-F945FCE4E87C}.Release Profiling|x86.ActiveCfg = Release Profiling|Win32
+		{A16BB20E-4E10-4C13-9BF4-F945FCE4E87C}.Release Profiling|x86.Build.0 = Release Profiling|Win32
 		{A16BB20E-4E10-4C13-9BF4-F945FCE4E87C}.Release|x64.ActiveCfg = Release|x64
 		{A16BB20E-4E10-4C13-9BF4-F945FCE4E87C}.Release|x64.Build.0 = Release|x64
 		{A16BB20E-4E10-4C13-9BF4-F945FCE4E87C}.Release|x86.ActiveCfg = Release|Win32
