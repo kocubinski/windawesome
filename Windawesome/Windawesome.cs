@@ -922,10 +922,10 @@ namespace Windawesome
 
 		private static void RestoreIfMinimized(IntPtr hWnd, bool isMinimized)
 		{
-			if (isMinimized)
+			if (isMinimized && WindowIsNotHung(hWnd))
 			{
 				// OpenIcon does not restore the window to its previous size (e.g. maximized)
-				NativeMethods.ShowWindowAsync(hWnd, NativeMethods.SW.SW_RESTORE);
+				NativeMethods.ShowWindow(hWnd, NativeMethods.SW.SW_RESTORE);
 				System.Threading.Thread.Sleep(NativeMethods.minimizeRestoreDelay);
 			}
 		}

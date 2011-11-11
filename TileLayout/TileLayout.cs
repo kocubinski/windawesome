@@ -298,10 +298,11 @@ namespace Windawesome
 		{
 			// restore any maximized windows - should not use SW_RESTORE as it activates the window
 			var hasMaximized = false;
-			foreach (var window in workspace.GetManagedWindows().Where(w => NativeMethods.IsZoomed(w.hWnd)))
+			foreach (var window in workspace.GetManagedWindows().
+				Where(w => NativeMethods.IsZoomed(w.hWnd) && Windawesome.WindowIsNotHung(w)))
 			{
 				hasMaximized = true;
-				NativeMethods.ShowWindowAsync(window.hWnd, NativeMethods.SW.SW_SHOWNOACTIVATE);
+				NativeMethods.ShowWindow(window.hWnd, NativeMethods.SW.SW_SHOWNOACTIVATE);
 			}
 			if (hasMaximized)
 			{
@@ -326,10 +327,10 @@ namespace Windawesome
 		{
 			if (workspace.IsWorkspaceVisible || window.WorkspacesCount == 1)
 			{
-				if (NativeMethods.IsZoomed(window.hWnd))
+				if (NativeMethods.IsZoomed(window.hWnd) && Windawesome.WindowIsNotHung(window))
 				{
 					// restore if maximized - should not use SW_RESTORE as it activates the window
-					NativeMethods.ShowWindowAsync(window.hWnd, NativeMethods.SW.SW_SHOWNOACTIVATE);
+					NativeMethods.ShowWindow(window.hWnd, NativeMethods.SW.SW_SHOWNOACTIVATE);
 					System.Threading.Thread.Sleep(NativeMethods.minimizeRestoreDelay);
 				}
 				if (workspace.IsWorkspaceVisible)
