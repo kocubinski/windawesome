@@ -713,15 +713,10 @@ namespace Windawesome
 			{
 				var node = windows.First;
 				var i = 0;
-				for ( ; i < windows.Count; i++)
+				for ( ; node != null && node.Value != window; node = node.Next, i++)
 				{
-					if (node.Value == window)
-					{
-						break;
-					}
-					node = node.Next;
 				}
-				if (i != windows.Count)
+				if (node != null)
 				{
 					windows.Remove(node);
 					windows.AddFirst(node);

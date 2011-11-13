@@ -436,10 +436,13 @@ namespace Windawesome
 			LinkedList<Tuple<Workspace, Window>> workspacesWindowsList;
 			if (ApplicationsTryGetValue(hWnd, out workspacesWindowsList))
 			{
-				if (workspacesWindowsList.First.Value.Item2.IsMatchOwnedWindow(hWnd) &&
-					workspacesWindowsList.First.Value.Item2.OwnedWindows.FindLast(hWnd) == null)
+				if (workspacesWindowsList.First.Value.Item2.IsMatchOwnedWindow(hWnd))
 				{
-					workspacesWindowsList.First.Value.Item2.OwnedWindows.AddLast(hWnd);
+					var ownedWindows = workspacesWindowsList.First.Value.Item2.OwnedWindows;
+					if (ownedWindows.Last.Value != hWnd)
+					{
+						ownedWindows.AddLast(hWnd);
+					}
 					return true;
 				}
 				return false;
@@ -908,17 +911,13 @@ namespace Windawesome
 		}
 
 		// only switches to applications in the current workspace
-		private bool SwitchToApplicationInCurrentWorkspace(IntPtr hWnd)
+		private void SwitchToApplicationInCurrentWorkspace(IntPtr hWnd)
 		{
 			var window = CurrentWorkspace.GetWindow(hWnd);
 			if (window != null)
 			{
 				ActivateWindow(window);
-
-				return true;
 			}
-
-			return false;
 		}
 
 		private static void RestoreIfMinimized(IntPtr hWnd, bool isMinimized)
@@ -970,17 +969,6 @@ namespace Windawesome
 				hWnd = NativeMethods.GetWindow(hWnd, NativeMethods.GW.GW_OWNER);
 			}
 			return hWnd;
-		}
-
-		public static IntPtr GetTopOwnerWindow(IntPtr hWnd)
-		{
-			var resultHWnd = hWnd;
-			while (hWnd != IntPtr.Zero)
-			{
-				resultHWnd = hWnd;
-				hWnd = NativeMethods.GetWindow(hWnd, NativeMethods.GW.GW_OWNER);
-			}
-			return resultHWnd;
 		}
 
 		public static bool WindowIsNotHung(Window window)
@@ -1130,65 +1118,62 @@ namespace Windawesome
 			LinkedList<Tuple<Workspace, Window>> list;
 			if (applications.TryGetValue(hWnd, out list))
 			{
-				if (list.First.Value.Item2.hWnd == hWnd)
+				var oldWorkspaceWindowCount = CurrentWorkspace.GetWindowsCount();
+				list.ForEach(t => t.Item1.WindowDestroyed(t.Item2));
+				if (CurrentWorkspace.GetWindowsCount() != oldWorkspaceWindowCount)
 				{
-					var oldWorkspaceWindowCount = CurrentWorkspace.GetWindowsCount();
-					list.ForEach(t => t.Item1.WindowDestroyed(t.Item2));
-					if (CurrentWorkspace.GetWindowsCount() != oldWorkspaceWindowCount)
+					// the window was on the current workspace, so activate another one
+					SetWorkspaceTopManagedWindowAsForeground(CurrentWorkspace);
+					// TODO: this doesn't always work when closing the last window of a workspace
+					// and another one is visible on another monitor
+
+					if (monitors.Length > 1 && CurrentWorkspace.GetWindowsCount() == 0)
 					{
-						// the window was on the current workspace, so activate another one
-						SetWorkspaceTopManagedWindowAsForeground(CurrentWorkspace);
-						// TODO: this doesn't always work when closing the last window of a workspace
-						// and another one is visible on another monitor
+						// Windows sometimes activates for a second the topmost window on another monitor so it
+						// disrupts the Z order of other windows
 
-						if (monitors.Length > 1 && CurrentWorkspace.GetWindowsCount() == 0)
-						{
-							// Windows sometimes activates for a second the topmost window on another monitor so it
-							// disrupts the Z order of other windows
-
-							NativeMethods.EnumWindows((h, _) =>
+						NativeMethods.EnumWindows((h, _) =>
+							{
+								LinkedList<Tuple<Workspace, Window>> windowList;
+								if (IsAppWindow(h) && applications.TryGetValue(h, out windowList))
 								{
-									LinkedList<Tuple<Workspace, Window>> windowList;
-									if (IsAppWindow(h) && applications.TryGetValue(h, out windowList))
+									var tuple = windowList.First(t => t.Item1.IsWorkspaceVisible);
+									if (tuple.Item1.windowsZOrder.First.Next != null)
 									{
-										var tuple = windowList.First(t => t.Item1.IsWorkspaceVisible);
-										if (tuple.Item1.windowsZOrder.First.Next != null)
-										{
-											var secondZOrderWindow = tuple.Item1.windowsZOrder.First.Next.Value.hWnd;
-											NativeMethods.SetWindowPos(tuple.Item2.hWnd, secondZOrderWindow, 0, 0, 0, 0,
-												NativeMethods.SWP.SWP_ASYNCWINDOWPOS | NativeMethods.SWP.SWP_NOACTIVATE |
-												NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
-											NativeMethods.SetWindowPos(secondZOrderWindow, tuple.Item2.hWnd, 0, 0, 0, 0,
-												NativeMethods.SWP.SWP_ASYNCWINDOWPOS | NativeMethods.SWP.SWP_NOACTIVATE |
-												NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
-										}
-										else
-										{
-											NativeMethods.SetWindowPos(tuple.Item2.hWnd, NativeMethods.HWND_BOTTOM, 0, 0, 0, 0,
-												NativeMethods.SWP.SWP_ASYNCWINDOWPOS | NativeMethods.SWP.SWP_NOACTIVATE |
-												NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
-										}
-										return false;
+										var secondZOrderWindow = tuple.Item1.windowsZOrder.First.Next.Value.hWnd;
+										NativeMethods.SetWindowPos(tuple.Item2.hWnd, secondZOrderWindow, 0, 0, 0, 0,
+											NativeMethods.SWP.SWP_ASYNCWINDOWPOS | NativeMethods.SWP.SWP_NOACTIVATE |
+											NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
+										NativeMethods.SetWindowPos(secondZOrderWindow, tuple.Item2.hWnd, 0, 0, 0, 0,
+											NativeMethods.SWP.SWP_ASYNCWINDOWPOS | NativeMethods.SWP.SWP_NOACTIVATE |
+											NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
 									}
-									return true;
-								}, IntPtr.Zero);
-						}
+									else
+									{
+										NativeMethods.SetWindowPos(tuple.Item2.hWnd, NativeMethods.HWND_BOTTOM, 0, 0, 0, 0,
+											NativeMethods.SWP.SWP_ASYNCWINDOWPOS | NativeMethods.SWP.SWP_NOACTIVATE |
+											NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
+									}
+									return false;
+								}
+								return true;
+							}, IntPtr.Zero);
 					}
-					var window = list.First.Value.Item2;
-					if (!window.ShowMenu && window.menu != IntPtr.Zero)
-					{
-						if (windowHidden)
-						{
-							NativeMethods.DestroyMenu(window.menu);
-						}
-						else
-						{
-							window.ToggleShowHideWindowMenu();
-						}
-					}
-					applications.Remove(hWnd);
-					monitors.ForEach(m => m.temporarilyShownWindows.Remove(hWnd));
 				}
+				var window = list.First.Value.Item2;
+				if (!window.ShowMenu && window.menu != IntPtr.Zero)
+				{
+					if (windowHidden)
+					{
+						NativeMethods.DestroyMenu(window.menu);
+					}
+					else
+					{
+						window.ToggleShowHideWindowMenu();
+					}
+				}
+				applications.Remove(hWnd);
+				monitors.ForEach(m => m.temporarilyShownWindows.Remove(hWnd));
 			}
 		}
 
@@ -1355,17 +1340,7 @@ namespace Windawesome
 			}
 		}
 
-		public bool HideBar(IBar bar)
-		{
-			return true;
-			//return CurrentWorkspace.HideBar(config.Workspaces.Length, config.Workspaces, bar);
-		}
-
-		public bool ShowBar(IBar bar, bool top = true, int position = 0)
-		{
-			return true;
-			//return CurrentWorkspace.ShowBar(config.Workspaces.Length, config.Workspaces, bar, top, position);
-		}
+		// TODO: AddBarToWorkspace(IBar bar, Workspace workspace) ?
 
 		public void ToggleWindowFloating(IntPtr hWnd)
 		{
@@ -1399,14 +1374,15 @@ namespace Windawesome
 
 		public void SwitchToApplication(IntPtr hWnd)
 		{
-			if (!SwitchToApplicationInCurrentWorkspace(hWnd))
+			LinkedList<Tuple<Workspace, Window>> list;
+			if (ApplicationsTryGetValue(hWnd, out list))
 			{
-				LinkedList<Tuple<Workspace, Window>> list;
-				if (ApplicationsTryGetValue(hWnd, out list))
+				if (list.All(t => !t.Item1.IsCurrentWorkspace))
 				{
-					SwitchToWorkspace(list.First.Value.Item1.id, false);
-					SwitchToApplicationInCurrentWorkspace(hWnd);
+					var visibleWorkspace = list.Select(t => t.Item1).FirstOrDefault(ws => ws.IsWorkspaceVisible);
+					SwitchToWorkspace(visibleWorkspace != null ? visibleWorkspace.id : list.First.Value.Item1.id, false);
 				}
+				SwitchToApplicationInCurrentWorkspace(list.First.Value.Item2.hWnd);
 			}
 		}
 

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace Windawesome
 {
@@ -30,16 +29,26 @@ namespace Windawesome
 		private readonly NativeMethods.WINDOWPLACEMENT originalWindowPlacement;
 
 		private readonly ProgramRule.CustomMatchingFunction customOwnedWindowMatchingFunction;
-		private readonly LinkedList<IntPtr> ownedWindows;
 
+		private readonly LinkedList<IntPtr> ownedWindows;
 		internal LinkedList<IntPtr> OwnedWindows
 		{
 			get
 			{
-				while (ownedWindows.Count > 1 && !NativeMethods.IsWindow(ownedWindows.Last.Value))
+				if (NativeMethods.IsWindowVisible(hWnd))
 				{
-					ownedWindows.RemoveLast();
-				} 
+					while (ownedWindows.Count > 1 && !NativeMethods.IsWindowVisible(ownedWindows.Last.Value))
+					{
+						ownedWindows.RemoveLast();
+					}
+				}
+				else
+				{
+					while (ownedWindows.Count > 1 && !NativeMethods.IsWindow(ownedWindows.Last.Value))
+					{
+						ownedWindows.RemoveLast();
+					} 
+				}
 				return ownedWindows;
 			}
 		}
