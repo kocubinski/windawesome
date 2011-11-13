@@ -37,6 +37,9 @@ namespace Windawesome
 			{
 				if (ownedWindows.Count > 1)
 				{
+					// handling of owned windows is done like that because Windows
+					// is inconsistent in sending messages about owned window hiding/destruction
+					// as of Windows 7 SP1
 					if (NativeMethods.IsWindowVisible(hWnd))
 					{
 						while (ownedWindows.Count > 1 &&
