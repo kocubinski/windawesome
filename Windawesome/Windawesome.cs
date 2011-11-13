@@ -853,17 +853,17 @@ namespace Windawesome
 			}
 		}
 
-		private static bool IsVisibleAndNotHung(IntPtr hWnd)
+		private static bool IsVisibleAndNotHung(Window window)
 		{
-			return NativeMethods.IsWindowVisible(hWnd) && WindowIsNotHung(hWnd);
+			return NativeMethods.IsWindowVisible(window.hWnd) && WindowIsNotHung(window.hWnd);
 		}
 
 		private void HideWindow(Window window)
 		{
-			foreach (var hWnd in window.OwnedWindows.Where(IsVisibleAndNotHung))
+			if (IsVisibleAndNotHung(window))
 			{
-				hiddenApplications.Add(hWnd);
-				NativeMethods.ShowWindow(hWnd, NativeMethods.SW.SW_HIDE);
+				hiddenApplications.Add(window.hWnd);
+				window.OwnedWindows.ForEach(hWnd => NativeMethods.ShowWindow(hWnd, NativeMethods.SW.SW_HIDE));
 			}
 		}
 
@@ -872,9 +872,9 @@ namespace Windawesome
 			var winPosInfo = NativeMethods.BeginDeferWindowPos(newWorkspace.GetWindowsCount() + oldWorkspace.GetWindowsCount());
 
 			var showWindows = newWorkspace.windowsZOrder;
-			foreach (var window in showWindows)
+			foreach (var window in showWindows.Where(WindowIsNotHung))
 			{
-				winPosInfo = window.OwnedWindows.Where(WindowIsNotHung).Aggregate(winPosInfo, (current, hWnd) =>
+				winPosInfo = window.OwnedWindows.Aggregate(winPosInfo, (current, hWnd) =>
 					NativeMethods.DeferWindowPos(current, hWnd, IntPtr.Zero, 0, 0, 0, 0,
 						NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE |
 						NativeMethods.SWP.SWP_NOSIZE | NativeMethods.SWP.SWP_NOZORDER |
@@ -888,13 +888,14 @@ namespace Windawesome
 			var hideWindows = oldWorkspace.sharedWindowsCount > 0 && newWorkspace.sharedWindowsCount > 0 ?
 				oldWorkspace.windowsZOrder.Except(showWindows) : oldWorkspace.windowsZOrder;
 			// if the window is not visible we shouldn't add it to hiddenApplications as EVENT_OBJECT_HIDE won't be sent
-			foreach (var hWnd in hideWindows.SelectMany(w => w.OwnedWindows).Where(IsVisibleAndNotHung))
+			foreach (var window in hideWindows.Where(IsVisibleAndNotHung))
 			{
-				this.hiddenApplications.Add(hWnd);
-				winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, hWnd, IntPtr.Zero, 0, 0, 0, 0,
-					NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE |
-					NativeMethods.SWP.SWP_NOSIZE | NativeMethods.SWP.SWP_NOZORDER |
-					NativeMethods.SWP.SWP_NOOWNERZORDER | NativeMethods.SWP.SWP_HIDEWINDOW);
+				this.hiddenApplications.Add(window.hWnd);
+				winPosInfo = window.OwnedWindows.Aggregate(winPosInfo, (current, hWnd) =>
+					NativeMethods.DeferWindowPos(current, hWnd, IntPtr.Zero, 0, 0, 0, 0,
+						NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE |
+						NativeMethods.SWP.SWP_NOSIZE | NativeMethods.SWP.SWP_NOZORDER |
+						NativeMethods.SWP.SWP_NOOWNERZORDER | NativeMethods.SWP.SWP_HIDEWINDOW));
 			}
 
 			NativeMethods.EndDeferWindowPos(winPosInfo);
