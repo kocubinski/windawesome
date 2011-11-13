@@ -35,19 +35,24 @@ namespace Windawesome
 		{
 			get
 			{
-				if (NativeMethods.IsWindowVisible(hWnd))
+				if (ownedWindows.Count > 1)
 				{
-					while (ownedWindows.Count > 1 && !NativeMethods.IsWindowVisible(ownedWindows.Last.Value))
+					if (NativeMethods.IsWindowVisible(hWnd))
 					{
-						ownedWindows.RemoveLast();
+						while (ownedWindows.Count > 1 &&
+							!NativeMethods.IsWindowVisible(ownedWindows.Last.Value))
+						{
+							ownedWindows.RemoveLast();
+						}
 					}
-				}
-				else
-				{
-					while (ownedWindows.Count > 1 && !NativeMethods.IsWindow(ownedWindows.Last.Value))
+					else
 					{
-						ownedWindows.RemoveLast();
-					} 
+						while (ownedWindows.Count > 1 &&
+							!NativeMethods.IsWindow(ownedWindows.Last.Value))
+						{
+							ownedWindows.RemoveLast();
+						}
+					}
 				}
 				return ownedWindows;
 			}
