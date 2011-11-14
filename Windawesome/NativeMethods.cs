@@ -155,10 +155,9 @@ using WPARAM = UIntPtr; // UINT_PTR
 			EVENT_SYSTEM_MINIMIZEEND = 0x17
 		}
 
-		public enum OBJID : int
+		public enum OBJID
 		{
-			OBJID_WINDOW = 0x00000000,
-			OBJID_CLIENT = -4
+			OBJID_WINDOW = 0x00000000
 		}
 
 		public const LONG CHILDID_SELF = 0;
@@ -192,10 +191,6 @@ using WPARAM = UIntPtr; // UINT_PTR
 		[return: MarshalAs(UnmanagedType.Bool)]
 		public static extern bool PostMessage([Optional] HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam);
 
-		[DllImport("user32.dll")]
-		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool PostMessage([Optional] HWND hWnd, int Msg, IntPtr wParam, LPARAM lParam);
-
 		[DllImport("User32.dll")]
 		public static extern LRESULT SendMessageTimeout(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, SMTO fuFlags, UINT uTimeout, [Optional, Out] out IntPtr lpdwResult);
 
@@ -212,7 +207,7 @@ using WPARAM = UIntPtr; // UINT_PTR
 			SMTO_ERRORONEXIT = 0x0020
 		}
 
-		public static readonly HWND HWND_BROADCAST = (HWND) 0xFFFFFFFF;
+		public static readonly HWND HWND_BROADCAST = (HWND) 0xFFFF;
 		public const int WM_MOUSEACTIVATE = 0x0021;
 		public static readonly IntPtr MA_NOACTIVATE = (IntPtr) 0x0003;
 		public const UINT WM_SYSCOMMAND = 0x0112;
@@ -225,7 +220,6 @@ using WPARAM = UIntPtr; // UINT_PTR
 		public const UINT WM_GETICON = 0x007f;
 		public const UINT WM_QUERYDRAGICON = 0x0037;
 		public const UINT WM_NULL = 0x0;
-		public const int ERROR_TIMEOUT = 1460;
 
 		public static readonly WPARAM SC_MINIMIZE = (WPARAM) 0xF020;
 		public static readonly WPARAM SC_MAXIMIZE = (WPARAM) 0xF030;
@@ -959,10 +953,8 @@ using WPARAM = UIntPtr; // UINT_PTR
 
 				return result;
 			}
-			else
-			{
-				return false;
-			}
+
+			return false;
 		}
 
 		#endregion
