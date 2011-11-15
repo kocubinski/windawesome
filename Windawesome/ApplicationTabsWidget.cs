@@ -187,10 +187,6 @@ namespace Windawesome
 
 				if (isShown && workspace.IsWorkspaceVisible)
 				{
-					if (workspace.IsCurrentWorkspace)
-					{
-						ActivateTopmost(workspace);
-					}
 					ResizeApplicationPanels(left, right, workspaceId);
 				}
 				else
@@ -211,10 +207,6 @@ namespace Windawesome
 				applicationPanels[workspaceId].Remove(tuple);
 				if (isShown && workspace.IsWorkspaceVisible)
 				{
-					if (workspace.IsCurrentWorkspace)
-					{
-						ActivateTopmost(workspace);
-					}
 					ResizeApplicationPanels(left, right, workspaceId);
 				}
 				else
@@ -306,11 +298,7 @@ namespace Windawesome
 		{
 			if (bar.Monitor.CurrentVisibleWorkspace.IsCurrentWorkspace)
 			{
-				var topmost = workspace.GetTopmostZOrderWindow();
-				if (topmost != null)
-				{
-					OnWindowActivated(topmost.hWnd);
-				}
+				OnWindowActivated(workspace.GetTopmostWindow());
 			}
 		}
 

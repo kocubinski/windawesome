@@ -52,7 +52,7 @@ namespace Windawesome
 
 				this.CreateHandle(new CreateParams { Parent = NativeMethods.HWND_MESSAGE });
 
-				callbackMessageNum = NativeMethods.WM_USER + ++count;
+				callbackMessageNum = NativeMethods.WM_USER + count++;
 
 				// register as AppBar
 				var appBarData = new NativeMethods.APPBARDATA(this.Handle, callbackMessageNum);

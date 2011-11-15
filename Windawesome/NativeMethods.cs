@@ -429,7 +429,7 @@ using WPARAM = UIntPtr; // UINT_PTR
 
 		#endregion
 
-		#region GetWindow
+		#region GetWindow/GetAncestor
 
 		[DllImport("user32.dll")]
 		public static extern HWND GetWindow(HWND hWnd, GW uCmd);
@@ -439,7 +439,20 @@ using WPARAM = UIntPtr; // UINT_PTR
 			GW_OWNER = 4,
 		}
 
+		[DllImport("user32.dll")]
+		public static extern HWND GetAncestor(HWND hWnd, GA gaFlags);
+
+		public enum GA : uint
+		{
+			GA_PARENT = 1,
+			GA_ROOT = 2,
+			GA_ROOTOWNER = 3
+		}
+
 		#endregion
+
+		[DllImport("user32.dll")]
+		public static extern HWND GetLastActivePopup(HWND hWnd);
 
 		#region FindWindow/FindWindowEx
 

@@ -172,6 +172,7 @@ config.ProgramRules = [
 	),
 	ProgramRule(
 		className = "^#32770$", # all dialogs
+		tryAgainAfter = 500,
 		rules = [ProgramRule.Rule(isFloating = True)] # should be floating
 	),
 	ProgramRule(

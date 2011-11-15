@@ -43,9 +43,10 @@ namespace Windawesome
 
 		internal int hideFromAltTabWhenOnInactiveWorkspaceCount;
 		internal int sharedWindowsCount;
-		internal readonly LinkedList<Window> windowsZOrder; // all windows, sorted in Z-order, topmost window first
-		private readonly LinkedList<Window> windows; // all windows, sorted in tab-order, topmost window first
+		internal readonly LinkedList<Window> windows; // all windows, sorted in tab-order, topmost window first
 
+		private IntPtr topmostWindowHandle;
+		private Window topmostWindow;
 		private bool hasChanges;
 
 		private static int count;
@@ -222,7 +223,6 @@ namespace Windawesome
 		public Workspace(Monitor monitor, ILayout layout, IEnumerable<IBar> barsAtTop = null, IEnumerable<IBar> barsAtBottom = null,
 			string name = "", bool showWindowsTaskbar = false, bool repositionOnSwitchedTo = false)
 		{
-			windowsZOrder = new LinkedList<Window>();
 			windows = new LinkedList<Window>();
 
 			this.id = ++count;
@@ -260,7 +260,7 @@ namespace Windawesome
 			if (sharedWindowsCount > 0)
 			{
 				// sets the layout- and workspace-specific changes to the windows
-				windowsZOrder.Where(w => w.WorkspacesCount > 1).ForEach(w => RestoreSharedWindowState(w, false));
+				windows.Where(w => w.WorkspacesCount > 1).ForEach(w => RestoreSharedWindowState(w, false));
 			}
 
 			IsWorkspaceVisible = true;
@@ -278,7 +278,7 @@ namespace Windawesome
 		{
 			if (sharedWindowsCount > 0)
 			{
-				windowsZOrder.Where(w => w.WorkspacesCount > 1 && ShouldSaveAndRestoreSharedWindowsPosition(w)).
+				windows.Where(w => w.WorkspacesCount > 1 && ShouldSaveAndRestoreSharedWindowsPosition(w)).
 					ForEach(w => w.SavePosition());
 			}
 
@@ -385,7 +385,7 @@ namespace Windawesome
 
 		internal void WindowMinimized(IntPtr hWnd)
 		{
-			var window = MoveWindowToBottom(hWnd);
+			var window = GetWindow(hWnd);
 			if (window != null && !window.IsMinimized)
 			{
 				window.IsMinimized = true;
@@ -400,7 +400,7 @@ namespace Windawesome
 
 		internal void WindowRestored(IntPtr hWnd)
 		{
-			var window = MoveWindowToTop(hWnd);
+			var window = GetWindow(hWnd);
 			if (window != null && window.IsMinimized)
 			{
 				window.IsMinimized = false;
@@ -415,7 +415,8 @@ namespace Windawesome
 
 		internal void WindowActivated(IntPtr hWnd)
 		{
-			MoveWindowToTop(hWnd);
+			topmostWindowHandle = hWnd;
+			topmostWindow = GetWindow(hWnd);
 
 			DoWindowActivated(hWnd);
 		}
@@ -423,7 +424,6 @@ namespace Windawesome
 		internal void WindowCreated(Window window)
 		{
 			windows.AddFirst(window);
-			windowsZOrder.AddFirst(window);
 			if (window.hideFromAltTabAndTaskbarWhenOnInactiveWorkspace)
 			{
 				hideFromAltTabWhenOnInactiveWorkspaceCount++;
@@ -450,7 +450,6 @@ namespace Windawesome
 		internal void WindowDestroyed(Window window)
 		{
 			windows.Remove(window);
-			windowsZOrder.Remove(window);
 			if (window.hideFromAltTabAndTaskbarWhenOnInactiveWorkspace)
 			{
 				hideFromAltTabWhenOnInactiveWorkspaceCount--;
@@ -472,17 +471,17 @@ namespace Windawesome
 
 		public int GetWindowsCount()
 		{
-			return windowsZOrder.Count;
+			return windows.Count;
 		}
 
 		public bool ContainsWindow(IntPtr hWnd)
 		{
-			return windowsZOrder.Any(w => w.hWnd == hWnd);
+			return windows.Any(w => w.hWnd == hWnd);
 		}
 
 		public Window GetWindow(IntPtr hWnd)
 		{
-			return windowsZOrder.FirstOrDefault(w => w.hWnd == hWnd);
+			return windows.FirstOrDefault(w => w.hWnd == hWnd);
 		}
 
 		public IEnumerable<Window> GetManagedWindows()
@@ -495,10 +494,47 @@ namespace Windawesome
 			return windows;
 		}
 
-		public Window GetTopmostZOrderWindow()
+		private static bool IsAltTabWindow(IntPtr hWnd)
 		{
-			var window = windowsZOrder.FirstOrDefault();
-			return (window != null && !window.IsMinimized) ? window : null;
+			// Start at the root owner
+			var hWndTry = NativeMethods.GetAncestor(hWnd, NativeMethods.GA.GA_ROOTOWNER);
+
+			// See if we are the last active visible popup
+			while (!NativeMethods.IsWindowVisible(hWndTry))
+			{
+				hWndTry = NativeMethods.GetLastActivePopup(hWndTry);
+			}
+
+			return hWndTry == hWnd;
+		}
+
+		public IntPtr GetTopmostWindow()
+		{
+			if (topmostWindow != null && !topmostWindow.IsMinimized && ContainsWindow(topmostWindow.hWnd))
+			{
+				return topmostWindow.OwnedWindows.Last.Value;
+			}
+			topmostWindow = null;
+
+			if (!NativeMethods.IsWindowVisible(topmostWindowHandle))
+			{
+				NativeMethods.EnumWindows((hWnd, _) =>
+					{
+						if (NativeMethods.IsWindowVisible(hWnd) && !NativeMethods.IsIconic(hWnd) &&
+							(ContainsWindow(hWnd) || IsAltTabWindow(hWnd)))
+						{
+							topmostWindowHandle = hWnd;
+							return false;
+						}
+						return true;
+					}, IntPtr.Zero);
+				if (!NativeMethods.IsWindowVisible(topmostWindowHandle))
+				{
+					topmostWindowHandle = NativeMethods.shellWindow;
+				}
+			}
+
+			return topmostWindowHandle;
 		}
 
 		internal void ToggleWindowFloating(IntPtr hWnd)
@@ -563,64 +599,12 @@ namespace Windawesome
 		{
 			// I'm adding to the front of the list in WindowCreated, however EnumWindows enums
 			// from the top of the Z-order to the bottom, so I need to reverse the list
-			if (windowsZOrder.Count > 0)
+			if (windows.Count > 0)
 			{
-				var newWindows = windowsZOrder.ToArray();
-				windowsZOrder.Clear();
-				newWindows.ForEach(w => windowsZOrder.AddFirst(w));
-				newWindows.ForEach(this.ShiftWindowToMainPosition); // n ^ 2!
+				windows.ToArray().ForEach(this.ShiftWindowToMainPosition); // n ^ 2!
+				topmostWindow = windows.FirstOrDefault(w => !w.IsMinimized);
 			}
-		}
-
-		private LinkedListNode<Window> GetWindowNode(IntPtr hWnd)
-		{
-			for (var node = windowsZOrder.First; node != null; node = node.Next)
-			{
-				if (node.Value.hWnd == hWnd)
-				{
-					return node;
-				}
-			}
-
-			return null;
-		}
-
-		private Window MoveWindowToTop(IntPtr hWnd)
-		{
-			var node = GetWindowNode(hWnd);
-
-			if (node != null)
-			{
-				if (node != windowsZOrder.First)
-				{
-					// adds the window to the front of the list, i.e. the top of the Z order
-					windowsZOrder.Remove(node);
-					windowsZOrder.AddFirst(node);
-				}
-
-				return node.Value;
-			}
-
-			return null;
-		}
-
-		private Window MoveWindowToBottom(IntPtr hWnd)
-		{
-			var node = GetWindowNode(hWnd);
-
-			if (node != null)
-			{
-				if (node != windowsZOrder.First)
-				{
-					// adds the window to the back of the list, i.e. the bottom of the Z order
-					windowsZOrder.Remove(node);
-					windowsZOrder.AddLast(node);
-				}
-
-				return node.Value;
-			}
-
-			return null;
+			topmostWindowHandle = topmostWindow != null ? topmostWindow.hWnd : NativeMethods.shellWindow;
 		}
 
 		internal void RemoveFromSharedWindows(Window window)
