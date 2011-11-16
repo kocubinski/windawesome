@@ -442,6 +442,7 @@ namespace Windawesome
 					}
 					return true;
 				}
+				hiddenApplications.Add(hWnd);
 				return false;
 			}
 
@@ -460,12 +461,18 @@ namespace Windawesome
 				DoProgramRuleMatched(programRule, hWnd, className, displayName, processName, style, exStyle);
 				if (programRule == null || !programRule.isManaged)
 				{
+					hiddenApplications.Add(hWnd);
 					return false;
 				}
 				if (programRule.tryAgainAfter >= 0 && firstTry && finishedInitializing)
 				{
 					System.Threading.Thread.Sleep(programRule.tryAgainAfter);
-					return IsAppWindow(hWnd) && this.AddWindowToWorkspace(hWnd, false);
+					if (!IsAppWindow(hWnd))
+					{
+						hiddenApplications.Add(hWnd);
+						return false;
+					}
+					return this.AddWindowToWorkspace(hWnd, false);
 				}
 
 				IEnumerable<ProgramRule.Rule> matchingRules = programRule.rules;

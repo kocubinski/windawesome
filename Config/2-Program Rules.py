@@ -182,7 +182,8 @@ config.ProgramRules = [
 	ProgramRule(
 		styleNotContains = WS.WS_MAXIMIZEBOX,
 		customMatchingFunction = Windawesome.IsAltTabWindow,
+		tryAgainAfter = 300,
 		rules = [ProgramRule.Rule(isFloating = True)]
 	),
-	ProgramRule(customMatchingFunction = Windawesome.IsAltTabWindow) # an all-catching rule in the end to manage all other windows
+	ProgramRule(tryAgainAfter = 300, customMatchingFunction = Windawesome.IsAltTabWindow) # an all-catching rule in the end to manage all other windows
 ]
