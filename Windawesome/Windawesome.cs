@@ -1500,7 +1500,7 @@ namespace Windawesome
 					case NativeMethods.EVENT.EVENT_OBJECT_SHOW:
 						if (IsAppWindow(hWnd))
 						{
-							OnWindowShownActivated(hWnd, false);
+							OnWindowShownOrActivated(hWnd, false);
 						}
 						break;
 					// differentiating between hiding and destroying a window is nice - therefore HSHELL_WINDOWDESTROYED is not enough
@@ -1525,13 +1525,13 @@ namespace Windawesome
 					// HSHELL_WINDOWACTIVATED/HSHELL_RUDEAPPACTIVATED doesn't work for some windows like Digsby Buddy List
 					// EVENT_OBJECT_FOCUS doesn't work with Firefox on the other hand
 					case NativeMethods.EVENT.EVENT_SYSTEM_FOREGROUND:
-						OnWindowShownActivated(hWnd, true);
+						OnWindowShownOrActivated(hWnd, true);
 						break;
 				}
 			}
 		}
 
-		private void OnWindowShownActivated(IntPtr hWnd, bool activated)
+		private void OnWindowShownOrActivated(IntPtr hWnd, bool activated)
 		{
 			if (!hiddenApplications.Contains(hWnd))
 			{
