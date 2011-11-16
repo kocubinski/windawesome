@@ -298,7 +298,7 @@ namespace Windawesome
 		{
 			// restore any maximized windows - should not use SW_RESTORE as it activates the window
 			var hasMaximized = false;
-			foreach (var window in workspace.GetManagedWindows().
+			foreach (var window in workspace.GetLayoutManagedWindows().
 				Where(w => NativeMethods.IsZoomed(w.hWnd) && Windawesome.WindowIsNotHung(w)))
 			{
 				hasMaximized = true;
@@ -309,7 +309,7 @@ namespace Windawesome
 				System.Threading.Thread.Sleep(NativeMethods.minimizeRestoreDelay);
 			}
 
-			this.windows = workspace.GetManagedWindows();
+			this.windows = workspace.GetLayoutManagedWindows();
 			Reposition();
 		}
 

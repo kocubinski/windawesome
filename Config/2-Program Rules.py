@@ -172,6 +172,7 @@ config.ProgramRules = [
 	),
 	ProgramRule(
 		className = "^#32770$", # all dialogs
+		tryAgainAfter = 500,
 		rules = [ProgramRule.Rule(isFloating = True)] # should be floating
 	),
 	ProgramRule(
@@ -180,7 +181,8 @@ config.ProgramRules = [
 	),
 	ProgramRule(
 		styleNotContains = WS.WS_MAXIMIZEBOX,
+		tryAgainAfter = 300,
 		rules = [ProgramRule.Rule(isFloating = True)]
 	),
-	ProgramRule() # an all-catching rule in the end to manage all other windows
+	ProgramRule(tryAgainAfter = 300) # an all-catching rule in the end to manage all other windows
 ]

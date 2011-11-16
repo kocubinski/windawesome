@@ -213,14 +213,6 @@ namespace Windawesome
 
 		public delegate bool CustomMatchingFunction(IntPtr hWnd);
 
-		// http://blogs.msdn.com/b/oldnewthing/archive/2007/10/08/5351207.aspx
-		// http://stackoverflow.com/questions/210504/enumerate-windows-like-alt-tab-does
-		private static bool DefaultMatchingFunction(IntPtr hWnd)
-		{
-			return !NativeMethods.GetWindowExStyleLongPtr(hWnd).HasFlag(NativeMethods.WS_EX.WS_EX_TOOLWINDOW) &&
-				NativeMethods.GetWindow(hWnd, NativeMethods.GW.GW_OWNER) == IntPtr.Zero;
-		}
-
 		private static bool DefaultOwnedWindowMatchingFunction(IntPtr hWnd)
 		{
 			return !NativeMethods.GetWindowExStyleLongPtr(hWnd).HasFlag(NativeMethods.WS_EX.WS_EX_TOOLWINDOW);
@@ -252,7 +244,7 @@ namespace Windawesome
 			this.styleNotContains = styleNotContains;
 			this.exStyleContains = exStyleContains;
 			this.exStyleNotContains = exStyleNotContains;
-			this.customMatchingFunction = customMatchingFunction ?? DefaultMatchingFunction;
+			this.customMatchingFunction = customMatchingFunction ?? Windawesome.IsAltTabWindow;
 			this.customOwnedWindowMatchingFunction = customOwnedWindowMatchingFunction ?? DefaultOwnedWindowMatchingFunction;
 
 			this.isManaged = isManaged;

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.Windows.Forms;
@@ -33,7 +34,7 @@ namespace Windawesome
 			counter = new PerformanceCounter("Processor", "% Processor Time", "_Total");
 		}
 
-		private void OnTimerTick(object sender, System.EventArgs e)
+		private void OnTimerTick(object sender, EventArgs e)
 		{
 			var oldLeft = label.Left;
 			var oldRight = label.Right;
@@ -41,7 +42,7 @@ namespace Windawesome
 
 			label.Text = prefix + nextValue.ToString("00") + postfix;
 
-			if (nextValue == 100)
+			if (Math.Abs(nextValue - 100) < 0.00001)
 			{
 				this.RepositionControls(oldLeft, oldRight);
 				bar.DoFixedWidthWidgetWidthChanged(this);

@@ -33,16 +33,16 @@ namespace Windawesome
 		{
 			this.normalForegroundColor = normalForegroundColor ?? new[]
 				{
-					Color.FromArgb(0x00, 0x00, 0x00),
-					Color.FromArgb(0x00, 0x00, 0x00),
-					Color.FromArgb(0x00, 0x00, 0x00),
-					Color.FromArgb(0x00, 0x00, 0x00),
-					Color.FromArgb(0x00, 0x00, 0x00),
-					Color.FromArgb(0xFF, 0xFF, 0xFF),
-					Color.FromArgb(0xFF, 0xFF, 0xFF),
-					Color.FromArgb(0xFF, 0xFF, 0xFF),
-					Color.FromArgb(0xFF, 0xFF, 0xFF),
-					Color.FromArgb(0xFF, 0xFF, 0xFF),
+					Color.Black,
+					Color.Black,
+					Color.Black,
+					Color.Black,
+					Color.Black,
+					Color.White,
+					Color.White,
+					Color.White,
+					Color.White,
+					Color.White
 				};
 			this.normalBackgroundColor = normalBackgroundColor ?? new[]
 				{
@@ -55,9 +55,9 @@ namespace Windawesome
 					Color.FromArgb(0x60, 0x60, 0x60),
 					Color.FromArgb(0x48, 0x48, 0x48),
 					Color.FromArgb(0x30, 0x30, 0x30),
-					Color.FromArgb(0x18, 0x18, 0x18),
+					Color.FromArgb(0x18, 0x18, 0x18)
 				};
-			this.highlightedForegroundColor = highlightedForegroundColor ?? Color.FromArgb(0xFF, 0xFF, 0xFF);
+			this.highlightedForegroundColor = highlightedForegroundColor ?? Color.White;
 			this.highlightedBackgroundColor = highlightedBackgroundColor ?? Color.FromArgb(0x33, 0x99, 0xFF);
 			this.highlightedInactiveForegroundColor = highlightedInactiveForegroundColor ?? Color.White;
 			this.highlightedInactiveBackgroundColor = highlightedInactiveBackgroundColor ?? Color.Green;
@@ -278,7 +278,7 @@ namespace Windawesome
 		void IWidget.Refresh()
 		{
 			// remove all flashing windows
-			flashingWindows.Keys.ForEach(StopFlashingApplication);
+			flashingWindows.Keys.ToArray().ForEach(StopFlashingApplication);
 		}
 
 		#endregion

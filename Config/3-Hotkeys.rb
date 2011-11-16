@@ -8,18 +8,16 @@ def subscribe(modifiers, key)
 end
 
 flashing_window = nil
-
-def get_managed_window workspace, hWnd
-	Windawesome::Windawesome.do_for_self_and_owners_while hWnd, lambda { |h| not workspace.contains_window h }
-end
+previous_workspace = config.workspaces[0]
 
 def get_current_workspace_managed_window
-	get_managed_window windawesome.current_workspace, Windawesome::NativeMethods.get_foreground_window
+	_, window, _ = windawesome.try_get_managed_window_for_workspace Windawesome::NativeMethods.get_foreground_window, windawesome.current_workspace
+	window
 end
 
-Windawesome::Windawesome.window_flashing do |l|
-	flashing_window = l.first.value.item2.hWnd
-end
+Windawesome::Windawesome.window_flashing { |l| flashing_window = l.first.value.item2.hWnd }
+
+Windawesome::Workspace.workspace_deactivated { |ws| previous_workspace = ws }
 
 modifiers = Windawesome::ShortcutsManager::KeyModifiers
 key = System::Windows::Forms::Keys
@@ -40,7 +38,7 @@ subscribe modifiers.Alt, key.Q do
 end
 
 subscribe modifiers.Control | modifiers.Alt | modifiers.Shift, key.Q do
-	windawesome.remove_application_from_workspace get_current_workspace_managed_window
+	windawesome.remove_application_from_workspace Windawesome::NativeMethods.get_foreground_window
 end
 
 # dismiss application
@@ -66,7 +64,7 @@ end
 
 # switch to previous workspace
 subscribe modifiers.Alt, key.Oemtilde do
-	windawesome.switch_to_workspace windawesome.previous_workspace.id
+	windawesome.switch_to_workspace previous_workspace.id
 end
 
 # start Firefox
@@ -106,7 +104,7 @@ end
 
 # toggle window floating
 subscribe modifiers.Control | modifiers.Alt | modifiers.Shift, key.F do
-	windawesome.toggle_window_floating get_current_workspace_managed_window
+	windawesome.toggle_window_floating Windawesome::NativeMethods.get_foreground_window
 end
 
 # toggle window titlebar
@@ -126,7 +124,7 @@ end
 
 # toggle window menu
 subscribe modifiers.Control | modifiers.Alt | modifiers.Shift, key.M do
-	windawesome.toggle_show_hide_window_menu get_current_workspace_managed_window
+	windawesome.toggle_show_hide_window_menu Windawesome::NativeMethods.get_foreground_window
 end
 
 # Layout stuff
@@ -146,39 +144,37 @@ end
 # window position stuff
 
 subscribe modifiers.Alt, key.J do
-	window = windawesome.current_workspace.get_window get_current_workspace_managed_window
+	window = get_current_workspace_managed_window
 	if window
 		next_window = windawesome.current_workspace.get_next_window window
 		windawesome.switch_to_application next_window.hWnd if next_window
-	elsif Windawesome::NativeMethods.get_foreground_window == Windawesome::NativeMethods::shellWindow and
-		windawesome.current_workspace.get_windows.count > 0
+	elsif windawesome.current_workspace.get_windows.count > 0
 		windawesome.switch_to_application windawesome.current_workspace.get_windows.first.value.hWnd
 	end
 end
 
 subscribe modifiers.Alt, key.K do
-	window = windawesome.current_workspace.get_window get_current_workspace_managed_window
+	window = get_current_workspace_managed_window
 	if window
 		previous_window = windawesome.current_workspace.get_previous_window window
 		windawesome.switch_to_application previous_window.hWnd if previous_window
-	elsif Windawesome::NativeMethods.get_foreground_window == Windawesome::NativeMethods::shellWindow and
-		windawesome.current_workspace.get_windows.count > 0
+	elsif windawesome.current_workspace.get_windows.count > 0
 		windawesome.switch_to_application windawesome.current_workspace.get_windows.first.value.hWnd
 	end
 end
 
 subscribe modifiers.Alt | modifiers.Shift, key.J do
-	window = windawesome.current_workspace.get_window get_current_workspace_managed_window
+	window = get_current_workspace_managed_window
 	windawesome.current_workspace.shift_window_forward window if window
 end
 
 subscribe modifiers.Alt | modifiers.Shift, key.K do
-	window = windawesome.current_workspace.get_window get_current_workspace_managed_window
+	window = get_current_workspace_managed_window
 	windawesome.current_workspace.shift_window_backwards window if window
 end
 
 subscribe modifiers.Control | modifiers.Alt | modifiers.Shift, key.Return do
-	window = windawesome.current_workspace.get_window get_current_workspace_managed_window
+	window = get_current_workspace_managed_window
 	windawesome.current_workspace.shift_window_to_main_position window if window
 end
 
@@ -214,10 +210,10 @@ end
 	end
 
 	subscribe modifiers.Alt | modifiers.Shift, k do
-		windawesome.change_application_to_workspace get_current_workspace_managed_window, i
+		windawesome.change_application_to_workspace Windawesome::NativeMethods.get_foreground_window, i
 	end
 
 	subscribe modifiers.Control | modifiers.Alt | modifiers.Shift, k do
-		windawesome.add_application_to_workspace get_current_workspace_managed_window, i
+		windawesome.add_application_to_workspace Windawesome::NativeMethods.get_foreground_window, i
 	end
 end

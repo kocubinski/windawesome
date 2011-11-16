@@ -562,7 +562,6 @@ namespace Windawesome
 				var data = new TTrayIconData();
 				var result = new LinkedList<TrayIcon>();
 
-				TrayIcon trayIcon;
 				for (var i = 0; i < buttonsCount; i++)
 				{
 					if (!GetButtonData(trayHandle, data, i))
@@ -570,7 +569,7 @@ namespace Windawesome
 						continue;
 					}
 
-					trayIcon = new TrayIcon();
+					var trayIcon = new TrayIcon();
 					if (NativeMethods.ReadProcessMemory(explorerProcessHandle, data.button.iString, sb, (IntPtr) sb.Capacity, UIntPtr.Zero))
 					{
 						trayIcon.tooltip = sb.ToString();

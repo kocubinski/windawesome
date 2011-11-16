@@ -189,7 +189,7 @@ namespace Windawesome
 				{
 					if (workspace.IsCurrentWorkspace)
 					{
-						ActivateTopmost(workspace);
+						OnWindowActivated(NativeMethods.GetForegroundWindow());
 					}
 					ResizeApplicationPanels(left, right, workspaceId);
 				}
@@ -213,7 +213,7 @@ namespace Windawesome
 				{
 					if (workspace.IsCurrentWorkspace)
 					{
-						ActivateTopmost(workspace);
+						OnWindowActivated(NativeMethods.GetForegroundWindow());
 					}
 					ResizeApplicationPanels(left, right, workspaceId);
 				}
@@ -306,11 +306,7 @@ namespace Windawesome
 		{
 			if (bar.Monitor.CurrentVisibleWorkspace.IsCurrentWorkspace)
 			{
-				var topmost = workspace.GetTopmostZOrderWindow();
-				if (topmost != null)
-				{
-					OnWindowActivated(topmost.hWnd);
-				}
+				OnWindowActivated(workspace.GetTopmostWindow());
 			}
 		}
 
