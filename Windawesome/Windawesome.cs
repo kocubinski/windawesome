@@ -287,7 +287,7 @@ namespace Windawesome
 				NativeMethods.WINEVENT.WINEVENT_OUTOFCONTEXT | NativeMethods.WINEVENT.WINEVENT_SKIPOWNTHREAD);
 			windowFocusedWinEventHook = NativeMethods.SetWinEventHook(NativeMethods.EVENT.EVENT_SYSTEM_FOREGROUND, NativeMethods.EVENT.EVENT_SYSTEM_FOREGROUND,
 				IntPtr.Zero, winEventDelegate, 0, 0,
-				NativeMethods.WINEVENT.WINEVENT_OUTOFCONTEXT | NativeMethods.WINEVENT.WINEVENT_SKIPOWNTHREAD);
+				NativeMethods.WINEVENT.WINEVENT_OUTOFCONTEXT);
 		}
 
 		public void Quit()
@@ -1525,7 +1525,14 @@ namespace Windawesome
 					// HSHELL_WINDOWACTIVATED/HSHELL_RUDEAPPACTIVATED doesn't work for some windows like Digsby Buddy List
 					// EVENT_OBJECT_FOCUS doesn't work with Firefox on the other hand
 					case NativeMethods.EVENT.EVENT_SYSTEM_FOREGROUND:
-						OnWindowShownOrActivated(hWnd, true);
+						if (NativeMethods.GetWindowThreadProcessId(hWnd, IntPtr.Zero) == windawesomeThreadId)
+						{
+							ForceForegroundWindow(CurrentWorkspace.GetTopmostWindow());
+						}
+						else
+						{
+							OnWindowShownOrActivated(hWnd, true);
+						}
 						break;
 				}
 			}
@@ -1586,7 +1593,7 @@ namespace Windawesome
 					break;
 				case OnWindowShownAction.HideWindow:
 					HideWindow(tuple.Item2);
-					this.ForceForegroundWindow(this.CurrentWorkspace.GetTopmostWindow());
+					ForceForegroundWindow(CurrentWorkspace.GetTopmostWindow());
 					break;
 			}
 		}
