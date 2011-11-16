@@ -1500,7 +1500,7 @@ namespace Windawesome
 					case NativeMethods.EVENT.EVENT_OBJECT_SHOW:
 						if (IsAppWindow(hWnd))
 						{
-							OnWindowActivated(hWnd, true);
+							OnWindowShownActivated(hWnd, false);
 						}
 						break;
 					// differentiating between hiding and destroying a window is nice - therefore HSHELL_WINDOWDESTROYED is not enough
@@ -1525,15 +1525,15 @@ namespace Windawesome
 					// HSHELL_WINDOWACTIVATED/HSHELL_RUDEAPPACTIVATED doesn't work for some windows like Digsby Buddy List
 					// EVENT_OBJECT_FOCUS doesn't work with Firefox on the other hand
 					case NativeMethods.EVENT.EVENT_SYSTEM_FOREGROUND:
-						OnWindowActivated(hWnd, false);
+						OnWindowShownActivated(hWnd, true);
 						break;
 				}
 			}
 		}
 
-		private void OnWindowActivated(IntPtr hWnd, bool shown)
+		private void OnWindowShownActivated(IntPtr hWnd, bool activated)
 		{
-			if (!hiddenApplications.Contains(hWnd) || shown)
+			if (!hiddenApplications.Contains(hWnd))
 			{
 				if (hWnd != NativeMethods.shellWindow && !CurrentWorkspace.Monitor.temporarilyShownWindows.Contains(hWnd))
 				{
@@ -1548,23 +1548,23 @@ namespace Windawesome
 						if (!CurrentWorkspace.ContainsWindow(hWnd))
 						{
 							Workspace workspace;
-							if (this.monitors.Length > 1 &&
+							if (monitors.Length > 1 &&
 								(workspace = list.Select(t => t.Item1).FirstOrDefault(ws => ws.IsWorkspaceVisible)) != null)
 							{
 								// the window is actually visible on another monitor
 								// (e.g. when the user has ALT-TABbed to the window across monitors)
 
-								this.SwitchToWorkspace(workspace.id, false);
+								SwitchToWorkspace(workspace.id, false);
 							}
 							else
 							{
-								this.OnHiddenWindowShown(hWnd, list.First.Value);
+								OnHiddenWindowShown(hWnd, list.First.Value);
 							}
 						}
 					}
 				}
 
-				if (!shown)
+				if (activated)
 				{
 					CurrentWorkspace.WindowActivated(hWnd);
 				}
