@@ -8,15 +8,16 @@ def subscribe(modifiers, key)
 end
 
 flashing_window = nil
+previous_workspace = config.workspaces[0]
 
 def get_current_workspace_managed_window
 	_, window, _ = windawesome.try_get_managed_window_for_workspace Windawesome::NativeMethods.get_foreground_window, windawesome.current_workspace
 	window
 end
 
-Windawesome::Windawesome.window_flashing do |l|
-	flashing_window = l.first.value.item2.hWnd
-end
+Windawesome::Windawesome.window_flashing { |l| flashing_window = l.first.value.item2.hWnd }
+
+Windawesome::Workspace.workspace_deactivated { |ws| previous_workspace = ws }
 
 modifiers = Windawesome::ShortcutsManager::KeyModifiers
 key = System::Windows::Forms::Keys
@@ -63,7 +64,7 @@ end
 
 # switch to previous workspace
 subscribe modifiers.Alt, key.Oemtilde do
-	windawesome.switch_to_workspace windawesome.previous_workspace.id
+	windawesome.switch_to_workspace previous_workspace.id
 end
 
 # start Firefox

@@ -11,7 +11,6 @@ namespace Windawesome
 	public sealed class Windawesome : NativeWindow
 	{
 		public Workspace CurrentWorkspace { get; private set; }
-		public Workspace PreviousWorkspace { get; private set; }
 
 		public readonly Monitor[] monitors;
 		public readonly Config config;
@@ -151,7 +150,6 @@ namespace Windawesome
 			}
 
 			CurrentWorkspace = config.StartingWorkspaces.First(w => w.Monitor.screen.Primary);
-			PreviousWorkspace = CurrentWorkspace;
 
 			// add workspaces to their corresponding monitors
 			monitors.ForEach(m => config.Workspaces.Where(w => w.Monitor == m).ForEach(m.AddWorkspace)); // n ^ 2 but hopefully fast enough
@@ -977,17 +975,15 @@ namespace Windawesome
 
 			// Start at the root owner
 			var hWndTry = NativeMethods.GetAncestor(hWnd, NativeMethods.GA.GA_ROOTOWNER);
+			IntPtr oldHWnd;
 
 			// See if we are the last active visible popup
-			while (!NativeMethods.IsWindowVisible(hWndTry))
+			do
 			{
-				var oldHWnd = hWndTry;
+				oldHWnd = hWndTry;
 				hWndTry = NativeMethods.GetLastActivePopup(hWndTry);
-				if (oldHWnd == hWndTry)
-				{
-					break;
-				}
 			}
+			while (oldHWnd != hWndTry && !NativeMethods.IsWindowVisible(hWndTry));
 
 			return hWndTry == hWnd;
 		}
@@ -1237,8 +1233,6 @@ namespace Windawesome
 					}
 				}
 
-				// set previous and current workspaces
-				PreviousWorkspace = CurrentWorkspace;
 				CurrentWorkspace = newWorkspace;
 			}
 		}
@@ -1291,7 +1285,6 @@ namespace Windawesome
 						workspace.windows.Where(w => w.hideFromAltTabAndTaskbarWhenOnInactiveWorkspace).ForEach(w => w.ShowInAltTabAndTaskbar(true));
 					}
 
-					PreviousWorkspace = CurrentWorkspace;
 					CurrentWorkspace = workspace;
 				}
 
@@ -1542,9 +1535,25 @@ namespace Windawesome
 				switch (eventType)
 				{
 					case NativeMethods.EVENT.EVENT_OBJECT_SHOW:
-						if (IsAppWindow(hWnd))
+						if (IsAppWindow(hWnd) && !CurrentWorkspace.Monitor.temporarilyShownWindows.Contains(hWnd))
 						{
-							OnWindowShownOrActivated(hWnd, false);
+							LinkedList<Tuple<Workspace, Window>> list;
+							if (!applications.TryGetValue(hWnd, out list)) // if a new window has shown
+							{
+								AddWindowToWorkspace(hWnd);
+							}
+							else // a hidden window has shown
+							{
+								// there is a problem with some windows showing up when others are created.
+								// how to reproduce: start BitComet 1.26 on some workspace, switch to another one
+								// and start explorer.exe (the file manager)
+								// on Windows 7 Ultimate x64 SP1
+
+								// another problem is that some windows continuously keep showing when hidden.
+								// how to reproduce: TortoiseSVN. About box. Click check for updates. This window
+								// keeps showing up when changing workspaces
+								OnHiddenWindowShown(list);
+							}
 						}
 						break;
 					// differentiating between hiding and destroying a window is nice - therefore HSHELL_WINDOWDESTROYED is not enough
@@ -1573,72 +1582,62 @@ namespace Windawesome
 						{
 							ForceForegroundWindow(CurrentWorkspace.GetTopmostWindow());
 						}
-						else
+						else if (!hiddenApplications.Contains(hWnd))
 						{
-							OnWindowShownOrActivated(hWnd, true);
+							if (hWnd != NativeMethods.shellWindow && !CurrentWorkspace.Monitor.temporarilyShownWindows.Contains(hWnd))
+							{
+								LinkedList<Tuple<Workspace, Window>> list;
+								if (!ApplicationsTryGetValue(hWnd, out list)) // if a new window has shown
+								{
+									AddWindowToWorkspace(hWnd);
+								}
+								else
+								{
+									hWnd = list.First.Value.Item2.hWnd;
+									OnHiddenWindowShown(list);
+								}
+							}
+
+							CurrentWorkspace.WindowActivated(hWnd);
 						}
 						break;
 				}
 			}
 		}
 
-		private void OnWindowShownOrActivated(IntPtr hWnd, bool activated)
+		private void OnHiddenWindowShown(LinkedList<Tuple<Workspace, Window>> list)
 		{
-			if (!hiddenApplications.Contains(hWnd))
+			if (list.All(t => !t.Item1.IsCurrentWorkspace))
 			{
-				if (hWnd != NativeMethods.shellWindow && !CurrentWorkspace.Monitor.temporarilyShownWindows.Contains(hWnd))
+				Workspace workspace;
+				if (monitors.Length > 1 &&
+					(workspace = list.Select(t => t.Item1).FirstOrDefault(ws => ws.IsWorkspaceVisible)) != null)
 				{
-					LinkedList<Tuple<Workspace, Window>> list;
-					if (!ApplicationsTryGetValue(hWnd, out list)) // if a new window has shown
-					{
-						AddWindowToWorkspace(hWnd);
-					}
-					else
-					{
-						hWnd = list.First.Value.Item2.hWnd;
-						if (list.All(t => !t.Item1.IsCurrentWorkspace))
-						{
-							Workspace workspace;
-							if (monitors.Length > 1 &&
-								(workspace = list.Select(t => t.Item1).FirstOrDefault(ws => ws.IsWorkspaceVisible)) != null)
-							{
-								// the window is actually visible on another monitor
-								// (e.g. when the user has ALT-TABbed to the window across monitors)
+					// the window is actually visible on another monitor
+					// (e.g. when the user has ALT-TABbed to the window across monitors)
 
-								SwitchToWorkspace(workspace.id, false);
-							}
-							else
-							{
-								OnHiddenWindowShown(hWnd, list.First.Value);
-							}
-						}
+					SwitchToWorkspace(workspace.id, false);
+				}
+				else
+				{
+					var window = list.First.Value.Item2;
+					switch (window.onHiddenWindowShownAction)
+					{
+						case OnWindowShownAction.SwitchToWindowsWorkspace:
+							SwitchToApplication(window.hWnd);
+							break;
+						case OnWindowShownAction.MoveWindowToCurrentWorkspace:
+							ChangeApplicationToWorkspace(window.hWnd, CurrentWorkspace.id, list.First.Value.Item1.id);
+							break;
+						case OnWindowShownAction.TemporarilyShowWindowOnCurrentWorkspace:
+							CurrentWorkspace.Monitor.temporarilyShownWindows.Add(window.hWnd);
+							break;
+						case OnWindowShownAction.HideWindow:
+							HideWindow(window);
+							ForceForegroundWindow(CurrentWorkspace.GetTopmostWindow());
+							break;
 					}
 				}
-
-				if (activated)
-				{
-					CurrentWorkspace.WindowActivated(hWnd);
-				}
-			}
-		}
-
-		private void OnHiddenWindowShown(IntPtr hWnd, Tuple<Workspace, Window> tuple)
-		{
-			switch (tuple.Item2.onHiddenWindowShownAction)
-			{
-				case OnWindowShownAction.SwitchToWindowsWorkspace:
-					SwitchToApplication(hWnd);
-					break;
-				case OnWindowShownAction.MoveWindowToCurrentWorkspace:
-					ChangeApplicationToWorkspace(hWnd, CurrentWorkspace.id, tuple.Item1.id);
-					break;
-				case OnWindowShownAction.TemporarilyShowWindowOnCurrentWorkspace:
-					CurrentWorkspace.Monitor.temporarilyShownWindows.Add(hWnd);
-					break;
-				case OnWindowShownAction.HideWindow:
-					HideWindow(tuple.Item2);
-					ForceForegroundWindow(CurrentWorkspace.GetTopmostWindow());
-					break;
 			}
 		}
 
