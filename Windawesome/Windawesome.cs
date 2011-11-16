@@ -901,16 +901,6 @@ namespace Windawesome
 			}
 		}
 
-		// only switches to applications in the current workspace
-		private void SwitchToApplicationInCurrentWorkspace(IntPtr hWnd)
-		{
-			var window = CurrentWorkspace.GetWindow(hWnd);
-			if (window != null)
-			{
-				ActivateWindow(window);
-			}
-		}
-
 		private static void RestoreIfMinimized(IntPtr hWnd, bool isMinimized)
 		{
 			if (isMinimized && WindowIsNotHung(hWnd))
@@ -952,6 +942,22 @@ namespace Windawesome
 		#endregion
 
 		#region API
+
+		public bool TryGetManagedWindowForWorkspace(IntPtr hWnd, Workspace workspace,
+			out Window window, out LinkedList<Tuple<Workspace, Window>> list)
+		{
+			if (ApplicationsTryGetValue(hWnd, out list))
+			{
+				var tuple = list.FirstOrDefault(t => t.Item1 == workspace);
+				if (tuple != null)
+				{
+					window = tuple.Item2;
+					return true;
+				}
+			}
+			window = null;
+			return false;
+		}
 
 		// http://blogs.msdn.com/b/oldnewthing/archive/2007/10/08/5351207.aspx
 		// http://stackoverflow.com/questions/210504/enumerate-windows-like-alt-tab-does
@@ -1041,9 +1047,10 @@ namespace Windawesome
 
 			if (newWorkspace.id != oldWorkspace.id)
 			{
-				var window = oldWorkspace.GetWindow(hWnd);
-
-				if (window != null && !newWorkspace.ContainsWindow(hWnd))
+				Window window;
+				LinkedList<Tuple<Workspace, Window>> list;
+				if (TryGetManagedWindowForWorkspace(hWnd, oldWorkspace, out window, out list) &&
+					list.All(t => t.Item1 != newWorkspace))
 				{
 					oldWorkspace.WindowDestroyed(window);
 					newWorkspace.WindowCreated(window);
@@ -1060,7 +1067,6 @@ namespace Windawesome
 						}
 					}
 
-					var list = applications[window.hWnd];
 					list.Remove(new Tuple<Workspace, Window>(oldWorkspace, window));
 					list.AddFirst(new Tuple<Workspace, Window>(newWorkspace, window));
 
@@ -1076,23 +1082,23 @@ namespace Windawesome
 
 			if (newWorkspace.id != oldWorkspace.id)
 			{
-				var window = oldWorkspace.GetWindow(hWnd);
-
-				if (window != null && !newWorkspace.ContainsWindow(hWnd))
+				Window window;
+				LinkedList<Tuple<Workspace, Window>> list;
+				if (TryGetManagedWindowForWorkspace(hWnd, oldWorkspace, out window, out list) &&
+					list.All(t => t.Item1 != newWorkspace))
 				{
 					var newWindow = new Window(window);
 
 					newWorkspace.WindowCreated(newWindow);
 					if (!follow && !oldWorkspace.IsWorkspaceVisible && newWorkspace.IsWorkspaceVisible)
 					{
-						window.ShowAsync();
+						newWindow.ShowAsync();
 					}
 
-					var list = applications[window.hWnd];
 					list.AddFirst(new Tuple<Workspace, Window>(newWorkspace, newWindow));
 					list.Where(t => ++t.Item2.WorkspacesCount == 2).ForEach(t => t.Item1.sharedWindowsCount++);
 
-					FollowWindow(oldWorkspace, newWorkspace, follow, window);
+					FollowWindow(oldWorkspace, newWorkspace, follow, newWindow);
 				}
 			}
 		}
@@ -1109,8 +1115,9 @@ namespace Windawesome
 		public void RemoveApplicationFromWorkspace(IntPtr hWnd, int workspaceId = 0, bool setForeground = true)
 		{
 			var workspace = workspaceId == 0 ? CurrentWorkspace : config.Workspaces[workspaceId - 1];
-			var window = workspace.GetWindow(hWnd);
-			if (window != null)
+			Window window;
+			LinkedList<Tuple<Workspace, Window>> list;
+			if (TryGetManagedWindowForWorkspace(hWnd, workspace, out window, out list))
 			{
 				if (window.WorkspacesCount == 1)
 				{
@@ -1124,7 +1131,6 @@ namespace Windawesome
 					}
 					workspace.WindowDestroyed(window);
 
-					var list = applications[window.hWnd];
 					list.Remove(new Tuple<Workspace, Window>(workspace, window));
 					list.Where(t => --t.Item2.WorkspacesCount == 1).ForEach(t => t.Item1.RemoveFromSharedWindows(t.Item2));
 
@@ -1136,7 +1142,7 @@ namespace Windawesome
 			}
 		}
 
-		public void RemoveApplicationFromAllWorkspaces(IntPtr hWnd, bool windowHidden) // sort of UnmanageWindow
+		public void RemoveApplicationFromAllWorkspaces(IntPtr hWnd, bool windowDestroyed) // sort of UnmanageWindow
 		{
 			LinkedList<Tuple<Workspace, Window>> list;
 			if (applications.TryGetValue(hWnd, out list))
@@ -1145,7 +1151,7 @@ namespace Windawesome
 				var window = list.First.Value.Item2;
 				if (!window.ShowMenu && window.menu != IntPtr.Zero)
 				{
-					if (windowHidden)
+					if (windowDestroyed)
 					{
 						NativeMethods.DestroyMenu(window.menu);
 					}
@@ -1304,22 +1310,42 @@ namespace Windawesome
 
 		public void ToggleWindowFloating(IntPtr hWnd)
 		{
-			CurrentWorkspace.ToggleWindowFloating(hWnd);
+			Window window;
+			LinkedList<Tuple<Workspace, Window>> _;
+			if (TryGetManagedWindowForWorkspace(hWnd, CurrentWorkspace, out window, out _))
+			{
+				CurrentWorkspace.ToggleWindowFloating(window);
+			}
 		}
 
 		public void ToggleShowHideWindowInTaskbar(IntPtr hWnd)
 		{
-			CurrentWorkspace.ToggleShowHideWindowInTaskbar(hWnd);
+			Window window;
+			LinkedList<Tuple<Workspace, Window>> _;
+			if (TryGetManagedWindowForWorkspace(hWnd, CurrentWorkspace, out window, out _))
+			{
+				window.ToggleShowHideInTaskbar();
+			}
 		}
 
 		public void ToggleShowHideWindowTitlebar(IntPtr hWnd)
 		{
-			CurrentWorkspace.ToggleShowHideWindowTitlebar(hWnd);
+			Window window;
+			LinkedList<Tuple<Workspace, Window>> _;
+			if (TryGetManagedWindowForWorkspace(hWnd, CurrentWorkspace, out window, out _))
+			{
+				CurrentWorkspace.ToggleShowHideWindowTitlebar(window);
+			}
 		}
 
 		public void ToggleShowHideWindowBorder(IntPtr hWnd)
 		{
-			CurrentWorkspace.ToggleShowHideWindowBorder(hWnd);
+			Window window;
+			LinkedList<Tuple<Workspace, Window>> _;
+			if (TryGetManagedWindowForWorkspace(hWnd, CurrentWorkspace, out window, out _))
+			{
+				CurrentWorkspace.ToggleShowHideWindowBorder(window);
+			}
 		}
 
 		public void ToggleTaskbarVisibility()
@@ -1329,7 +1355,12 @@ namespace Windawesome
 
 		public void ToggleShowHideWindowMenu(IntPtr hWnd)
 		{
-			CurrentWorkspace.ToggleShowHideWindowMenu(hWnd);
+			Window window;
+			LinkedList<Tuple<Workspace, Window>> _;
+			if (TryGetManagedWindowForWorkspace(hWnd, CurrentWorkspace, out window, out _))
+			{
+				window.ToggleShowHideWindowMenu();
+			}
 		}
 
 		public void SwitchToApplication(IntPtr hWnd)
@@ -1342,7 +1373,7 @@ namespace Windawesome
 					var visibleWorkspace = list.Select(t => t.Item1).FirstOrDefault(ws => ws.IsWorkspaceVisible);
 					SwitchToWorkspace(visibleWorkspace != null ? visibleWorkspace.id : list.First.Value.Item1.id, false);
 				}
-				SwitchToApplicationInCurrentWorkspace(list.First.Value.Item2.hWnd);
+				ActivateWindow(list.First.Value.Item2);
 			}
 		}
 
@@ -1488,7 +1519,7 @@ namespace Windawesome
 				HideWindow(applications[hWnd].First.Value.Item2);
 				if (monitor.CurrentVisibleWorkspace.IsCurrentWorkspace)
 				{
-					this.ForceForegroundWindow(this.CurrentWorkspace.GetTopmostWindow());
+					ForceForegroundWindow(CurrentWorkspace.GetTopmostWindow());
 				}
 			}
 		}
@@ -1559,7 +1590,7 @@ namespace Windawesome
 					else
 					{
 						hWnd = list.First.Value.Item2.hWnd;
-						if (!CurrentWorkspace.ContainsWindow(hWnd))
+						if (list.All(t => !t.Item1.IsCurrentWorkspace))
 						{
 							Workspace workspace;
 							if (monitors.Length > 1 &&

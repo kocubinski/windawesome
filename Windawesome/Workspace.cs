@@ -526,62 +526,32 @@ namespace Windawesome
 			return topmostWindowHandle;
 		}
 
-		internal void ToggleWindowFloating(IntPtr hWnd)
+		internal void ToggleWindowFloating(Window window)
 		{
-			var window = GetWindow(hWnd);
-			if (window != null)
+			window.IsFloating = !window.IsFloating;
+			if (!window.IsMinimized)
 			{
-				window.IsFloating = !window.IsFloating;
-				if (!window.IsMinimized)
+				if (window.IsFloating)
 				{
-					if (window.IsFloating)
-					{
-						Layout.WindowDestroyed(window);
-					}
-					else
-					{
-						Layout.WindowCreated(window);
-					}
+					Layout.WindowDestroyed(window);
+				}
+				else
+				{
+					Layout.WindowCreated(window);
 				}
 			}
 		}
 
-		internal void ToggleShowHideWindowInTaskbar(IntPtr hWnd)
+		internal void ToggleShowHideWindowTitlebar(Window window)
 		{
-			var window = GetWindow(hWnd);
-			if (window != null)
-			{
-				window.ToggleShowHideInTaskbar();
-			}
+			window.ToggleShowHideTitlebar();
+			DoWindowTitlebarToggled(window);
 		}
 
-		internal void ToggleShowHideWindowTitlebar(IntPtr hWnd)
+		internal void ToggleShowHideWindowBorder(Window window)
 		{
-			var window = GetWindow(hWnd);
-			if (window != null)
-			{
-				window.ToggleShowHideTitlebar();
-				DoWindowTitlebarToggled(window);
-			}
-		}
-
-		internal void ToggleShowHideWindowBorder(IntPtr hWnd)
-		{
-			var window = GetWindow(hWnd);
-			if (window != null)
-			{
-				window.ToggleShowHideWindowBorder();
-				DoWindowBorderToggled(window);
-			}
-		}
-
-		internal void ToggleShowHideWindowMenu(IntPtr hWnd)
-		{
-			var window = GetWindow(hWnd);
-			if (window != null)
-			{
-				window.ToggleShowHideWindowMenu();
-			}
+			window.ToggleShowHideWindowBorder();
+			DoWindowBorderToggled(window);
 		}
 
 		internal void Initialize()

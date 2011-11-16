@@ -40,7 +40,7 @@ subscribe modifiers.Alt, key.Q do
 end
 
 subscribe modifiers.Control | modifiers.Alt | modifiers.Shift, key.Q do
-	windawesome.remove_application_from_workspace get_current_workspace_managed_window
+	windawesome.remove_application_from_workspace Windawesome::NativeMethods.get_foreground_window
 end
 
 # dismiss application
@@ -106,7 +106,7 @@ end
 
 # toggle window floating
 subscribe modifiers.Control | modifiers.Alt | modifiers.Shift, key.F do
-	windawesome.toggle_window_floating get_current_workspace_managed_window
+	windawesome.toggle_window_floating Windawesome::NativeMethods.get_foreground_window
 end
 
 # toggle window titlebar
@@ -126,7 +126,7 @@ end
 
 # toggle window menu
 subscribe modifiers.Control | modifiers.Alt | modifiers.Shift, key.M do
-	windawesome.toggle_show_hide_window_menu get_current_workspace_managed_window
+	windawesome.toggle_show_hide_window_menu Windawesome::NativeMethods.get_foreground_window
 end
 
 # Layout stuff
@@ -212,10 +212,10 @@ end
 	end
 
 	subscribe modifiers.Alt | modifiers.Shift, k do
-		windawesome.change_application_to_workspace get_current_workspace_managed_window, i
+		windawesome.change_application_to_workspace Windawesome::NativeMethods.get_foreground_window, i
 	end
 
 	subscribe modifiers.Control | modifiers.Alt | modifiers.Shift, k do
-		windawesome.add_application_to_workspace get_current_workspace_managed_window, i
+		windawesome.add_application_to_workspace Windawesome::NativeMethods.get_foreground_window, i
 	end
 end
