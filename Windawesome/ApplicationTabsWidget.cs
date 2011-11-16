@@ -187,6 +187,10 @@ namespace Windawesome
 
 				if (isShown && workspace.IsWorkspaceVisible)
 				{
+					if (workspace.IsCurrentWorkspace)
+					{
+						OnWindowActivated(NativeMethods.GetForegroundWindow());
+					}
 					ResizeApplicationPanels(left, right, workspaceId);
 				}
 				else
@@ -207,6 +211,10 @@ namespace Windawesome
 				applicationPanels[workspaceId].Remove(tuple);
 				if (isShown && workspace.IsWorkspaceVisible)
 				{
+					if (workspace.IsCurrentWorkspace)
+					{
+						OnWindowActivated(NativeMethods.GetForegroundWindow());
+					}
 					ResizeApplicationPanels(left, right, workspaceId);
 				}
 				else

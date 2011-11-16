@@ -150,8 +150,7 @@ subscribe modifiers.Alt, key.J do
 	if window
 		next_window = windawesome.current_workspace.get_next_window window
 		windawesome.switch_to_application next_window.hWnd if next_window
-	elsif Windawesome::NativeMethods.get_foreground_window == Windawesome::NativeMethods::shellWindow and
-		windawesome.current_workspace.get_windows.count > 0
+	elsif windawesome.current_workspace.get_windows.count > 0
 		windawesome.switch_to_application windawesome.current_workspace.get_windows.first.value.hWnd
 	end
 end
@@ -161,8 +160,7 @@ subscribe modifiers.Alt, key.K do
 	if window
 		previous_window = windawesome.current_workspace.get_previous_window window
 		windawesome.switch_to_application previous_window.hWnd if previous_window
-	elsif Windawesome::NativeMethods.get_foreground_window == Windawesome::NativeMethods::shellWindow and
-		windawesome.current_workspace.get_windows.count > 0
+	elsif windawesome.current_workspace.get_windows.count > 0
 		windawesome.switch_to_application windawesome.current_workspace.get_windows.first.value.hWnd
 	end
 end

@@ -24,11 +24,11 @@ namespace Windawesome
 		public static readonly bool isAtLeast7;
 		public static readonly Size smallIconSize;
 		public static readonly IntPtr taskbarButtonsWindowHandle;
-		public static readonly uint windawesomeThreadId = NativeMethods.GetCurrentThreadId();
 
 		private readonly Dictionary<IntPtr, LinkedList<Tuple<Workspace, Window>>> applications; // hWnd to a list of workspaces and windows
 		private readonly HashMultiSet<IntPtr> hiddenApplications;
 		private readonly IntPtr getForegroundPrivilageAtom;
+		private readonly uint windawesomeThreadId = NativeMethods.GetCurrentThreadId();
 
 		private readonly Tuple<NativeMethods.MOD, Keys> altTabHotkey = new Tuple<NativeMethods.MOD, Keys>(NativeMethods.MOD.MOD_ALT, Keys.Tab);
 		private readonly Dictionary<int, HandleMessageDelegate> messageHandlers;
@@ -422,7 +422,7 @@ namespace Windawesome
 			Quit();
 		}
 
-		private static bool IsAppWindow(IntPtr hWnd)
+		internal static bool IsAppWindow(IntPtr hWnd)
 		{
 			return NativeMethods.IsWindowVisible(hWnd) &&
 				!NativeMethods.GetWindowStyleLongPtr(hWnd).HasFlag(NativeMethods.WS.WS_CHILD);
@@ -947,6 +947,36 @@ namespace Windawesome
 		#endregion
 
 		#region API
+
+		public static bool IsAltTabWindow(IntPtr hWnd)
+		{
+			var exStyle = NativeMethods.GetWindowExStyleLongPtr(hWnd);
+			if (exStyle.HasFlag(NativeMethods.WS_EX.WS_EX_TOOLWINDOW) ||
+				NativeMethods.GetWindow(hWnd, NativeMethods.GW.GW_OWNER) != IntPtr.Zero)
+			{
+				return false;
+			}
+			if (exStyle.HasFlag(NativeMethods.WS_EX.WS_EX_APPWINDOW))
+			{
+				return true;
+			}
+
+			// Start at the root owner
+			var hWndTry = NativeMethods.GetAncestor(hWnd, NativeMethods.GA.GA_ROOTOWNER);
+
+			// See if we are the last active visible popup
+			while (!NativeMethods.IsWindowVisible(hWndTry))
+			{
+				var oldHWnd = hWndTry;
+				hWndTry = NativeMethods.GetLastActivePopup(hWndTry);
+				if (oldHWnd == hWndTry)
+				{
+					break;
+				}
+			}
+
+			return hWndTry == hWnd;
+		}
 
 		public static IntPtr DoForSelfAndOwnersWhile(IntPtr hWnd, Predicate<IntPtr> action)
 		{

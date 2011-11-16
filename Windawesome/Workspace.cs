@@ -444,6 +444,11 @@ namespace Windawesome
 				hasChanges |= !IsWorkspaceVisible;
 			}
 
+			if (!window.IsMinimized)
+			{
+				topmostWindow = window;
+			}
+
 			DoWorkspaceWindowAdded(this, window);
 		}
 
@@ -494,20 +499,6 @@ namespace Windawesome
 			return windows;
 		}
 
-		private static bool IsAltTabWindow(IntPtr hWnd)
-		{
-			// Start at the root owner
-			var hWndTry = NativeMethods.GetAncestor(hWnd, NativeMethods.GA.GA_ROOTOWNER);
-
-			// See if we are the last active visible popup
-			while (!NativeMethods.IsWindowVisible(hWndTry))
-			{
-				hWndTry = NativeMethods.GetLastActivePopup(hWndTry);
-			}
-
-			return hWndTry == hWnd;
-		}
-
 		public IntPtr GetTopmostWindow()
 		{
 			if (topmostWindow != null && !topmostWindow.IsMinimized && ContainsWindow(topmostWindow.hWnd))
@@ -516,22 +507,20 @@ namespace Windawesome
 			}
 			topmostWindow = null;
 
-			if (!NativeMethods.IsWindowVisible(topmostWindowHandle))
+			if ((topmostWindowHandle == NativeMethods.shellWindow && windows.Count > 0) ||
+				!NativeMethods.IsWindowVisible(topmostWindowHandle))
 			{
+				topmostWindowHandle = NativeMethods.shellWindow;
 				NativeMethods.EnumWindows((hWnd, _) =>
 					{
-						if (NativeMethods.IsWindowVisible(hWnd) && !NativeMethods.IsIconic(hWnd) &&
-							(ContainsWindow(hWnd) || IsAltTabWindow(hWnd)))
+						if (Windawesome.IsAppWindow(hWnd) && !NativeMethods.IsIconic(hWnd) &&
+							((topmostWindow = GetWindow(hWnd)) != null || Windawesome.IsAltTabWindow(hWnd)))
 						{
 							topmostWindowHandle = hWnd;
 							return false;
 						}
 						return true;
 					}, IntPtr.Zero);
-				if (!NativeMethods.IsWindowVisible(topmostWindowHandle))
-				{
-					topmostWindowHandle = NativeMethods.shellWindow;
-				}
 			}
 
 			return topmostWindowHandle;
