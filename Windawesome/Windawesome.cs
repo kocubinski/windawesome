@@ -532,9 +532,7 @@ namespace Windawesome
 					// is set to be transparent
 					// On Windows XP SP3
 					NativeMethods.RedrawWindow(IntPtr.Zero, IntPtr.Zero, IntPtr.Zero,
-						NativeMethods.RDW.RDW_ALLCHILDREN |
-							NativeMethods.RDW.RDW_ERASE |
-								NativeMethods.RDW.RDW_INVALIDATE);
+						NativeMethods.RDW.RDW_ALLCHILDREN | NativeMethods.RDW.RDW_ERASE | NativeMethods.RDW.RDW_INVALIDATE);
 				}
 
 				var list = new LinkedList<Tuple<Workspace, Window>>();
@@ -948,6 +946,8 @@ namespace Windawesome
 
 		#region API
 
+		// http://blogs.msdn.com/b/oldnewthing/archive/2007/10/08/5351207.aspx
+		// http://stackoverflow.com/questions/210504/enumerate-windows-like-alt-tab-does
 		public static bool IsAltTabWindow(IntPtr hWnd)
 		{
 			var exStyle = NativeMethods.GetWindowExStyleLongPtr(hWnd);
@@ -1500,22 +1500,7 @@ namespace Windawesome
 					case NativeMethods.EVENT.EVENT_OBJECT_SHOW:
 						if (IsAppWindow(hWnd))
 						{
-							if (!applications.ContainsKey(hWnd)) // if a new window has shown
-							{
-								AddWindowToWorkspace(hWnd);
-							}
-							else if (!CurrentWorkspace.ContainsWindow(hWnd) && !CurrentWorkspace.Monitor.temporarilyShownWindows.Contains(hWnd)) // if a hidden window has shown
-							{
-								// there is a problem with some windows showing up when others are created.
-								// how to reproduce: start BitComet 1.26 on some workspace, switch to another one
-								// and start explorer.exe (the file manager)
-								// on Windows 7 Ultimate x64 SP1
-
-								// another problem is that some windows continuously keep showing when hidden.
-								// how to reproduce: TortoiseSVN. About box. Click check for updates. This window
-								// keeps showing up when changing workspaces
-								OnWindowActivated(hWnd);
-							}
+							OnWindowActivated(hWnd, true);
 						}
 						break;
 					// differentiating between hiding and destroying a window is nice - therefore HSHELL_WINDOWDESTROYED is not enough
@@ -1540,20 +1525,15 @@ namespace Windawesome
 					// HSHELL_WINDOWACTIVATED/HSHELL_RUDEAPPACTIVATED doesn't work for some windows like Digsby Buddy List
 					// EVENT_OBJECT_FOCUS doesn't work with Firefox on the other hand
 					case NativeMethods.EVENT.EVENT_SYSTEM_FOREGROUND:
-						OnWindowActivated(NativeMethods.GetForegroundWindow());
+						OnWindowActivated(hWnd, false);
 						break;
 				}
 			}
 		}
 
-		private void OnWindowActivated(IntPtr hWnd)
+		private void OnWindowActivated(IntPtr hWnd, bool shown)
 		{
-			// TODO: when switching from a workspace to another, both containing a shared window,
-			// and the shared window is the active window, Windows sends a HSHELL_WINDOWACTIVATED
-			// for the shared window after the switch (even if it is not the top window in the
-			// workspace being switched to), which causes a wrong reordering in Z order
-
-			if (!hiddenApplications.Contains(hWnd))
+			if (!hiddenApplications.Contains(hWnd) || shown)
 			{
 				if (hWnd != NativeMethods.shellWindow && !CurrentWorkspace.Monitor.temporarilyShownWindows.Contains(hWnd))
 				{
@@ -1568,22 +1548,26 @@ namespace Windawesome
 						if (!CurrentWorkspace.ContainsWindow(hWnd))
 						{
 							Workspace workspace;
-							if (monitors.Length > 1 && (workspace = list.Select(t => t.Item1).FirstOrDefault(ws => ws.IsWorkspaceVisible)) != null)
+							if (this.monitors.Length > 1 &&
+								(workspace = list.Select(t => t.Item1).FirstOrDefault(ws => ws.IsWorkspaceVisible)) != null)
 							{
 								// the window is actually visible on another monitor
 								// (e.g. when the user has ALT-TABbed to the window across monitors)
 
-								SwitchToWorkspace(workspace.id, false);
+								this.SwitchToWorkspace(workspace.id, false);
 							}
 							else
 							{
-								OnHiddenWindowShown(hWnd, list.First.Value);
+								this.OnHiddenWindowShown(hWnd, list.First.Value);
 							}
 						}
 					}
 				}
 
-				CurrentWorkspace.WindowActivated(hWnd);
+				if (!shown)
+				{
+					CurrentWorkspace.WindowActivated(hWnd);
+				}
 			}
 		}
 
