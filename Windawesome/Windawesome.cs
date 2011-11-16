@@ -441,7 +441,6 @@ namespace Windawesome
 					}
 					return true;
 				}
-				hiddenApplications.Add(hWnd);
 				return false;
 			}
 
@@ -460,18 +459,12 @@ namespace Windawesome
 				DoProgramRuleMatched(programRule, hWnd, className, displayName, processName, style, exStyle);
 				if (programRule == null || !programRule.isManaged)
 				{
-					hiddenApplications.Add(hWnd);
 					return false;
 				}
 				if (programRule.tryAgainAfter >= 0 && firstTry && finishedInitializing)
 				{
 					System.Threading.Thread.Sleep(programRule.tryAgainAfter);
-					if (!IsAppWindow(hWnd))
-					{
-						hiddenApplications.Add(hWnd);
-						return false;
-					}
-					return this.AddWindowToWorkspace(hWnd, false);
+					return IsAppWindow(hWnd) && AddWindowToWorkspace(hWnd, false);
 				}
 
 				IEnumerable<ProgramRule.Rule> matchingRules = programRule.rules;
@@ -1552,7 +1545,7 @@ namespace Windawesome
 								// another problem is that some windows continuously keep showing when hidden.
 								// how to reproduce: TortoiseSVN. About box. Click check for updates. This window
 								// keeps showing up when changing workspaces
-								OnHiddenWindowShown(list);
+								HiddenWindowShownOrActivated(list);
 							}
 						}
 						break;
@@ -1594,7 +1587,7 @@ namespace Windawesome
 								else
 								{
 									hWnd = list.First.Value.Item2.hWnd;
-									OnHiddenWindowShown(list);
+									HiddenWindowShownOrActivated(list);
 								}
 							}
 
@@ -1605,7 +1598,7 @@ namespace Windawesome
 			}
 		}
 
-		private void OnHiddenWindowShown(LinkedList<Tuple<Workspace, Window>> list)
+		private void HiddenWindowShownOrActivated(LinkedList<Tuple<Workspace, Window>> list)
 		{
 			if (list.All(t => !t.Item1.IsCurrentWorkspace))
 			{
