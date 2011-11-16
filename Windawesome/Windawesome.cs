@@ -431,12 +431,13 @@ namespace Windawesome
 		private bool AddWindowToWorkspace(IntPtr hWnd, bool firstTry = true, bool finishedInitializing = true)
 		{
 			LinkedList<Tuple<Workspace, Window>> workspacesWindowsList;
-			if (ApplicationsTryGetValue(hWnd, out workspacesWindowsList))
+			if (ApplicationsTryGetValue(hWnd, out workspacesWindowsList) &&
+				workspacesWindowsList.First.Value.Item2.hWnd != hWnd)
 			{
 				if (workspacesWindowsList.First.Value.Item2.IsMatchOwnedWindow(hWnd))
 				{
 					var ownedWindows = workspacesWindowsList.First.Value.Item2.OwnedWindows;
-					if (ownedWindows.Last.Value != hWnd)
+					if (ownedWindows.FindLast(hWnd) == null)
 					{
 						ownedWindows.AddLast(hWnd);
 					}
@@ -1318,16 +1319,6 @@ namespace Windawesome
 			}
 		}
 
-		public void ToggleShowHideWindowInTaskbar(IntPtr hWnd)
-		{
-			Window window;
-			LinkedList<Tuple<Workspace, Window>> _;
-			if (TryGetManagedWindowForWorkspace(hWnd, CurrentWorkspace, out window, out _))
-			{
-				window.ToggleShowHideInTaskbar();
-			}
-		}
-
 		public void ToggleShowHideWindowTitlebar(IntPtr hWnd)
 		{
 			Window window;
@@ -1351,6 +1342,16 @@ namespace Windawesome
 		public void ToggleTaskbarVisibility()
 		{
 			CurrentWorkspace.ToggleWindowsTaskbarVisibility();
+		}
+
+		public void ToggleShowHideWindowInTaskbar(IntPtr hWnd)
+		{
+			Window window;
+			LinkedList<Tuple<Workspace, Window>> _;
+			if (TryGetManagedWindowForWorkspace(hWnd, CurrentWorkspace, out window, out _))
+			{
+				window.ToggleShowHideInTaskbar();
+			}
 		}
 
 		public void ToggleShowHideWindowMenu(IntPtr hWnd)
@@ -1513,13 +1514,18 @@ namespace Windawesome
 
 		public void DismissTemporarilyShownWindow(IntPtr hWnd)
 		{
-			var monitor = monitors.FirstOrDefault(m => m.temporarilyShownWindows.Remove(hWnd));
-			if (monitor != null)
+			LinkedList<Tuple<Workspace, Window>> list;
+			if (ApplicationsTryGetValue(hWnd, out list))
 			{
-				HideWindow(applications[hWnd].First.Value.Item2);
-				if (monitor.CurrentVisibleWorkspace.IsCurrentWorkspace)
+				hWnd = list.First.Value.Item2.hWnd;
+				var monitor = monitors.FirstOrDefault(m => m.temporarilyShownWindows.Remove(hWnd));
+				if (monitor != null)
 				{
-					ForceForegroundWindow(CurrentWorkspace.GetTopmostWindow());
+					HideWindow(list.First.Value.Item2);
+					if (monitor.CurrentVisibleWorkspace.IsCurrentWorkspace)
+					{
+						ForceForegroundWindow(CurrentWorkspace.GetTopmostWindow());
+					}
 				}
 			}
 		}

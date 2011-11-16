@@ -104,7 +104,7 @@ namespace Windawesome
 
 		void ILayout.Reposition()
 		{
-			workspace.GetManagedWindows().ForEach(MaximizeWindow);
+			workspace.GetLayoutManagedWindows().ForEach(MaximizeWindow);
 			Workspace.DoLayoutUpdated();
 		}
 

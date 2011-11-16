@@ -327,16 +327,6 @@ namespace Windawesome
 			}
 		}
 
-		internal void ToggleWindowsTaskbarVisibility()
-		{
-			if (Monitor.screen.Primary)
-			{
-				ShowWindowsTaskbar = !ShowWindowsTaskbar;
-				Monitor.ShowHideWindowsTaskbar(ShowWindowsTaskbar);
-				Reposition();
-			}
-		}
-
 		//internal bool HideBar(int workspacesCount, IEnumerable<Workspace> workspaces, IBar hideBar)
 		//{
 		//    shownBars = shownBars.ToArray(); // because we need to hide the bar after that so we need to save the currently shown ones
@@ -489,7 +479,7 @@ namespace Windawesome
 			return windows.FirstOrDefault(w => w.hWnd == hWnd);
 		}
 
-		public IEnumerable<Window> GetManagedWindows()
+		public IEnumerable<Window> GetLayoutManagedWindows()
 		{
 			return windows.Where(w => !w.IsFloating && !w.IsMinimized);
 		}
@@ -554,6 +544,16 @@ namespace Windawesome
 			DoWindowBorderToggled(window);
 		}
 
+		internal void ToggleWindowsTaskbarVisibility()
+		{
+			if (Monitor.screen.Primary)
+			{
+				ShowWindowsTaskbar = !ShowWindowsTaskbar;
+				Monitor.ShowHideWindowsTaskbar(ShowWindowsTaskbar);
+				Reposition();
+			}
+		}
+
 		internal void Initialize()
 		{
 			// I'm adding to the front of the list in WindowCreated, however EnumWindows enums
@@ -571,6 +571,8 @@ namespace Windawesome
 			RestoreSharedWindowState(window, !IsWorkspaceVisible);
 			sharedWindowsCount--;
 		}
+
+		#region Window Position
 
 		public Window GetNextWindow(Window window)
 		{
@@ -669,5 +671,7 @@ namespace Windawesome
 				}
 			}
 		}
+
+		#endregion
 	}
 }

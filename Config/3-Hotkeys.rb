@@ -9,12 +9,9 @@ end
 
 flashing_window = nil
 
-def get_managed_window workspace, hWnd
-	Windawesome::Windawesome.do_for_self_and_owners_while hWnd, lambda { |h| not workspace.contains_window h }
-end
-
 def get_current_workspace_managed_window
-	get_managed_window windawesome.current_workspace, Windawesome::NativeMethods.get_foreground_window
+	_, window, _ = windawesome.try_get_managed_window_for_workspace Windawesome::NativeMethods.get_foreground_window, windawesome.current_workspace
+	window
 end
 
 Windawesome::Windawesome.window_flashing do |l|
@@ -146,7 +143,7 @@ end
 # window position stuff
 
 subscribe modifiers.Alt, key.J do
-	window = windawesome.current_workspace.get_window get_current_workspace_managed_window
+	window = get_current_workspace_managed_window
 	if window
 		next_window = windawesome.current_workspace.get_next_window window
 		windawesome.switch_to_application next_window.hWnd if next_window
@@ -156,7 +153,7 @@ subscribe modifiers.Alt, key.J do
 end
 
 subscribe modifiers.Alt, key.K do
-	window = windawesome.current_workspace.get_window get_current_workspace_managed_window
+	window = get_current_workspace_managed_window
 	if window
 		previous_window = windawesome.current_workspace.get_previous_window window
 		windawesome.switch_to_application previous_window.hWnd if previous_window
@@ -166,17 +163,17 @@ subscribe modifiers.Alt, key.K do
 end
 
 subscribe modifiers.Alt | modifiers.Shift, key.J do
-	window = windawesome.current_workspace.get_window get_current_workspace_managed_window
+	window = get_current_workspace_managed_window
 	windawesome.current_workspace.shift_window_forward window if window
 end
 
 subscribe modifiers.Alt | modifiers.Shift, key.K do
-	window = windawesome.current_workspace.get_window get_current_workspace_managed_window
+	window = get_current_workspace_managed_window
 	windawesome.current_workspace.shift_window_backwards window if window
 end
 
 subscribe modifiers.Control | modifiers.Alt | modifiers.Shift, key.Return do
-	window = windawesome.current_workspace.get_window get_current_workspace_managed_window
+	window = get_current_workspace_managed_window
 	windawesome.current_workspace.shift_window_to_main_position window if window
 end
 
