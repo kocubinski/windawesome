@@ -123,6 +123,11 @@ config.ProgramRules = [
 		onWindowCreatedAction = OnWindowShownAction.HideWindow,
 		rules = [ProgramRule.Rule(workspace = 4, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
 	),
+	ProgramRule(	
+		className = "^Console_2_Main$",
+		updateIcon = False,
+		rules = [ProgramRule.Rule(workspace = 3)]
+	),
 	ProgramRule(
 		className = "^OpusApp$",
 		displayName = ".*Microsoft Word Viewer$",
@@ -131,21 +136,6 @@ config.ProgramRules = [
 	ProgramRule(
 		className = "^ConsoleWindowClass$", # Interix terminal
 		rules = [ProgramRule.Rule(isFloating = True)]
-	),
-	ProgramRule(
-		className = "^Internet Explorer_Hidden$", # what the hell
-		displayName = "",
-		isManaged = False
-	),
-	ProgramRule(
-		className = "^Edit$", # some stupid window of Adobe Reader
-		displayName = "",
-		isManaged = False
-	),
-	ProgramRule(
-		className = "^ShockwaveFlashFullScreen$", # Adobe Flash Player when full screen
-		displayName = "^Adobe Flash Player$",
-		isManaged = False
 	),
 	ProgramRule(
 		displayName = "^Windows 7 Manager - Junk File Cleaner$",

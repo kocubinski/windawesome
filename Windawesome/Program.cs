@@ -7,6 +7,7 @@ namespace Windawesome
 	static class Program
 	{
 		private static Windawesome windawesome;
+
 		/// <summary>
 		/// The main entry point for the application.
 		/// </summary>

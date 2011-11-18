@@ -18,6 +18,7 @@ namespace Windawesome
 		public readonly bool is64BitProcess;
 		public readonly bool redrawOnShow;
 		public bool ShowMenu { get; private set; }
+		public readonly bool updateIcon;
 		public readonly OnWindowShownAction onHiddenWindowShownAction;
 		public readonly IntPtr menu;
 		public readonly bool hideFromAltTabAndTaskbarWhenOnInactiveWorkspace;
@@ -82,6 +83,7 @@ namespace Windawesome
 			this.is64BitProcess = is64BitProcess;
 			redrawOnShow = rule.redrawOnShow;
 			ShowMenu = programRule.showMenu;
+			updateIcon = programRule.updateIcon;
 			onHiddenWindowShownAction = programRule.onHiddenWindowShownAction;
 			this.menu = menu;
 			this.hideFromAltTabAndTaskbarWhenOnInactiveWorkspace = rule.hideFromAltTabAndTaskbarWhenOnInactiveWorkspace;
@@ -113,6 +115,7 @@ namespace Windawesome
 			is64BitProcess = window.is64BitProcess;
 			redrawOnShow = window.redrawOnShow;
 			ShowMenu = window.ShowMenu;
+			updateIcon = window.updateIcon;
 			onHiddenWindowShownAction = window.onHiddenWindowShownAction;
 			menu = window.menu;
 			this.hideFromAltTabAndTaskbarWhenOnInactiveWorkspace = window.hideFromAltTabAndTaskbarWhenOnInactiveWorkspace;

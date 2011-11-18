@@ -206,6 +206,7 @@ namespace Windawesome
 		internal readonly int windowCreatedDelay;
 		internal readonly bool redrawDesktopOnWindowCreated;
 		internal readonly bool showMenu;
+		internal readonly bool updateIcon;
 		internal readonly OnWindowCreatedOnCurrentWorkspaceAction onWindowCreatedOnCurrentWorkspaceAction;
 		internal readonly OnWindowShownAction onWindowCreatedAction;
 		internal readonly OnWindowShownAction onHiddenWindowShownAction;
@@ -231,7 +232,8 @@ namespace Windawesome
 			NativeMethods.WS_EX exStyleContains = (NativeMethods.WS_EX) 0, NativeMethods.WS_EX exStyleNotContains = (NativeMethods.WS_EX) 0,
 			CustomMatchingFunction customMatchingFunction = null, CustomMatchingFunction customOwnedWindowMatchingFunction = null,
 
-			bool isManaged = true, int tryAgainAfter = -1, int windowCreatedDelay = -1, bool redrawDesktopOnWindowCreated = false, bool showMenu = true,
+			bool isManaged = true, int tryAgainAfter = -1, int windowCreatedDelay = -1, bool redrawDesktopOnWindowCreated = false,
+			bool showMenu = true, bool updateIcon = true,
 			OnWindowCreatedOnCurrentWorkspaceAction onWindowCreatedOnCurrentWorkspaceAction = OnWindowCreatedOnCurrentWorkspaceAction.ActivateWindow,
 			OnWindowShownAction onWindowCreatedAction = OnWindowShownAction.SwitchToWindowsWorkspace,
 			OnWindowShownAction onHiddenWindowShownAction = OnWindowShownAction.SwitchToWindowsWorkspace,
@@ -254,6 +256,7 @@ namespace Windawesome
 				this.windowCreatedDelay = windowCreatedDelay;
 				this.redrawDesktopOnWindowCreated = redrawDesktopOnWindowCreated;
 				this.showMenu = showMenu;
+				this.updateIcon = updateIcon;
 				this.onWindowCreatedOnCurrentWorkspaceAction = onWindowCreatedOnCurrentWorkspaceAction;
 				this.onWindowCreatedAction = onWindowCreatedAction;
 				this.onHiddenWindowShownAction = onHiddenWindowShownAction;

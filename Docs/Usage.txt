@@ -70,6 +70,7 @@ tryAgainAfter - the time, in milliseconds, to wait before trying to match the ru
 windowCreatedDelay - the time, in milliseconds, to wait before taking any action after the window has been created (if > 0). Windawesome will match the rules and then sleep. The default value is -1 which means that Windawesome will wait until the process is completely loaded. In most cases the default will work just fine
 redrawDesktopOnWindowCreated - if true, Windawesome will redraw the Desktop when this window is created. Useful if you have problems with that. I've seen it with mintty (the cygwin terminal emulator). Defaults to false
 showMenu - if true, the menu bar (if any) of a window is shown, otherwise - not. Note that actually this doesn't work for a lot of windows, because they don't have a menu in Window's sense. Defaults to true
+updateIcon - if true, the icon is going to be updated when Windawesome receives a notification that it has changed. Some applications (like Console) send a massive amount of messages that they have changed their icon (while they haven't), so try setting it to false if you have problems. Defaults to true
 onWindowCreatedOnCurrentWorkspaceAction - specifies what to do when a window is created on the current workspace or MoveWindowToCurrentWorkspace/TemporarilyShowWindowOnCurrentWorkspace is used in the onWindowCreatedAction. Can be one of the enum values:
 	ActivateWindow - activates the window (default)
 	MoveToBottom - moves the new window to the bottom of the Z order and activates the one that was active up to now

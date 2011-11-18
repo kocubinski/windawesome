@@ -1653,7 +1653,7 @@ namespace Windawesome
 									DoWindowTitleOrIconChanged(t.Item1, t.Item2, text, null);
 								}
 							}
-							else
+							else if (list.First.Value.Item2.updateIcon)
 							{
 								GetWindowSmallIconAsBitmap(list.First.Value.Item2.hWnd, bitmap =>
 									list.ForEach(t => DoWindowTitleOrIconChanged(t.Item1, t.Item2, null, bitmap)));
