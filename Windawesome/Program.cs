@@ -6,6 +6,7 @@ namespace Windawesome
 {
 	static class Program
 	{
+		private static Windawesome windawesome;
 		/// <summary>
 		/// The main entry point for the application.
 		/// </summary>
@@ -20,41 +21,42 @@ namespace Windawesome
 					Application.EnableVisualStyles();
 					Application.SetCompatibleTextRenderingDefault(false);
 
-					Windawesome windawesome = null;
-					try
-					{
-						windawesome = new Windawesome();
-						Application.Run(new WindawesomeApplicationContext());
-					}
-					catch (Exception e)
-					{
-						System.IO.File.AppendAllLines("log.txt", new[]
-							{
-								"------------------------------------",
-								DateTime.Now.ToString(),
-								"Assemblies:",
-								System.Reflection.Assembly.GetExecutingAssembly().FullName
-							}.
-							Concat(System.Reflection.Assembly.GetExecutingAssembly().GetReferencedAssemblies().Select(a => a.FullName)).
-							Concat(new[]
-								{
-									"",
-									"OS: " + Environment.OSVersion.VersionString,
-									"CLR: " + Environment.Version.ToString(3),
-									"64-bit OS: " + Environment.Is64BitOperatingSystem,
-									"64-bit process: " + Environment.Is64BitProcess,
-									"Elevated: " + Windawesome.isRunningElevated,
-									e.ToString(),
-									"Inner Exception:",
-									e.InnerException != null ? e.InnerException.ToString() : "none"
-								}));
+					Application.ThreadException += OnApplicationThreadException;
 
-						if (windawesome != null)
-						{
-							windawesome.Quit();
-						}
-					}
+					windawesome = new Windawesome();
+					Application.Run(new WindawesomeApplicationContext());
+
+					Application.ThreadException -= OnApplicationThreadException;
 				}
+			}
+		}
+
+		private static void OnApplicationThreadException(object sender, System.Threading.ThreadExceptionEventArgs ea)
+		{
+			System.IO.File.AppendAllLines("log.txt", new[]
+				{
+					"------------------------------------",
+					DateTime.Now.ToString(),
+					"Assemblies:",
+					System.Reflection.Assembly.GetExecutingAssembly().FullName
+				}.
+				Concat(System.Reflection.Assembly.GetExecutingAssembly().GetReferencedAssemblies().Select(a => a.FullName)).
+				Concat(new[]
+					{
+						"",
+						"OS: " + Environment.OSVersion.VersionString,
+						"CLR: " + Environment.Version.ToString(3),
+						"64-bit OS: " + Environment.Is64BitOperatingSystem,
+						"64-bit process: " + Environment.Is64BitProcess,
+						"Elevated: " + Windawesome.isRunningElevated,
+						ea.Exception.ToString(),
+						"Inner Exception:",
+						ea.Exception.InnerException != null ? ea.Exception.InnerException.ToString() : "none"
+					}));
+
+			if (windawesome != null)
+			{
+				windawesome.Quit();
 			}
 		}
 
