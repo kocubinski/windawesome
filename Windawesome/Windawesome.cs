@@ -1571,24 +1571,24 @@ namespace Windawesome
 					// HSHELL_WINDOWACTIVATED/HSHELL_RUDEAPPACTIVATED doesn't work for some windows like Digsby Buddy List
 					// EVENT_OBJECT_FOCUS doesn't work with Firefox on the other hand
 					case NativeMethods.EVENT.EVENT_SYSTEM_FOREGROUND:
-						if (hWnd == NativeMethods.shellWindow || CurrentWorkspace.Monitor.temporarilyShownWindows.Contains(hWnd))
-						{
-							CurrentWorkspace.WindowActivated(hWnd);
-						}
-						else if (!ApplicationsTryGetValue(hWnd, out list) && !IsAltTabWindow(hWnd))
-						{
-							ForceForegroundWindow(CurrentWorkspace.GetTopmostWindow());
-						}
+						if (NativeMethods.GetWindowThreadProcessId(hWnd, IntPtr.Zero) == windawesomeThreadId)
+ 						{
+ 							ForceForegroundWindow(CurrentWorkspace.GetTopmostWindow());
+ 						}
 						else if (!hiddenApplications.Contains(hWnd))
 						{
-							if (list == null) // if a new window has shown
+							if (hWnd != NativeMethods.shellWindow &&
+								!CurrentWorkspace.Monitor.temporarilyShownWindows.Contains(hWnd))
 							{
-								AddWindowToWorkspace(hWnd);
-							}
-							else
-							{
-								hWnd = list.First.Value.Item2.hWnd;
-								HiddenWindowShownOrActivated(list);
+								if (!ApplicationsTryGetValue(hWnd, out list)) // if a new window has shown
+								{
+									AddWindowToWorkspace(hWnd);
+								}
+								else
+								{
+									hWnd = list.First.Value.Item2.hWnd;
+									HiddenWindowShownOrActivated(list);
+								}
 							}
 
 							CurrentWorkspace.WindowActivated(hWnd);
