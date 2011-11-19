@@ -30,7 +30,7 @@ namespace Windawesome
 				{
 					var createParams = base.CreateParams;
 					// make the form not activatable
-					createParams.ExStyle |= (int) NativeMethods.WS_EX.WS_EX_NOACTIVATE;
+					createParams.ExStyle |= (int) (NativeMethods.WS_EX.WS_EX_NOACTIVATE | NativeMethods.WS_EX.WS_EX_TOOLWINDOW);
 					return createParams;
 				}
 			}
@@ -288,7 +288,6 @@ namespace Windawesome
 					HelpButton = false,
 					TopLevel = true,
 					WindowState = FormWindowState.Normal,
-					TopMost = true,
 					ClientSize = new Size(0, 0)
 				};
 			newForm.Closing += (_, ea) => ea.Cancel = true;
