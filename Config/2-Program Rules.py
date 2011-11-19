@@ -24,6 +24,7 @@ config.ProgramRules = [
 	),
 	ProgramRule(
 		className = "^MozillaWindowClass$",
+		updateIcon = False,
 		rules = [ProgramRule.Rule(workspace = 2)]
 	),
 	ProgramRule(

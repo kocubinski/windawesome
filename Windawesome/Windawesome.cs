@@ -1525,12 +1525,12 @@ namespace Windawesome
 		{
 			if (idChild == NativeMethods.CHILDID_SELF && idObject == NativeMethods.OBJID.OBJID_WINDOW && hWnd != IntPtr.Zero)
 			{
+				LinkedList<Tuple<Workspace, Window>> list;
 				switch (eventType)
 				{
 					case NativeMethods.EVENT.EVENT_OBJECT_SHOW:
 						if (IsAppWindow(hWnd) && !CurrentWorkspace.Monitor.temporarilyShownWindows.Contains(hWnd))
 						{
-							LinkedList<Tuple<Workspace, Window>> list;
 							if (!applications.TryGetValue(hWnd, out list)) // if a new window has shown
 							{
 								AddWindowToWorkspace(hWnd);
@@ -1571,24 +1571,24 @@ namespace Windawesome
 					// HSHELL_WINDOWACTIVATED/HSHELL_RUDEAPPACTIVATED doesn't work for some windows like Digsby Buddy List
 					// EVENT_OBJECT_FOCUS doesn't work with Firefox on the other hand
 					case NativeMethods.EVENT.EVENT_SYSTEM_FOREGROUND:
-						if (NativeMethods.GetWindowThreadProcessId(hWnd, IntPtr.Zero) == windawesomeThreadId)
+						if (hWnd == NativeMethods.shellWindow || CurrentWorkspace.Monitor.temporarilyShownWindows.Contains(hWnd))
+						{
+							CurrentWorkspace.WindowActivated(hWnd);
+						}
+						else if (!ApplicationsTryGetValue(hWnd, out list) && !IsAltTabWindow(hWnd))
 						{
 							ForceForegroundWindow(CurrentWorkspace.GetTopmostWindow());
 						}
 						else if (!hiddenApplications.Contains(hWnd))
 						{
-							if (hWnd != NativeMethods.shellWindow && !CurrentWorkspace.Monitor.temporarilyShownWindows.Contains(hWnd))
+							if (list == null) // if a new window has shown
 							{
-								LinkedList<Tuple<Workspace, Window>> list;
-								if (!ApplicationsTryGetValue(hWnd, out list)) // if a new window has shown
-								{
-									AddWindowToWorkspace(hWnd);
-								}
-								else
-								{
-									hWnd = list.First.Value.Item2.hWnd;
-									HiddenWindowShownOrActivated(list);
-								}
+								AddWindowToWorkspace(hWnd);
+							}
+							else
+							{
+								hWnd = list.First.Value.Item2.hWnd;
+								HiddenWindowShownOrActivated(list);
 							}
 
 							CurrentWorkspace.WindowActivated(hWnd);
