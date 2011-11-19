@@ -269,7 +269,7 @@ namespace Windawesome
 			// initialize monitors and switch to the default starting workspaces
 			monitors.ForEach(m => m.Initialize());
 			Monitor.ShowHideWindowsTaskbar(CurrentWorkspace.ShowWindowsTaskbar);
-			this.ForceForegroundWindow(this.CurrentWorkspace.GetTopmostWindow());
+			ForceForegroundWindow(CurrentWorkspace.GetTopmostWindow());
 			CurrentWorkspace.IsCurrentWorkspace = true;
 
 			// register a shell hook
@@ -500,7 +500,7 @@ namespace Windawesome
 									hiddenApplications.Add(hWnd);
 									NativeMethods.ShowWindow(hWnd, NativeMethods.SW.SW_HIDE);
 								}
-								this.ForceForegroundWindow(this.CurrentWorkspace.GetTopmostWindow());
+								ForceForegroundWindow(CurrentWorkspace.GetTopmostWindow());
 								break;
 						}
 					}
@@ -618,7 +618,7 @@ namespace Windawesome
 		private void RefreshApplicationsHash()
 		{
 			// remove all non-existent applications
-			applications.Keys.Unless(NativeMethods.IsWindow).ToArray().ForEach(w => RemoveApplicationFromAllWorkspaces(w, true));
+			applications.Keys.Unless(NativeMethods.IsWindow).ToArray().ForEach(h => RemoveApplicationFromAllWorkspaces(h, true));
 
 			// add any application that was not added for some reason when it was created
 			NativeMethods.EnumWindows((hWnd, _) =>
@@ -835,7 +835,7 @@ namespace Windawesome
 			}
 			else if (fromWorkspace.IsCurrentWorkspace)
 			{
-				this.ForceForegroundWindow(fromWorkspace.GetTopmostWindow());
+				ForceForegroundWindow(fromWorkspace.GetTopmostWindow());
 			}
 		}
 
@@ -876,7 +876,7 @@ namespace Windawesome
 			// if the window is not visible we shouldn't add it to hiddenApplications as EVENT_OBJECT_HIDE won't be sent
 			foreach (var window in hideWindows.Where(IsVisibleAndNotHung))
 			{
-				this.hiddenApplications.Add(window.hWnd);
+				hiddenApplications.Add(window.hWnd);
 				winPosInfo = window.OwnedWindows.Aggregate(winPosInfo, (current, hWnd) =>
 					NativeMethods.DeferWindowPos(current, hWnd, IntPtr.Zero, 0, 0, 0, 0,
 						NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE |
@@ -889,7 +889,7 @@ namespace Windawesome
 			// activates the topmost non-minimized window
 			if (setForeground)
 			{
-				this.ForceForegroundWindow(newWorkspace.GetTopmostWindow());
+				ForceForegroundWindow(newWorkspace.GetTopmostWindow());
 			}
 		}
 
@@ -1126,7 +1126,7 @@ namespace Windawesome
 
 					if (workspace.IsCurrentWorkspace && setForeground)
 					{
-						this.ForceForegroundWindow(workspace.GetTopmostWindow());
+						ForceForegroundWindow(workspace.GetTopmostWindow());
 					}
 				}
 			}
@@ -1166,7 +1166,7 @@ namespace Windawesome
 
 					if (setForeground)
 					{
-						this.ForceForegroundWindow(newWorkspace.GetTopmostWindow());
+						ForceForegroundWindow(newWorkspace.GetTopmostWindow());
 					}
 
 					CurrentWorkspace.IsCurrentWorkspace = false;
