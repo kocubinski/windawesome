@@ -222,7 +222,9 @@ using WPARAM = UIntPtr; // UINT_PTR
 		public const UINT WM_NULL = 0x0;
 
 		public static readonly WPARAM SC_MINIMIZE = (WPARAM) 0xF020;
+		public static readonly IntPtr SC_MINIMIZESigned = (IntPtr) 0xF020;
 		public static readonly WPARAM SC_MAXIMIZE = (WPARAM) 0xF030;
+		public static readonly IntPtr SC_MAXIMIZESigned = (IntPtr) 0xF030;
 		public static readonly WPARAM SC_RESTORE = (WPARAM) 0xF120;
 		public static readonly WPARAM SC_CLOSE = (WPARAM) 0xF060;
 

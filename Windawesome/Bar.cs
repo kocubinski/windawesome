@@ -43,6 +43,11 @@ namespace Windawesome
 				{
 					m.Result = NativeMethods.MA_NOACTIVATE;
 				}
+				else if (m.Msg == NativeMethods.WM_SYSCOMMAND &&
+					(m.WParam == NativeMethods.SC_MINIMIZESigned || m.WParam == NativeMethods.SC_MAXIMIZESigned))
+				{
+					m.Result = IntPtr.Zero;
+				}
 				else
 				{
 					base.WndProc(ref m);
