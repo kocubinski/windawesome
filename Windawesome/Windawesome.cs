@@ -1529,7 +1529,7 @@ namespace Windawesome
 				switch (eventType)
 				{
 					case NativeMethods.EVENT.EVENT_OBJECT_SHOW:
-						if (IsAppWindow(hWnd) && !CurrentWorkspace.Monitor.temporarilyShownWindows.Contains(hWnd))
+						if (IsAppWindow(hWnd))
 						{
 							if (!applications.TryGetValue(hWnd, out list)) // if a new window has shown
 							{
