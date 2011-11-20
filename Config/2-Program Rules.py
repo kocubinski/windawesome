@@ -42,6 +42,7 @@ config.ProgramRules = [
 	ProgramRule(
 		displayName = ".*BitComet.*",
 		onWindowCreatedAction = OnWindowShownAction.HideWindow,
+		onHiddenWindowShownAction = OnWindowShownAction.HideWindow,
 		showMenu = False,
 		rules = [ProgramRule.Rule(workspace = 9, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
 	),
