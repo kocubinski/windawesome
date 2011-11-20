@@ -288,6 +288,7 @@ namespace Windawesome
 					HelpButton = false,
 					TopLevel = true,
 					WindowState = FormWindowState.Normal,
+					TopMost = true,
 					ClientSize = new Size(0, 0)
 				};
 			newForm.Closing += (_, ea) => ea.Cancel = true;
