@@ -1006,7 +1006,7 @@ namespace Windawesome
 			// application is really hung, then Windawesome is blocked for this number of milliseconds.
 			// That can be felt and is annoying. Perhaps the best scenario is:
 			// return !IsHungAppWindow && (SendMessageTimeout(with_big_timeout) || GetLastWin32Error)
-			// As this will not block forever at any point and it will only block the main thread for "timeout"
+			// As this will not block forever at any point and it will only block the main thread for "with_big_timeout"
 			// milliseconds the first 5 seconds when a program is hung - after that IsHungAppWindow catches it
 			// immediately and returns. However, I decided that in most cases apps are not hung, so the overhead
 			// of calling IsHungAppWindow AND SendMessageTimeout is not worth.
