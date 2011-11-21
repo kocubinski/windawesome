@@ -914,7 +914,7 @@ namespace Windawesome
 		{
 			RestoreIfMinimized(window.hWnd, window.IsMinimized);
 			ForceForegroundWindow(window);
-			SendWindowActivated(window.hWnd);
+			CurrentWorkspace.WindowActivated(window.hWnd);
 		}
 
 		private void SendWindowActivated(IntPtr hWnd)
