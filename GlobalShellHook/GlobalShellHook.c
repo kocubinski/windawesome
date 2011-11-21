@@ -44,8 +44,6 @@ static LRESULT CALLBACK ShellHookProc(int code, WPARAM wParam, LPARAM lParam)
 	if (code == HSHELL_LANGUAGE)
 	{
 		PostMessage(applicationHandle, globalShellHookMessage, wParam, lParam);
-
-		return 0;
 	}
 
 	return CallNextHookEx(NULL, code, wParam, lParam);

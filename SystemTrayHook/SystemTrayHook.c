@@ -55,12 +55,11 @@ static LRESULT CALLBACK HookCallback(int code, WPARAM wParam, LPARAM lParam)
 		if (pInfo->message == WM_COPYDATA)
 		{
 			COPYDATASTRUCT* copyDataStruct = (COPYDATASTRUCT*) pInfo->lParam;
-			if (copyDataStruct->dwData == SH_TRAY_DATA)
+			if (copyDataStruct->dwData == SH_TRAY_DATA &&
+				((SHELLTRAYDATA*) copyDataStruct->lpData)->dwHz == 0x34753423)
 			{
-				if (((SHELLTRAYDATA*) copyDataStruct->lpData)->dwHz == 0x34753423)
-				{
-					SendMessage(applicationHandle, WM_COPYDATA, pInfo->wParam, pInfo->lParam);
-				}
+				SendMessageTimeout(applicationHandle, WM_COPYDATA, pInfo->wParam, pInfo->lParam,
+					SMTO_ABORTIFHUNG, 3000, NULL);
 			}
 		}
 	}

@@ -89,7 +89,7 @@ end
 
 # start Cygwin's MinTTY shell
 subscribe modifiers.Alt | modifiers.Shift, key.Return do
-	windawesome.run_application "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\Cygwin\\mintty.lnk"
+	windawesome.run_application "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\Cygwin\\Cygwin Terminal.lnk"
 end
 
 # start Bitcomet
