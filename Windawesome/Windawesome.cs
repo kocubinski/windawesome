@@ -269,7 +269,7 @@ namespace Windawesome
 			// initialize monitors and switch to the default starting workspaces
 			monitors.ForEach(m => m.Initialize());
 			Monitor.ShowHideWindowsTaskbar(CurrentWorkspace.ShowWindowsTaskbar);
-			ForceForegroundWindow(CurrentWorkspace.GetTopmostWindow());
+			ActivateWindow(CurrentWorkspace.GetTopmostWindow());
 			CurrentWorkspace.IsCurrentWorkspace = true;
 
 			// register a shell hook
@@ -502,7 +502,7 @@ namespace Windawesome
 									hiddenApplications.Add(hWnd);
 									NativeMethods.ShowWindow(hWnd, NativeMethods.SW.SW_HIDE);
 								}
-								ForceForegroundWindow(CurrentWorkspace.GetTopmostWindow());
+								ActivateWindow(CurrentWorkspace.GetTopmostWindow());
 								break;
 						}
 					}
@@ -596,7 +596,7 @@ namespace Windawesome
 					{
 						NativeMethods.SetWindowPos(newWindow, currentWorkspaceTopWindow, 0, 0, 0, 0,
 							NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
-						ForceForegroundWindow(currentWorkspaceTopWindow);
+						ActivateWindow(currentWorkspaceTopWindow);
 					}
 					else
 					{
@@ -686,13 +686,6 @@ namespace Windawesome
 					NativeMethods.BringWindowToTop(hWnd);
 				}
 			}
-
-			LinkedList<Tuple<Workspace, Window>> list;
-			if (ApplicationsTryGetValue(hWnd, out list))
-			{
-				hWnd = list.First.Value.Item2.hWnd;
-			}
-			CurrentWorkspace.WindowActivated(hWnd);
 		}
 
 		private static bool TrySetForegroundWindow(IntPtr hWnd)
@@ -842,7 +835,7 @@ namespace Windawesome
 			}
 			else if (fromWorkspace.IsCurrentWorkspace)
 			{
-				ForceForegroundWindow(fromWorkspace.GetTopmostWindow());
+				ActivateWindow(fromWorkspace.GetTopmostWindow());
 			}
 		}
 
@@ -914,12 +907,24 @@ namespace Windawesome
 		{
 			RestoreIfMinimized(hWnd, NativeMethods.IsIconic(hWnd));
 			ForceForegroundWindow(hWnd);
+			SendWindowActivated(hWnd);
 		}
 
 		private void ActivateWindow(Window window)
 		{
 			RestoreIfMinimized(window.hWnd, window.IsMinimized);
 			ForceForegroundWindow(window);
+			SendWindowActivated(window.hWnd);
+		}
+
+		private void SendWindowActivated(IntPtr hWnd)
+		{
+			LinkedList<Tuple<Workspace, Window>> list;
+			if (ApplicationsTryGetValue(hWnd, out list))
+			{
+				hWnd = list.First.Value.Item2.hWnd;
+			}
+			CurrentWorkspace.WindowActivated(hWnd);
 		}
 
 		private static void MoveMouseToMiddleOf(Rectangle bounds)
@@ -1133,7 +1138,7 @@ namespace Windawesome
 
 					if (workspace.IsCurrentWorkspace && setForeground)
 					{
-						ForceForegroundWindow(workspace.GetTopmostWindow());
+						ActivateWindow(workspace.GetTopmostWindow());
 					}
 				}
 			}
@@ -1234,6 +1239,8 @@ namespace Windawesome
 				}
 
 				CurrentWorkspace = newWorkspace;
+
+				SendWindowActivated(CurrentWorkspace.GetTopmostWindow());
 			}
 		}
 
@@ -1517,7 +1524,7 @@ namespace Windawesome
 					HideWindow(list.First.Value.Item2);
 					if (monitor.CurrentVisibleWorkspace.IsCurrentWorkspace)
 					{
-						ForceForegroundWindow(CurrentWorkspace.GetTopmostWindow());
+						ActivateWindow(CurrentWorkspace.GetTopmostWindow());
 					}
 				}
 			}
@@ -1585,11 +1592,15 @@ namespace Windawesome
 							{
 								if (!ApplicationsTryGetValue(hWnd, out list)) // if a new window has shown
 								{
-									AddWindowToWorkspace(hWnd);
-									return ;
+									if (AddWindowToWorkspace(hWnd))
+									{
+										return ;
+									}
 								}
-
-								hWnd = HiddenWindowShownOrActivated(list);
+								else
+								{
+									hWnd = HiddenWindowShownOrActivated(list);
+								}
 							}
 
 							CurrentWorkspace.WindowActivated(hWnd);
@@ -1631,7 +1642,7 @@ namespace Windawesome
 						case OnWindowShownAction.HideWindow:
 							HideWindow(window);
 							activatedWindow = CurrentWorkspace.GetTopmostWindow();
-							ForceForegroundWindow(activatedWindow);
+							ActivateWindow(activatedWindow);
 							break;
 					}
 				}
