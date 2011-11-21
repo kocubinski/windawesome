@@ -684,9 +684,15 @@ namespace Windawesome
 				else
 				{
 					NativeMethods.BringWindowToTop(hWnd);
-					CurrentWorkspace.WindowActivated(hWnd);
 				}
 			}
+
+			LinkedList<Tuple<Workspace, Window>> list;
+			if (ApplicationsTryGetValue(hWnd, out list))
+			{
+				hWnd = list.First.Value.Item2.hWnd;
+			}
+			CurrentWorkspace.WindowActivated(hWnd);
 		}
 
 		private static bool TrySetForegroundWindow(IntPtr hWnd)
@@ -1580,12 +1586,10 @@ namespace Windawesome
 								if (!ApplicationsTryGetValue(hWnd, out list)) // if a new window has shown
 								{
 									AddWindowToWorkspace(hWnd);
+									return ;
 								}
-								else
-								{
-									hWnd = list.First.Value.Item2.hWnd;
-									HiddenWindowShownOrActivated(list);
-								}
+
+								hWnd = HiddenWindowShownOrActivated(list);
 							}
 
 							CurrentWorkspace.WindowActivated(hWnd);
@@ -1595,8 +1599,11 @@ namespace Windawesome
 			}
 		}
 
-		private void HiddenWindowShownOrActivated(LinkedList<Tuple<Workspace, Window>> list)
+		private IntPtr HiddenWindowShownOrActivated(LinkedList<Tuple<Workspace, Window>> list)
 		{
+			var window = list.First.Value.Item2;
+			var activatedWindow = window.hWnd;
+
 			if (list.All(t => !t.Item1.IsCurrentWorkspace))
 			{
 				Workspace workspace;
@@ -1610,7 +1617,6 @@ namespace Windawesome
 				}
 				else
 				{
-					var window = list.First.Value.Item2;
 					switch (window.onHiddenWindowShownAction)
 					{
 						case OnWindowShownAction.SwitchToWindowsWorkspace:
@@ -1624,11 +1630,14 @@ namespace Windawesome
 							break;
 						case OnWindowShownAction.HideWindow:
 							HideWindow(window);
-							ForceForegroundWindow(CurrentWorkspace.GetTopmostWindow());
+							activatedWindow = CurrentWorkspace.GetTopmostWindow();
+							ForceForegroundWindow(activatedWindow);
 							break;
 					}
 				}
 			}
+
+			return activatedWindow;
 		}
 
 		protected override void WndProc(ref Message m)

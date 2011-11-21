@@ -405,10 +405,13 @@ namespace Windawesome
 
 		internal void WindowActivated(IntPtr hWnd)
 		{
-			topmostWindowHandle = hWnd;
-			topmostWindow = GetWindow(hWnd);
+			if (hWnd != topmostWindowHandle)
+			{
+				topmostWindowHandle = hWnd;
+				topmostWindow = GetWindow(hWnd);
 
-			DoWindowActivated(hWnd);
+				DoWindowActivated(hWnd);
+			}
 		}
 
 		internal void WindowCreated(Window window)
@@ -432,11 +435,6 @@ namespace Windawesome
 				Layout.WindowCreated(window);
 
 				hasChanges |= !IsWorkspaceVisible;
-			}
-
-			if (!window.IsMinimized)
-			{
-				topmostWindow = window;
 			}
 
 			DoWorkspaceWindowAdded(this, window);
@@ -495,25 +493,25 @@ namespace Windawesome
 			{
 				return topmostWindow.OwnedWindows.Last.Value;
 			}
-			topmostWindow = null;
 
-			if ((topmostWindowHandle == NativeMethods.shellWindow && windows.Count > 0) ||
-				!NativeMethods.IsWindowVisible(topmostWindowHandle))
+			var result = topmostWindowHandle;
+			if ((topmostWindowHandle == NativeMethods.shellWindow && windows.Count(w => !w.IsMinimized) > 0) ||
+				!NativeMethods.IsWindowVisible(topmostWindowHandle) || NativeMethods.IsIconic(topmostWindowHandle))
 			{
-				topmostWindowHandle = NativeMethods.shellWindow;
+				result = NativeMethods.shellWindow;
 				NativeMethods.EnumWindows((hWnd, _) =>
 					{
 						if (Windawesome.IsAppWindow(hWnd) && !NativeMethods.IsIconic(hWnd) &&
-							((topmostWindow = GetWindow(hWnd)) != null || Windawesome.IsAltTabWindow(hWnd)))
+							(ContainsWindow(hWnd) || Windawesome.IsAltTabWindow(hWnd)))
 						{
-							topmostWindowHandle = hWnd;
+							result = hWnd;
 							return false;
 						}
 						return true;
 					}, IntPtr.Zero);
 			}
 
-			return topmostWindowHandle;
+			return result;
 		}
 
 		internal void ToggleWindowFloating(Window window)
