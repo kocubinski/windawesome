@@ -21,20 +21,12 @@ BOOL RegisterSystemTrayHook(HWND hWnd)
 
 	applicationHandle = hWnd;
 
-	hook = SetWindowsHookEx(WH_CALLWNDPROCRET, (HOOKPROC) HookCallback, hInstance, shellThread);
-	return hook != NULL;
+	return (hook = SetWindowsHookEx(WH_CALLWNDPROCRET, (HOOKPROC) HookCallback, hInstance, shellThread)) != NULL;
 }
 
 BOOL UnregisterSystemTrayHook()
 {
-	if (hook != NULL)
-	{
-		return UnhookWindowsHookEx(hook);
-	}
-	else
-	{
-		return TRUE;
-	}
+	return hook != NULL ? UnhookWindowsHookEx(hook) : TRUE;
 }
 
 #define SH_TRAY_DATA 1

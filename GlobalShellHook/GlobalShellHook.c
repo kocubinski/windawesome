@@ -23,20 +23,12 @@ BOOL RegisterGlobalShellHook(HWND hWnd)
 
 	globalShellHookMessage = RegisterWindowMessage(TEXT("GLOBAL_SHELL_HOOK"));
 
-	hook = SetWindowsHookEx(WH_SHELL, (HOOKPROC) ShellHookProc, hInstance, 0);
-	return hook != NULL;
+	return (hook = SetWindowsHookEx(WH_SHELL, (HOOKPROC) ShellHookProc, hInstance, 0)) != NULL;
 }
 
 BOOL UnregisterGlobalShellHook()
 {
-	if (hook != NULL)
-	{
-		return UnhookWindowsHookEx(hook);
-	}
-	else
-	{
-		return TRUE;
-	}
+	return hook != NULL ? UnhookWindowsHookEx(hook) : TRUE;
 }
 
 static LRESULT CALLBACK ShellHookProc(int code, WPARAM wParam, LPARAM lParam)
