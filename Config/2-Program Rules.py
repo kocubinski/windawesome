@@ -18,11 +18,6 @@ config.ProgramRules = [
 		rules = [ProgramRule.Rule(isFloating = True)]
 	),
 	ProgramRule(
-		className = "^Vim$",
-		windowCreatedDelay = 100,
-		rules = [ProgramRule.Rule(workspace = 3, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
-	),
-	ProgramRule(
 		className = "^MozillaWindowClass$",
 		updateIcon = False,
 		rules = [ProgramRule.Rule(workspace = 2)]
@@ -55,30 +50,20 @@ config.ProgramRules = [
 		rules = [ProgramRule.Rule(workspace = 8)]
 	),
 	ProgramRule(
-		className = "^TLoginForm.*", # Skype
-		rules = [ProgramRule.Rule(isFloating = True)]
+		className = "^{97E27FAA-C0B3-4b8e-A693-ED7881E99FC1}$", # foobar2000
+		rules = [ProgramRule.Rule(workspace = 7)]
 	),
+
+	# editors
+
 	ProgramRule(
-		className = "^tSkMainForm.*", # Skype
-		rules = [ProgramRule.Rule(workspace = 4, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
-	),
-	ProgramRule(
-		className = "^TConversationForm.*", # Skype
-		onWindowCreatedAction = OnWindowShownAction.TemporarilyShowWindowOnCurrentWorkspace,
-		rules = [ProgramRule.Rule(workspace = 4, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
-	),
-	ProgramRule(
-		className = "^MediaPlayerClassicW$",
-		rules = [ProgramRule.Rule(workspace = 1)]
-	),
-	ProgramRule(
-		className = "^mintty$",
-		redrawDesktopOnWindowCreated = True,
+		className = "^Vim$",
+		windowCreatedDelay = 100,
 		rules = [ProgramRule.Rule(workspace = 3, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
 	),
 	ProgramRule(
-		className = "^{97E27FAA-C0B3-4b8e-A693-ED7881E99FC1}$", # foobar2000
-		rules = [ProgramRule.Rule(workspace = 7)]
+		className = "^XLMAIN$", # Excel
+		rules = [ProgramRule.Rule(redrawOnShow = True)]
 	),
 	ProgramRule(
 		displayName = ".*Microsoft Visual Studio.*",
@@ -91,12 +76,37 @@ config.ProgramRules = [
 		rules = [ProgramRule.Rule(workspace = 5, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
 	),
 	ProgramRule(
-		className = "^XLMAIN$", # Excel
-		rules = [ProgramRule.Rule(redrawOnShow = True)]
+		className = "^OpusApp$",
+		displayName = ".*Microsoft Word Viewer$",
+		tryAgainAfter = 500
+	),
+
+	# media players
+
+	ProgramRule(
+		className = "^MediaPlayerClassicW$",
+		rules = [ProgramRule.Rule(workspace = 1)]
 	),
 	ProgramRule(
 		className = "^QuickTimePlayerMain$",
 		rules = [ProgramRule.Rule(workspace = 1, isFloating = True)]
+	),
+
+	# chat
+
+	ProgramRule(
+		className = "^TLoginForm.*", # Skype
+		rules = [ProgramRule.Rule(isFloating = True)]
+	),
+	ProgramRule(
+		className = "^tSkMainForm.*", # Skype
+		rules = [ProgramRule.Rule(workspace = 4, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
+	),
+	ProgramRule(
+		className = "^TConversationForm.*", # Skype
+		onWindowCreatedAction = OnWindowShownAction.HideWindow,
+		onWindowCreatedOnCurrentWorkspaceAction = OnWindowCreatedOnCurrentWorkspaceAction.MoveToBottom,
+		rules = [ProgramRule.Rule(workspace = 4, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
 	),
 	ProgramRule(
 		className = "^Miranda$",
@@ -109,6 +119,7 @@ config.ProgramRules = [
 		displayName = ": Message Session$",
 		processName = "^miranda64$",
 		onWindowCreatedAction = OnWindowShownAction.HideWindow,
+		onWindowCreatedOnCurrentWorkspaceAction = OnWindowCreatedOnCurrentWorkspaceAction.MoveToBottom,
 		rules = [ProgramRule.Rule(workspace = 4, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
 	),
 	ProgramRule(
@@ -123,22 +134,29 @@ config.ProgramRules = [
 		className = "^wxWindowClass$", # digsby chat window
 		processName = "^digsby-app$",
 		onWindowCreatedAction = OnWindowShownAction.HideWindow,
+		onWindowCreatedOnCurrentWorkspaceAction = OnWindowCreatedOnCurrentWorkspaceAction.MoveToBottom,
 		rules = [ProgramRule.Rule(workspace = 4, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
 	),
-	ProgramRule(	
+
+	# terminals
+
+	ProgramRule(
 		className = "^Console_2_Main$",
 		updateIcon = False,
 		rules = [ProgramRule.Rule(workspace = 3)]
 	),
 	ProgramRule(
-		className = "^OpusApp$",
-		displayName = ".*Microsoft Word Viewer$",
-		tryAgainAfter = 500
+		className = "^mintty$",
+		redrawDesktopOnWindowCreated = True,
+		rules = [ProgramRule.Rule(workspace = 3, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
 	),
 	ProgramRule(
 		className = "^ConsoleWindowClass$", # Interix terminal
 		rules = [ProgramRule.Rule(isFloating = True)]
 	),
+
+	# other
+
 	ProgramRule(
 		displayName = "^Windows 7 Manager - Junk File Cleaner$",
 		isManaged = False

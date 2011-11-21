@@ -33,7 +33,7 @@ class DateTimeWidget
 		@bar = bar
 
 		@label = bar.create_label " " + DateTime.now.to_string(@string) + " ", 0
-		
+
 		@label.text_align = ContentAlignment.middle_center
 		@label.back_color = @background_color
 		@label.fore_color = @foreground_color

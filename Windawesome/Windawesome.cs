@@ -480,6 +480,8 @@ namespace Windawesome
 					workspacesCount--;
 				}
 
+				var currentWorkspaceTopWindow = CurrentWorkspace.GetTopmostWindow();
+
 				if (finishedInitializing)
 				{
 					if (!hasWorkspaceZeroRule && !hasCurrentWorkspaceRule)
@@ -491,7 +493,7 @@ namespace Windawesome
 								if (!hasVisibleWorkspaceRule)
 								{
 									CurrentWorkspace.Monitor.temporarilyShownWindows.Add(hWnd);
-									OnWindowCreatedOnCurrentWorkspace(hWnd, programRule);
+									OnWindowCreatedOnCurrentWorkspace(hWnd, currentWorkspaceTopWindow, programRule);
 								}
 								break;
 							case OnWindowShownAction.HideWindow:
@@ -561,7 +563,7 @@ namespace Windawesome
 					if (hasWorkspaceZeroRule || hasCurrentWorkspaceRule)
 					{
 						// this means that the window must be on the current workspace anyway
-						OnWindowCreatedOnCurrentWorkspace(hWnd, programRule);
+						OnWindowCreatedOnCurrentWorkspace(hWnd, currentWorkspaceTopWindow, programRule);
 					}
 					else
 					{
@@ -572,7 +574,7 @@ namespace Windawesome
 								break;
 							case OnWindowShownAction.MoveWindowToCurrentWorkspace:
 								ChangeApplicationToWorkspace(hWnd, CurrentWorkspace.id, matchingRules.First().workspace);
-								OnWindowCreatedOnCurrentWorkspace(hWnd, programRule);
+								OnWindowCreatedOnCurrentWorkspace(hWnd, currentWorkspaceTopWindow, programRule);
 								break;
 						}
 					}
@@ -582,24 +584,23 @@ namespace Windawesome
 			return true;
 		}
 
-		private void OnWindowCreatedOnCurrentWorkspace(IntPtr hWnd, ProgramRule programRule)
+		private void OnWindowCreatedOnCurrentWorkspace(IntPtr newWindow, IntPtr currentWorkspaceTopWindow, ProgramRule programRule)
 		{
 			switch (programRule.onWindowCreatedOnCurrentWorkspaceAction)
 			{
 				case OnWindowCreatedOnCurrentWorkspaceAction.ActivateWindow:
-					ActivateWindow(hWnd);
+					ActivateWindow(newWindow);
 					break;
 				case OnWindowCreatedOnCurrentWorkspaceAction.MoveToBottom:
-					var topmost = CurrentWorkspace.GetTopmostWindow();
-					if (topmost != NativeMethods.shellWindow)
+					if (currentWorkspaceTopWindow != NativeMethods.shellWindow)
 					{
-						NativeMethods.SetWindowPos(hWnd, topmost, 0, 0, 0, 0,
+						NativeMethods.SetWindowPos(newWindow, currentWorkspaceTopWindow, 0, 0, 0, 0,
 							NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE);
-						ForceForegroundWindow(topmost);
+						ForceForegroundWindow(currentWorkspaceTopWindow);
 					}
 					else
 					{
-						ActivateWindow(hWnd);
+						ActivateWindow(newWindow);
 					}
 					break;
 			}
