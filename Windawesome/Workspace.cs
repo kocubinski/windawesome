@@ -375,9 +375,8 @@ namespace Windawesome
 		internal void WindowMinimized(IntPtr hWnd)
 		{
 			var window = GetWindow(hWnd);
-			if (window != null && !window.IsMinimized)
+			if (window != null)
 			{
-				window.IsMinimized = true;
 				if (!window.IsFloating)
 				{
 					Layout.WindowMinimized(window);
@@ -390,9 +389,8 @@ namespace Windawesome
 		internal void WindowRestored(IntPtr hWnd)
 		{
 			var window = GetWindow(hWnd);
-			if (window != null && window.IsMinimized)
+			if (window != null)
 			{
-				window.IsMinimized = false;
 				if (!window.IsFloating)
 				{
 					Layout.WindowRestored(window);
@@ -402,14 +400,11 @@ namespace Windawesome
 			}
 		}
 
-		internal void WindowActivated(IntPtr hWnd, bool force)
+		internal void WindowActivated(IntPtr hWnd)
 		{
-			if (hWnd != topmostWindow.hWnd || force)
-			{
-				topmostWindow = GetWindow(hWnd) ?? new WindowBase(hWnd);
+			topmostWindow = GetWindow(hWnd) ?? new WindowBase(hWnd);
 
-				DoWindowActivated(hWnd);
-			}
+			DoWindowActivated(hWnd);
 		}
 
 		internal void WindowCreated(Window window)
@@ -428,7 +423,7 @@ namespace Windawesome
 				window.Initialize();
 			}
 
-			if (!window.IsMinimized && !window.IsFloating)
+			if (!NativeMethods.IsIconic(window.hWnd) && !window.IsFloating)
 			{
 				Layout.WindowCreated(window);
 
@@ -450,7 +445,7 @@ namespace Windawesome
 				sharedWindowsCount--;
 			}
 
-			if (!window.IsMinimized && !window.IsFloating)
+			if (!NativeMethods.IsIconic(window.hWnd) && !window.IsFloating)
 			{
 				Layout.WindowDestroyed(window);
 
@@ -477,7 +472,7 @@ namespace Windawesome
 
 		public IEnumerable<Window> GetLayoutManagedWindows()
 		{
-			return windows.Where(w => !w.IsFloating && !w.IsMinimized);
+			return windows.Where(w => !w.IsFloating && !NativeMethods.IsIconic(w.hWnd));
 		}
 
 		public IEnumerable<Window> GetWindows()
@@ -506,7 +501,7 @@ namespace Windawesome
 		internal void ToggleWindowFloating(Window window)
 		{
 			window.IsFloating = !window.IsFloating;
-			if (!window.IsMinimized)
+			if (!NativeMethods.IsIconic(window.hWnd))
 			{
 				if (window.IsFloating)
 				{
@@ -548,13 +543,9 @@ namespace Windawesome
 			if (windows.Count > 0)
 			{
 				windows.ToArray().ForEach(this.ShiftWindowToMainPosition); // n ^ 2!
-				topmostWindow = windows.FirstOrDefault(w => !w.IsMinimized);
 			}
 
-			if (topmostWindow == null)
-			{
-				topmostWindow = new WindowBase(NativeMethods.shellWindow);
-			}
+			topmostWindow = windows.FirstOrDefault(w => !NativeMethods.IsIconic(w.hWnd)) ?? new WindowBase(NativeMethods.shellWindow);
 		}
 
 		internal void RemoveFromSharedWindows(Window window)

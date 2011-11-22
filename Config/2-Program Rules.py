@@ -1,5 +1,5 @@
 from System.Linq import Enumerable
-from Windawesome import Windawesome, ProgramRule, State, OnWindowShownAction, OnWindowCreatedOnCurrentWorkspaceAction, NativeMethods
+from Windawesome import Windawesome, ProgramRule, State, OnWindowCreatedOrShownAction, OnWindowCreatedOnWorkspaceAction, NativeMethods
 from Windawesome.NativeMethods import WS, WS_EX
 
 config.ProgramRules = [
@@ -36,8 +36,8 @@ config.ProgramRules = [
 	),
 	ProgramRule(
 		displayName = ".*BitComet.*",
-		onWindowCreatedAction = OnWindowShownAction.HideWindow,
-		onHiddenWindowShownAction = OnWindowShownAction.HideWindow,
+		onWindowCreatedAction = OnWindowCreatedOrShownAction.HideWindow,
+		onHiddenWindowShownAction = OnWindowCreatedOrShownAction.HideWindow,
 		showMenu = False,
 		rules = [ProgramRule.Rule(workspace = 9, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
 	),
@@ -67,12 +67,12 @@ config.ProgramRules = [
 	),
 	ProgramRule(
 		displayName = ".*Microsoft Visual Studio.*",
-		onWindowCreatedAction = OnWindowShownAction.HideWindow,
+		onWindowCreatedAction = OnWindowCreatedOrShownAction.HideWindow,
 		rules = [ProgramRule.Rule(workspace = 5, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
 	),
 	ProgramRule(
 		className = "^HwndWrapper\[DefaultDomain.*", # Visual Studio (Express)
-		onWindowCreatedAction = OnWindowShownAction.HideWindow,
+		onWindowCreatedAction = OnWindowCreatedOrShownAction.HideWindow,
 		rules = [ProgramRule.Rule(workspace = 5, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
 	),
 	ProgramRule(
@@ -104,22 +104,22 @@ config.ProgramRules = [
 	),
 	ProgramRule(
 		className = "^TConversationForm.*", # Skype
-		onWindowCreatedAction = OnWindowShownAction.HideWindow,
-		onWindowCreatedOnCurrentWorkspaceAction = OnWindowCreatedOnCurrentWorkspaceAction.MoveToBottom,
+		onWindowCreatedAction = OnWindowCreatedOrShownAction.HideWindow,
+		onWindowCreatedOnCurrentWorkspaceAction = OnWindowCreatedOnWorkspaceAction.PreserveTopmostWindow,
 		rules = [ProgramRule.Rule(workspace = 4, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
 	),
 	ProgramRule(
 		className = "^Miranda$",
 		displayName = "^Miranda IM$",
 		processName = "^miranda64$",
-		onWindowCreatedAction = OnWindowShownAction.TemporarilyShowWindowOnCurrentWorkspace,
+		onWindowCreatedAction = OnWindowCreatedOrShownAction.TemporarilyShowWindowOnCurrentWorkspace,
 		rules = [ProgramRule.Rule(workspace = 4, isFloating = True)]
 	),
 	ProgramRule(
 		displayName = ": Message Session$",
 		processName = "^miranda64$",
-		onWindowCreatedAction = OnWindowShownAction.HideWindow,
-		onWindowCreatedOnCurrentWorkspaceAction = OnWindowCreatedOnCurrentWorkspaceAction.MoveToBottom,
+		onWindowCreatedAction = OnWindowCreatedOrShownAction.HideWindow,
+		onWindowCreatedOnCurrentWorkspaceAction = OnWindowCreatedOnWorkspaceAction.PreserveTopmostWindow,
 		rules = [ProgramRule.Rule(workspace = 4, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
 	),
 	ProgramRule(
@@ -127,14 +127,14 @@ config.ProgramRules = [
 		displayName = "^Buddy List$",
 		processName = "^digsby-app$",
 		customMatchingFunction = lambda hWnd: True,
-		onWindowCreatedAction = OnWindowShownAction.TemporarilyShowWindowOnCurrentWorkspace,
+		onWindowCreatedAction = OnWindowCreatedOrShownAction.TemporarilyShowWindowOnCurrentWorkspace,
 		rules = [ProgramRule.Rule(workspace = 4, isFloating = True)]
 	),
 	ProgramRule(
 		className = "^wxWindowClass$", # digsby chat window
 		processName = "^digsby-app$",
-		onWindowCreatedAction = OnWindowShownAction.HideWindow,
-		onWindowCreatedOnCurrentWorkspaceAction = OnWindowCreatedOnCurrentWorkspaceAction.MoveToBottom,
+		onWindowCreatedAction = OnWindowCreatedOrShownAction.HideWindow,
+		onWindowCreatedOnCurrentWorkspaceAction = OnWindowCreatedOnWorkspaceAction.PreserveTopmostWindow,
 		rules = [ProgramRule.Rule(workspace = 4, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
 	),
 

@@ -487,21 +487,20 @@ namespace Windawesome
 						var hasVisibleWorkspaceRule = matchingRules.Any(r => config.Workspaces[r.workspace - 1].IsWorkspaceVisible);
 						switch (programRule.onWindowCreatedAction)
 						{
-							case OnWindowShownAction.TemporarilyShowWindowOnCurrentWorkspace:
+							case OnWindowCreatedOrShownAction.TemporarilyShowWindowOnCurrentWorkspace:
 								if (!hasVisibleWorkspaceRule)
 								{
 									CurrentWorkspace.Monitor.temporarilyShownWindows.Add(hWnd);
 									OnWindowCreatedOnCurrentWorkspace(hWnd, programRule);
 								}
 								break;
-							case OnWindowShownAction.HideWindow:
+							case OnWindowCreatedOrShownAction.HideWindow:
 								if (!hasVisibleWorkspaceRule)
 								{
 									hiddenApplications.Add(hWnd);
 									NativeMethods.ShowWindow(hWnd, NativeMethods.SW.SW_HIDE);
 								}
 								DoForTopmostWindowForWorkspace(CurrentWorkspace, ActivateWindow);
-
 								break;
 						}
 					}
@@ -541,6 +540,8 @@ namespace Windawesome
 				var menu = NativeMethods.GetMenu(hWnd);
 				var is64BitProcess = NativeMethods.Is64BitProcess(hWnd);
 
+				var isMinimized = NativeMethods.IsIconic(hWnd);
+
 				foreach (var rule in matchingRules)
 				{
 					var window = new Window(hWnd, className, displayName, processName, workspacesCount,
@@ -551,9 +552,21 @@ namespace Windawesome
 
 					workspace.WindowCreated(window);
 
-					if (!workspace.IsCurrentWorkspace && !window.IsMinimized)
+					if (!workspace.IsCurrentWorkspace && !isMinimized)
 					{
-						workspace.topmostWindow = window;
+						if (hasWorkspaceZeroRule || hasCurrentWorkspaceRule ||
+							list.First.Value.Item1 != workspace ||
+							programRule.onWindowCreatedAction == OnWindowCreatedOrShownAction.HideWindow ||
+							programRule.onWindowCreatedAction == OnWindowCreatedOrShownAction.TemporarilyShowWindowOnCurrentWorkspace)
+						{
+							// this workspace is not going to be switched to because of this window addition
+							switch (programRule.onWindowCreatedOnInactiveWorkspaceAction)
+							{
+								case OnWindowCreatedOnWorkspaceAction.MoveToTop:
+									workspace.topmostWindow = window;
+									break;
+							}
+						}
 					}
 				}
 
@@ -564,24 +577,19 @@ namespace Windawesome
 
 				if (finishedInitializing)
 				{
-					if (hasWorkspaceZeroRule || hasCurrentWorkspaceRule)
-					{
-						// this means that the window must be on the current workspace anyway
-						OnWindowCreatedOnCurrentWorkspace(hWnd, programRule);
-					}
-					else
+					if (!hasWorkspaceZeroRule && !hasCurrentWorkspaceRule)
 					{
 						switch (programRule.onWindowCreatedAction)
 						{
-							case OnWindowShownAction.SwitchToWindowsWorkspace:
-								SwitchToApplication(hWnd);
+							case OnWindowCreatedOrShownAction.SwitchToWindowsWorkspace:
+								SwitchToWorkspace(list.First.Value.Item1.id, false);
 								break;
-							case OnWindowShownAction.MoveWindowToCurrentWorkspace:
+							case OnWindowCreatedOrShownAction.MoveWindowToCurrentWorkspace:
 								ChangeApplicationToWorkspace(hWnd, CurrentWorkspace.id, matchingRules.First().workspace);
-								OnWindowCreatedOnCurrentWorkspace(hWnd, programRule);
 								break;
 						}
 					}
+					OnWindowCreatedOnCurrentWorkspace(hWnd, programRule);
 				}
 			}
 
@@ -592,10 +600,10 @@ namespace Windawesome
 		{
 			switch (programRule.onWindowCreatedOnCurrentWorkspaceAction)
 			{
-				case OnWindowCreatedOnCurrentWorkspaceAction.ActivateWindow:
+				case OnWindowCreatedOnWorkspaceAction.MoveToTop:
 					ActivateWindow(new WindowBase(newWindow));
 					break;
-				case OnWindowCreatedOnCurrentWorkspaceAction.MoveToBottom:
+				case OnWindowCreatedOnWorkspaceAction.PreserveTopmostWindow:
 					if (DoForTopmostWindowForWorkspace(CurrentWorkspace, ActivateWindow) == NativeMethods.shellWindow)
 					{
 						ActivateWindow(new WindowBase(newWindow));
@@ -626,7 +634,7 @@ namespace Windawesome
 
 		private void ForceForegroundWindow(WindowBase window)
 		{
-			var hWnd = window.OwnedWindows.Last.Value;
+			var hWnd = window.GetLastActiveWindow();
 
 			if (WindowIsNotHung(hWnd))
 			{
@@ -897,7 +905,7 @@ namespace Windawesome
 				System.Threading.Thread.Sleep(NativeMethods.minimizeRestoreDelay);
 			}
 			ForceForegroundWindow(window);
-			CurrentWorkspace.WindowActivated(window.hWnd, true);
+			CurrentWorkspace.WindowActivated(window.hWnd);
 		}
 
 		private static IntPtr DoForTopmostWindowForWorkspace(Workspace workspace, Action<WindowBase> action)
@@ -1221,7 +1229,7 @@ namespace Windawesome
 
 				CurrentWorkspace = newWorkspace;
 
-				DoForTopmostWindowForWorkspace(CurrentWorkspace, w => CurrentWorkspace.WindowActivated(w.hWnd, true));
+				DoForTopmostWindowForWorkspace(CurrentWorkspace, w => CurrentWorkspace.WindowActivated(w.hWnd));
 			}
 		}
 
@@ -1584,7 +1592,7 @@ namespace Windawesome
 								}
 							}
 
-							CurrentWorkspace.WindowActivated(hWnd, false);
+							CurrentWorkspace.WindowActivated(hWnd);
 						}
 						break;
 				}
@@ -1611,16 +1619,16 @@ namespace Windawesome
 				{
 					switch (window.onHiddenWindowShownAction)
 					{
-						case OnWindowShownAction.SwitchToWindowsWorkspace:
+						case OnWindowCreatedOrShownAction.SwitchToWindowsWorkspace:
 							SwitchToApplication(window.hWnd);
 							break;
-						case OnWindowShownAction.MoveWindowToCurrentWorkspace:
+						case OnWindowCreatedOrShownAction.MoveWindowToCurrentWorkspace:
 							ChangeApplicationToWorkspace(window.hWnd, CurrentWorkspace.id, list.First.Value.Item1.id);
 							break;
-						case OnWindowShownAction.TemporarilyShowWindowOnCurrentWorkspace:
+						case OnWindowCreatedOrShownAction.TemporarilyShowWindowOnCurrentWorkspace:
 							CurrentWorkspace.Monitor.temporarilyShownWindows.Add(window.hWnd);
 							break;
-						case OnWindowShownAction.HideWindow:
+						case OnWindowCreatedOrShownAction.HideWindow:
 							HideWindow(window);
 							activatedWindow = DoForTopmostWindowForWorkspace(CurrentWorkspace, ActivateWindow);
 							break;

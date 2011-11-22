@@ -8,7 +8,7 @@ Windawesome (pronounced - contrary to what you would expect from the way it is w
 ====================================================================
 
 Installation:
-You can build from sources, which would require at least Visual Studio 2010 (C# and C++ Express work) and the IronPython/IronRuby DLLs (see below). If you don't want, you could just use the binaries I have built, but you still need .NET 4, VC++ 2010 redist and the IronPython/IronRuby DLLs (IronPython.dll, IronPython.Modules.dll, IronRuby.dll, IronRuby.Libraries.dll, Microsoft.Dynamic.dll, Microsoft.Scripting.dll). All the configuration that comes with Windawesome is the one that I use on my machine - you probably won't like it so make sure to go through all config files and customize as you like.
+You can build from sources, which would require at least Visual Studio 2010 (C# and C++ Express work) and the IronPython/IronRuby DLLs (see next sentence). If you don't want, you could just use the binaries I have built, but you still need .NET 4 Client Profile, VC++ 2010 redist and the IronPython/IronRuby DLLs (IronPython.dll, IronPython.Modules.dll, IronRuby.dll, IronRuby.Libraries.dll, Microsoft.Dynamic.dll, Microsoft.Scripting.dll). All the configuration that comes with Windawesome is the one that I use on my machine - you probably won't like it so make sure to go through all config files and customize as you like.
 
 ====================================================================
 
@@ -71,19 +71,18 @@ windowCreatedDelay - the time, in milliseconds, to wait before taking any action
 redrawDesktopOnWindowCreated - if true, Windawesome will redraw the Desktop when this window is created. Useful if you have problems with that. I've seen it with mintty (the cygwin terminal emulator). Defaults to false
 showMenu - if true, the menu bar (if any) of a window is shown, otherwise - not. Note that actually this doesn't work for a lot of windows, because they don't have a menu in Window's sense. Defaults to true
 updateIcon - if true, the icon is going to be updated when Windawesome receives a notification that it has changed. Some applications (like Console) send a massive amount of messages that they have changed their icon (while they haven't), so try setting it to false if you have problems. Defaults to true
-onWindowCreatedOnCurrentWorkspaceAction - specifies what to do when a window is created on the current workspace or MoveWindowToCurrentWorkspace/TemporarilyShowWindowOnCurrentWorkspace is used in the onWindowCreatedAction. Can be one of the enum values:
-	ActivateWindow - activates the window (default)
-	MoveToBottom - moves the new window to the bottom of the Z order and activates the one that was active up to now
 onWindowCreatedAction - specifies what to do when a window is created and the rules are to place it on different workspace(s) than the current one. Can be one of the enum values:
 	SwitchToWindowsWorkspace - switches to that window's workspace (default)
 	MoveWindowToCurrentWorkspace - moves the window to the current workspace
 	TemporarilyShowWindowOnCurrentWorkspace - shows the window but doesn't move it to the current workspace. Can be dismissed by calling DismissTemporarilyShownWindow
-	HideWindow - hides the window (this option doesn't always work - try putting a bigger number for windowCreatedDelay)
-onHiddenWindowShownAction - specifies what to do when a hidden window suddenly shows itself. Can be one of the enum values:
-	SwitchToWindowsWorkspace - switches to that window's workspace (default)
-	MoveWindowToCurrentWorkspace - moves the window to the current workspace
-	TemporarilyShowWindowOnCurrentWorkspace - shows the window but doesn't move it to the current workspace. Can be dismissed by calling DismissTemporarilyShownWindow
-	HideWindow - hides the window
+	HideWindow - hides the window and activates the one that was focues up to now
+onHiddenWindowShownAction - specifies what to do when a hidden window suddenly shows itself. The same values as for "onWindowCreatedAction" are used - read their explanations
+onWindowCreatedOnCurrentWorkspaceAction - specifies what to do when a window is created on the current workspace or SwitchToWindowsWorkspace/MoveWindowToCurrentWorkspace/TemporarilyShowWindowOnCurrentWorkspace is used in the onWindowCreatedAction. Can be one of the enum values:
+	MoveToTop - activates the window (default)
+	PreserveTopmostWindow - activates the window that was active up to now, instead of the new one
+onWindowCreatedOnInactiveWorkspaceAction - specifies what to do when a window is created on an inactive workspace which will not become active because of the newly created window. Can be one of the enum values:
+	MoveToTop - the window is going to be switched to when the workspace is selected (default)
+	PreserveTopmostWindow - the last active window of the workspace is going to be activated the next time you switch to it, instead of the newly created window
 showOnWorkspacesCount - if > 0, the window is going to be shown on that number workspaces, starting from the first one. So if showOnWorkspacesCount == number of workspaces, then the window is shown on all workspace. Note this is different than not managing the window. Defaults to 0
 rules - a list of Rule objects. Defaults to a list with one Rule with all the defaults for it
 

@@ -7,6 +7,48 @@ namespace Windawesome
 	{
 		public readonly IntPtr hWnd;
 
+		public virtual IntPtr GetLastActiveWindow()
+		{
+			return NativeMethods.GetLastActivePopup(hWnd);
+		}
+
+		public WindowBase(IntPtr hWnd)
+		{
+			this.hWnd = hWnd;
+		}
+
+		internal WindowBase(WindowBase window)
+		{
+			this.hWnd = window.hWnd;
+		}
+	}
+
+	public class Window : WindowBase
+	{
+		public bool IsFloating { get; internal set; }
+		public State Titlebar { get; internal set; }
+		public State InAltTabAndTaskbar { get; internal set; }
+		public State WindowBorders { get; internal set; }
+		public int WorkspacesCount { get; internal set; } // if > 1 window is shared between two or more workspaces
+		public string DisplayName { get; internal set; }
+		public readonly string className;
+		public readonly string processName;
+		public readonly bool is64BitProcess;
+		public readonly bool redrawOnShow;
+		public bool ShowMenu { get; private set; }
+		public readonly bool updateIcon;
+		public readonly OnWindowCreatedOrShownAction onHiddenWindowShownAction;
+		public readonly IntPtr menu;
+		public readonly bool hideFromAltTabAndTaskbarWhenOnInactiveWorkspace;
+
+		private readonly NativeMethods.WS originalStyle;
+		private readonly NativeMethods.WS_EX originalExStyle;
+
+		private NativeMethods.WINDOWPLACEMENT windowPlacement;
+		private readonly NativeMethods.WINDOWPLACEMENT originalWindowPlacement;
+
+		private readonly ProgramRule.CustomMatchingFunction customOwnedWindowMatchingFunction;
+
 		private readonly LinkedList<IntPtr> ownedWindows;
 		internal LinkedList<IntPtr> OwnedWindows
 		{
@@ -36,47 +78,10 @@ namespace Windawesome
 			}
 		}
 
-		public WindowBase(IntPtr hWnd)
+		public override IntPtr GetLastActiveWindow()
 		{
-			this.hWnd = hWnd;
-
-			this.ownedWindows = new LinkedList<IntPtr>();
-			this.ownedWindows.AddFirst(hWnd);
+			return OwnedWindows.Last.Value;
 		}
-
-		internal WindowBase(WindowBase window)
-		{
-			this.hWnd = window.hWnd;
-			ownedWindows = window.ownedWindows;
-		}
-	}
-
-	public class Window : WindowBase
-	{
-		public bool IsFloating { get; internal set; }
-		public State Titlebar { get; internal set; }
-		public State InAltTabAndTaskbar { get; internal set; }
-		public State WindowBorders { get; internal set; }
-		public int WorkspacesCount { get; internal set; } // if > 1 window is shared between two or more workspaces
-		public bool IsMinimized { get; internal set; }
-		public string DisplayName { get; internal set; }
-		public readonly string className;
-		public readonly string processName;
-		public readonly bool is64BitProcess;
-		public readonly bool redrawOnShow;
-		public bool ShowMenu { get; private set; }
-		public readonly bool updateIcon;
-		public readonly OnWindowShownAction onHiddenWindowShownAction;
-		public readonly IntPtr menu;
-		public readonly bool hideFromAltTabAndTaskbarWhenOnInactiveWorkspace;
-
-		private readonly NativeMethods.WS originalStyle;
-		private readonly NativeMethods.WS_EX originalExStyle;
-
-		private NativeMethods.WINDOWPLACEMENT windowPlacement;
-		private readonly NativeMethods.WINDOWPLACEMENT originalWindowPlacement;
-
-		private readonly ProgramRule.CustomMatchingFunction customOwnedWindowMatchingFunction;
 
 		internal bool IsMatchOwnedWindow(IntPtr hWnd)
 		{
@@ -92,7 +97,6 @@ namespace Windawesome
 			InAltTabAndTaskbar = rule.inAltTabAndTaskbar;
 			WindowBorders = rule.windowBorders;
 			this.WorkspacesCount = workspacesCount;
-			this.IsMinimized = NativeMethods.IsIconic(hWnd);
 			this.DisplayName = displayName;
 			this.className = className;
 			this.processName = processName;
@@ -112,6 +116,9 @@ namespace Windawesome
 			originalWindowPlacement = windowPlacement;
 
 			this.customOwnedWindowMatchingFunction = programRule.customOwnedWindowMatchingFunction;
+
+			this.ownedWindows = new LinkedList<IntPtr>();
+			this.ownedWindows.AddFirst(hWnd);
 		}
 
 		internal Window(Window window) : base(window)
@@ -121,7 +128,6 @@ namespace Windawesome
 			this.InAltTabAndTaskbar = window.InAltTabAndTaskbar;
 			this.WindowBorders = window.WindowBorders;
 			this.WorkspacesCount = window.WorkspacesCount;
-			IsMinimized = window.IsMinimized;
 			this.DisplayName = window.DisplayName;
 			className = window.className;
 			processName = window.processName;
@@ -140,6 +146,7 @@ namespace Windawesome
 			originalWindowPlacement = window.originalWindowPlacement;
 
 			this.customOwnedWindowMatchingFunction = window.customOwnedWindowMatchingFunction;
+			ownedWindows = window.ownedWindows;
 		}
 
 		public override int GetHashCode()

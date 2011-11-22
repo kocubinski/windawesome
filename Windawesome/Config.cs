@@ -175,13 +175,13 @@ namespace Windawesome
 		AS_IS  = 2
 	}
 
-	public enum OnWindowCreatedOnCurrentWorkspaceAction
+	public enum OnWindowCreatedOnWorkspaceAction
 	{
-		ActivateWindow,
-		MoveToBottom
+		MoveToTop,
+		PreserveTopmostWindow
 	}
 
-	public enum OnWindowShownAction
+	public enum OnWindowCreatedOrShownAction
 	{
 		SwitchToWindowsWorkspace,
 		MoveWindowToCurrentWorkspace,
@@ -207,9 +207,10 @@ namespace Windawesome
 		internal readonly bool redrawDesktopOnWindowCreated;
 		internal readonly bool showMenu;
 		internal readonly bool updateIcon;
-		internal readonly OnWindowCreatedOnCurrentWorkspaceAction onWindowCreatedOnCurrentWorkspaceAction;
-		internal readonly OnWindowShownAction onWindowCreatedAction;
-		internal readonly OnWindowShownAction onHiddenWindowShownAction;
+		internal readonly OnWindowCreatedOrShownAction onWindowCreatedAction;
+		internal readonly OnWindowCreatedOrShownAction onHiddenWindowShownAction;
+		internal readonly OnWindowCreatedOnWorkspaceAction onWindowCreatedOnCurrentWorkspaceAction;
+		internal readonly OnWindowCreatedOnWorkspaceAction onWindowCreatedOnInactiveWorkspaceAction;
 		internal readonly Rule[] rules;
 
 		public delegate bool CustomMatchingFunction(IntPtr hWnd);
@@ -234,9 +235,10 @@ namespace Windawesome
 
 			bool isManaged = true, int tryAgainAfter = -1, int windowCreatedDelay = -1, bool redrawDesktopOnWindowCreated = false,
 			bool showMenu = true, bool updateIcon = true,
-			OnWindowCreatedOnCurrentWorkspaceAction onWindowCreatedOnCurrentWorkspaceAction = OnWindowCreatedOnCurrentWorkspaceAction.ActivateWindow,
-			OnWindowShownAction onWindowCreatedAction = OnWindowShownAction.SwitchToWindowsWorkspace,
-			OnWindowShownAction onHiddenWindowShownAction = OnWindowShownAction.SwitchToWindowsWorkspace,
+			OnWindowCreatedOrShownAction onWindowCreatedAction = OnWindowCreatedOrShownAction.SwitchToWindowsWorkspace,
+			OnWindowCreatedOrShownAction onHiddenWindowShownAction = OnWindowCreatedOrShownAction.SwitchToWindowsWorkspace,
+			OnWindowCreatedOnWorkspaceAction onWindowCreatedOnCurrentWorkspaceAction = OnWindowCreatedOnWorkspaceAction.MoveToTop,
+			OnWindowCreatedOnWorkspaceAction onWindowCreatedOnInactiveWorkspaceAction = OnWindowCreatedOnWorkspaceAction.MoveToTop,
 			int showOnWorkspacesCount = 0, IEnumerable<Rule> rules = null)
 		{
 			this.className = new Regex(className, RegexOptions.Compiled);
@@ -257,9 +259,10 @@ namespace Windawesome
 				this.redrawDesktopOnWindowCreated = redrawDesktopOnWindowCreated;
 				this.showMenu = showMenu;
 				this.updateIcon = updateIcon;
-				this.onWindowCreatedOnCurrentWorkspaceAction = onWindowCreatedOnCurrentWorkspaceAction;
 				this.onWindowCreatedAction = onWindowCreatedAction;
 				this.onHiddenWindowShownAction = onHiddenWindowShownAction;
+				this.onWindowCreatedOnCurrentWorkspaceAction = onWindowCreatedOnCurrentWorkspaceAction;
+				this.onWindowCreatedOnInactiveWorkspaceAction = onWindowCreatedOnInactiveWorkspaceAction;
 
 				if (showOnWorkspacesCount > 0)
 				{
