@@ -19,16 +19,14 @@ namespace Windawesome
 					// as of Windows 7 SP1
 					if (NativeMethods.IsWindowVisible(hWnd))
 					{
-						while (ownedWindows.Count > 1 &&
-							!NativeMethods.IsWindowVisible(ownedWindows.Last.Value))
+						while (ownedWindows.Count > 1 && !NativeMethods.IsWindowVisible(ownedWindows.Last.Value))
 						{
 							ownedWindows.RemoveLast();
 						}
 					}
 					else
 					{
-						while (ownedWindows.Count > 1 &&
-							!NativeMethods.IsWindow(ownedWindows.Last.Value))
+						while (ownedWindows.Count > 1 && !NativeMethods.IsWindow(ownedWindows.Last.Value))
 						{
 							ownedWindows.RemoveLast();
 						}

@@ -29,7 +29,7 @@ namespace Windawesome
 		private readonly IntPtr getForegroundPrivilageAtom;
 		private readonly uint windawesomeThreadId = NativeMethods.GetCurrentThreadId();
 
-		private readonly Tuple<NativeMethods.MOD, Keys> altTabHotkey = new Tuple<NativeMethods.MOD, Keys>(NativeMethods.MOD.MOD_ALT, Keys.Tab);
+		private readonly Tuple<NativeMethods.MOD, Keys> altEscHotkey = new Tuple<NativeMethods.MOD, Keys>(NativeMethods.MOD.MOD_ALT, Keys.Escape);
 		private readonly Dictionary<int, HandleMessageDelegate> messageHandlers;
 
 		private readonly NativeMethods.WinEventDelegate winEventDelegate;
@@ -501,7 +501,6 @@ namespace Windawesome
 									NativeMethods.ShowWindow(hWnd, NativeMethods.SW.SW_HIDE);
 								}
 								DoForTopmostWindowForWorkspace(CurrentWorkspace, ActivateWindow);
-
 
 								break;
 						}
@@ -1672,8 +1671,7 @@ namespace Windawesome
 			{
 				if (!TrySetForegroundWindow(forceForegroundWindow) && forceForegroundWindow != NativeMethods.shellWindow)
 				{
-					SendHotkey(altTabHotkey);
-					// TODO: sometimes class "#32771" (WinSwitch) is still visible after this - fix!
+					SendHotkey(altEscHotkey);
 				}
 				forceForegroundWindow = IntPtr.Zero;
 			}
