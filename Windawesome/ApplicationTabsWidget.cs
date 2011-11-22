@@ -294,14 +294,6 @@ namespace Windawesome
 			}
 		}
 
-		private void ActivateTopmost(Workspace workspace)
-		{
-			if (bar.Monitor.CurrentVisibleWorkspace.IsCurrentWorkspace)
-			{
-				OnWindowActivated(workspace.GetTopmostWindow());
-			}
-		}
-
 		private void OnBarShown()
 		{
 			isShown = true;
@@ -341,7 +333,6 @@ namespace Windawesome
 			Workspace.WorkspaceHidden += OnWorkspaceHidden;
 			Workspace.WorkspaceShown += OnWorkspaceShown;
 			Workspace.WorkspaceDeactivated += _ => OnWindowActivated(IntPtr.Zero);
-			Workspace.WorkspaceActivated += ActivateTopmost;
 			Workspace.WorkspaceWindowOrderChanged += OnWorkspaceWindowOrderChanged;
 
 			currentlyHighlightedPanel = null;

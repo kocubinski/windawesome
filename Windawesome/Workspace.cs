@@ -45,8 +45,7 @@ namespace Windawesome
 		internal int sharedWindowsCount;
 		internal readonly LinkedList<Window> windows; // all windows, sorted in tab-order, topmost window first
 
-		private IntPtr topmostWindowHandle;
-		private Window topmostWindow;
+		internal WindowBase topmostWindow;
 		private bool hasChanges;
 
 		private static int count;
@@ -403,12 +402,11 @@ namespace Windawesome
 			}
 		}
 
-		internal void WindowActivated(IntPtr hWnd)
+		internal void WindowActivated(IntPtr hWnd, bool force)
 		{
-			if (hWnd != topmostWindowHandle)
+			if (hWnd != topmostWindow.hWnd || force)
 			{
-				topmostWindowHandle = hWnd;
-				topmostWindow = GetWindow(hWnd);
+				topmostWindow = GetWindow(hWnd) ?? new WindowBase(hWnd);
 
 				DoWindowActivated(hWnd);
 			}
@@ -435,11 +433,6 @@ namespace Windawesome
 				Layout.WindowCreated(window);
 
 				hasChanges |= !IsWorkspaceVisible;
-			}
-
-			if (!IsCurrentWorkspace && !window.IsMinimized)
-			{
-				topmostWindow = window;
 			}
 
 			DoWorkspaceWindowAdded(this, window);
@@ -492,30 +485,22 @@ namespace Windawesome
 			return windows;
 		}
 
-		public IntPtr GetTopmostWindow()
+		public WindowBase GetTopmostWindow()
 		{
-			if (topmostWindow != null && !topmostWindow.IsMinimized && ContainsWindow(topmostWindow.hWnd))
+			if (topmostWindow == null || !NativeMethods.IsWindowVisible(topmostWindow.hWnd) ||
+				NativeMethods.IsIconic(topmostWindow.hWnd))
 			{
-				return topmostWindow.OwnedWindows.Last.Value;
-			}
-			topmostWindow = null;
-
-			if (!NativeMethods.IsWindowVisible(topmostWindowHandle) || NativeMethods.IsIconic(topmostWindowHandle))
-			{
-				topmostWindowHandle = NativeMethods.shellWindow;
 				NativeMethods.EnumWindows((hWnd, _) =>
-					{
-						if (Windawesome.IsAppWindow(hWnd) &&
-							((topmostWindow = GetWindow(hWnd)) != null) && !topmostWindow.IsMinimized)
-						{
-							topmostWindowHandle = hWnd;
-							return false;
-						}
-						return true;
-					}, IntPtr.Zero);
+					!Windawesome.IsAppWindow(hWnd) || NativeMethods.IsIconic(hWnd) ||
+						(topmostWindow = GetWindow(hWnd)) == null, IntPtr.Zero);
+
+				if (topmostWindow == null)
+				{
+					topmostWindow = new WindowBase(NativeMethods.shellWindow);
+				}
 			}
 
-			return topmostWindowHandle;
+			return topmostWindow;
 		}
 
 		internal void ToggleWindowFloating(Window window)
@@ -565,7 +550,11 @@ namespace Windawesome
 				windows.ToArray().ForEach(this.ShiftWindowToMainPosition); // n ^ 2!
 				topmostWindow = windows.FirstOrDefault(w => !w.IsMinimized);
 			}
-			topmostWindowHandle = topmostWindow != null ? topmostWindow.hWnd : NativeMethods.shellWindow;
+
+			if (topmostWindow == null)
+			{
+				topmostWindow = new WindowBase(NativeMethods.shellWindow);
+			}
 		}
 
 		internal void RemoveFromSharedWindows(Window window)

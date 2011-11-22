@@ -3,33 +3,9 @@ using System.Collections.Generic;
 
 namespace Windawesome
 {
-	public class Window
+	public class WindowBase
 	{
 		public readonly IntPtr hWnd;
-		public bool IsFloating { get; internal set; }
-		public State Titlebar { get; internal set; }
-		public State InAltTabAndTaskbar { get; internal set; }
-		public State WindowBorders { get; internal set; }
-		public int WorkspacesCount { get; internal set; } // if > 1 window is shared between two or more workspaces
-		public bool IsMinimized { get; internal set; }
-		public string DisplayName { get; internal set; }
-		public readonly string className;
-		public readonly string processName;
-		public readonly bool is64BitProcess;
-		public readonly bool redrawOnShow;
-		public bool ShowMenu { get; private set; }
-		public readonly bool updateIcon;
-		public readonly OnWindowShownAction onHiddenWindowShownAction;
-		public readonly IntPtr menu;
-		public readonly bool hideFromAltTabAndTaskbarWhenOnInactiveWorkspace;
-
-		private readonly NativeMethods.WS originalStyle;
-		private readonly NativeMethods.WS_EX originalExStyle;
-
-		private NativeMethods.WINDOWPLACEMENT windowPlacement;
-		private readonly NativeMethods.WINDOWPLACEMENT originalWindowPlacement;
-
-		private readonly ProgramRule.CustomMatchingFunction customOwnedWindowMatchingFunction;
 
 		private readonly LinkedList<IntPtr> ownedWindows;
 		internal LinkedList<IntPtr> OwnedWindows
@@ -62,15 +38,57 @@ namespace Windawesome
 			}
 		}
 
+		public WindowBase(IntPtr hWnd)
+		{
+			this.hWnd = hWnd;
+
+			this.ownedWindows = new LinkedList<IntPtr>();
+			this.ownedWindows.AddFirst(hWnd);
+		}
+
+		internal WindowBase(WindowBase window)
+		{
+			this.hWnd = window.hWnd;
+			ownedWindows = window.ownedWindows;
+		}
+	}
+
+	public class Window : WindowBase
+	{
+		public bool IsFloating { get; internal set; }
+		public State Titlebar { get; internal set; }
+		public State InAltTabAndTaskbar { get; internal set; }
+		public State WindowBorders { get; internal set; }
+		public int WorkspacesCount { get; internal set; } // if > 1 window is shared between two or more workspaces
+		public bool IsMinimized { get; internal set; }
+		public string DisplayName { get; internal set; }
+		public readonly string className;
+		public readonly string processName;
+		public readonly bool is64BitProcess;
+		public readonly bool redrawOnShow;
+		public bool ShowMenu { get; private set; }
+		public readonly bool updateIcon;
+		public readonly OnWindowShownAction onHiddenWindowShownAction;
+		public readonly IntPtr menu;
+		public readonly bool hideFromAltTabAndTaskbarWhenOnInactiveWorkspace;
+
+		private readonly NativeMethods.WS originalStyle;
+		private readonly NativeMethods.WS_EX originalExStyle;
+
+		private NativeMethods.WINDOWPLACEMENT windowPlacement;
+		private readonly NativeMethods.WINDOWPLACEMENT originalWindowPlacement;
+
+		private readonly ProgramRule.CustomMatchingFunction customOwnedWindowMatchingFunction;
+
 		internal bool IsMatchOwnedWindow(IntPtr hWnd)
 		{
 			return customOwnedWindowMatchingFunction(hWnd);
 		}
 
 		internal Window(IntPtr hWnd, string className, string displayName, string processName, int workspacesCount, bool is64BitProcess,
-			NativeMethods.WS originalStyle, NativeMethods.WS_EX originalExStyle, ProgramRule.Rule rule, ProgramRule programRule, IntPtr menu)
+			NativeMethods.WS originalStyle, NativeMethods.WS_EX originalExStyle, ProgramRule.Rule rule, ProgramRule programRule, IntPtr menu) :
+			base(hWnd)
 		{
-			this.hWnd = hWnd;
 			IsFloating = rule.isFloating;
 			Titlebar = rule.titlebar;
 			InAltTabAndTaskbar = rule.inAltTabAndTaskbar;
@@ -96,13 +114,10 @@ namespace Windawesome
 			originalWindowPlacement = windowPlacement;
 
 			this.customOwnedWindowMatchingFunction = programRule.customOwnedWindowMatchingFunction;
-			this.ownedWindows = new LinkedList<IntPtr>();
-			this.ownedWindows.AddFirst(hWnd);
 		}
 
-		internal Window(Window window)
+		internal Window(Window window) : base(window)
 		{
-			hWnd = window.hWnd;
 			this.IsFloating = window.IsFloating;
 			this.Titlebar = window.Titlebar;
 			this.InAltTabAndTaskbar = window.InAltTabAndTaskbar;
@@ -127,7 +142,6 @@ namespace Windawesome
 			originalWindowPlacement = window.originalWindowPlacement;
 
 			this.customOwnedWindowMatchingFunction = window.customOwnedWindowMatchingFunction;
-			ownedWindows = window.ownedWindows;
 		}
 
 		public override int GetHashCode()
