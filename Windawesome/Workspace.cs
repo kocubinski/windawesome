@@ -505,8 +505,8 @@ namespace Windawesome
 				topmostWindowHandle = NativeMethods.shellWindow;
 				NativeMethods.EnumWindows((hWnd, _) =>
 					{
-						if (Windawesome.IsAppWindow(hWnd) && !NativeMethods.IsIconic(hWnd) &&
-							((topmostWindow = GetWindow(hWnd)) != null || Windawesome.IsAltTabWindow(hWnd)))
+						if (Windawesome.IsAppWindow(hWnd) &&
+							((topmostWindow = GetWindow(hWnd)) != null) && !topmostWindow.IsMinimized)
 						{
 							topmostWindowHandle = hWnd;
 							return false;
