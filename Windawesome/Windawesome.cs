@@ -480,10 +480,11 @@ namespace Windawesome
 					workspacesCount--;
 				}
 
-				var currentWorkspaceTopWindow = CurrentWorkspace.GetTopmostWindow();
+				var currentWorkspaceTopWindow = IntPtr.Zero;
 
 				if (finishedInitializing)
 				{
+					currentWorkspaceTopWindow = CurrentWorkspace.GetTopmostWindow();
 					if (!hasWorkspaceZeroRule && !hasCurrentWorkspaceRule)
 					{
 						var hasVisibleWorkspaceRule = matchingRules.Any(r => config.Workspaces[r.workspace - 1].IsWorkspaceVisible);
@@ -502,7 +503,7 @@ namespace Windawesome
 									hiddenApplications.Add(hWnd);
 									NativeMethods.ShowWindow(hWnd, NativeMethods.SW.SW_HIDE);
 								}
-								ActivateWindow(CurrentWorkspace.GetTopmostWindow());
+								ActivateWindow(currentWorkspaceTopWindow);
 								break;
 						}
 					}
@@ -1641,8 +1642,7 @@ namespace Windawesome
 							break;
 						case OnWindowShownAction.HideWindow:
 							HideWindow(window);
-							activatedWindow = CurrentWorkspace.GetTopmostWindow();
-							ActivateWindow(activatedWindow);
+							ActivateWindow(activatedWindow = CurrentWorkspace.GetTopmostWindow());
 							break;
 					}
 				}

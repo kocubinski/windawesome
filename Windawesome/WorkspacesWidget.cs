@@ -33,16 +33,8 @@ namespace Windawesome
 		{
 			this.normalForegroundColor = normalForegroundColor ?? new[]
 				{
-					Color.Black,
-					Color.Black,
-					Color.Black,
-					Color.Black,
-					Color.Black,
-					Color.White,
-					Color.White,
-					Color.White,
-					Color.White,
-					Color.White
+					Color.Black, Color.Black, Color.Black, Color.Black, Color.Black,
+					Color.White, Color.White, Color.White, Color.White, Color.White
 				};
 			this.normalBackgroundColor = normalBackgroundColor ?? new[]
 				{

@@ -30,9 +30,9 @@ namespace Windawesome
 			Color? highlightedForegroundColor = null, Color? highlightedBackgroundColor = null)
 		{
 			this.showSingleApplicationTab = showSingleApplicationTab;
-			this.normalForegroundColor = normalForegroundColor ?? Color.FromArgb(0x00, 0x00, 0x00);
+			this.normalForegroundColor = normalForegroundColor ?? Color.Black;
 			this.normalBackgroundColor = normalBackgroundColor ?? Color.FromArgb(0xF0, 0xF0, 0xF0);
-			this.highlightedForegroundColor = highlightedForegroundColor ?? Color.FromArgb(0xFF, 0xFF, 0xFF);
+			this.highlightedForegroundColor = highlightedForegroundColor ?? Color.White;
 			this.highlightedBackgroundColor = highlightedBackgroundColor ?? Color.FromArgb(0x33, 0x99, 0xFF);
 
 			isShown = false;
@@ -187,10 +187,6 @@ namespace Windawesome
 
 				if (isShown && workspace.IsWorkspaceVisible)
 				{
-					if (workspace.IsCurrentWorkspace)
-					{
-						OnWindowActivated(NativeMethods.GetForegroundWindow());
-					}
 					ResizeApplicationPanels(left, right, workspaceId);
 				}
 				else
@@ -211,10 +207,6 @@ namespace Windawesome
 				applicationPanels[workspaceId].Remove(tuple);
 				if (isShown && workspace.IsWorkspaceVisible)
 				{
-					if (workspace.IsCurrentWorkspace)
-					{
-						OnWindowActivated(NativeMethods.GetForegroundWindow());
-					}
 					ResizeApplicationPanels(left, right, workspaceId);
 				}
 				else

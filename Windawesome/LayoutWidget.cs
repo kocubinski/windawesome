@@ -17,7 +17,7 @@ namespace Windawesome
 		public LayoutWidget(Color? backColor = null, Color? foreColor = null, Action onClick = null)
 		{
 			backgroundColor = backColor ?? Color.FromArgb(0x99, 0xB4, 0xD1);
-			foregroundColor = foreColor ?? Color.FromArgb(0x00, 0x00, 0x00);
+			foregroundColor = foreColor ?? Color.Black;
 
 			this.onClick = onClick;
 		}

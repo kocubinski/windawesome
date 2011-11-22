@@ -437,6 +437,11 @@ namespace Windawesome
 				hasChanges |= !IsWorkspaceVisible;
 			}
 
+			if (!IsCurrentWorkspace && !window.IsMinimized)
+			{
+				topmostWindow = window;
+			}
+
 			DoWorkspaceWindowAdded(this, window);
 		}
 
@@ -493,25 +498,24 @@ namespace Windawesome
 			{
 				return topmostWindow.OwnedWindows.Last.Value;
 			}
+			topmostWindow = null;
 
-			var result = topmostWindowHandle;
-			if ((topmostWindowHandle == NativeMethods.shellWindow && windows.Count(w => !w.IsMinimized) > 0) ||
-				!NativeMethods.IsWindowVisible(topmostWindowHandle) || NativeMethods.IsIconic(topmostWindowHandle))
+			if (!NativeMethods.IsWindowVisible(topmostWindowHandle) || NativeMethods.IsIconic(topmostWindowHandle))
 			{
-				result = NativeMethods.shellWindow;
+				topmostWindowHandle = NativeMethods.shellWindow;
 				NativeMethods.EnumWindows((hWnd, _) =>
 					{
 						if (Windawesome.IsAppWindow(hWnd) && !NativeMethods.IsIconic(hWnd) &&
-							(ContainsWindow(hWnd) || Windawesome.IsAltTabWindow(hWnd)))
+							((topmostWindow = GetWindow(hWnd)) != null || Windawesome.IsAltTabWindow(hWnd)))
 						{
-							result = hWnd;
+							topmostWindowHandle = hWnd;
 							return false;
 						}
 						return true;
 					}, IntPtr.Zero);
 			}
 
-			return result;
+			return topmostWindowHandle;
 		}
 
 		internal void ToggleWindowFloating(Window window)
