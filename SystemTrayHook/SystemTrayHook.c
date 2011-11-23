@@ -51,7 +51,7 @@ static LRESULT CALLBACK HookCallback(int code, WPARAM wParam, LPARAM lParam)
 				((SHELLTRAYDATA*) copyDataStruct->lpData)->dwHz == 0x34753423)
 			{
 				SendMessageTimeout(applicationHandle, WM_COPYDATA, pInfo->wParam, pInfo->lParam,
-					SMTO_ABORTIFHUNG, 3000, NULL);
+					SMTO_ABORTIFHUNG, 10000, NULL);
 			}
 		}
 	}

@@ -594,6 +594,7 @@ namespace Windawesome
 								break;
 						}
 					}
+
 					OnWindowCreatedOnCurrentWorkspace(hWnd, programRule);
 				}
 			}
@@ -929,7 +930,8 @@ namespace Windawesome
 							// the workspace contains this window so make it the topmost one
 							return false;
 						}
-						if (IsAltTabWindow(hWnd) && !applications.ContainsKey(hWnd))
+						if ((IsAltTabWindow(hWnd) && !applications.ContainsKey(hWnd)) ||
+							workspace.Monitor.temporarilyShownWindows.Contains(hWnd))
 						{
 							// the window is not a managed-by-another-visible-workspace one so make it the topmost one
 							topmostWindows[workspace.id - 1] = new WindowBase(hWnd);
@@ -1608,22 +1610,13 @@ namespace Windawesome
 					// HSHELL_WINDOWACTIVATED/HSHELL_RUDEAPPACTIVATED doesn't work for some windows like Digsby Buddy List
 					// EVENT_OBJECT_FOCUS doesn't work with Firefox on the other hand
 					case NativeMethods.EVENT.EVENT_SYSTEM_FOREGROUND:
-						if (!hiddenApplications.Contains(hWnd))
+						if (NativeMethods.IsWindowVisible(hWnd) && !hiddenApplications.Contains(hWnd))
 						{
 							if (hWnd != NativeMethods.shellWindow &&
+								ApplicationsTryGetValue(hWnd, out list) &&
 								!CurrentWorkspace.Monitor.temporarilyShownWindows.Contains(hWnd))
 							{
-								if (!ApplicationsTryGetValue(hWnd, out list)) // if a new window has shown
-								{
-									if (AddWindowToWorkspace(hWnd))
-									{
-										return ;
-									}
-								}
-								else
-								{
-									hWnd = WindowShownOrActivated(list);
-								}
+								hWnd = WindowShownOrActivated(list);
 							}
 
 							CurrentWorkspace.WindowActivated(hWnd);
