@@ -25,6 +25,7 @@ namespace Windawesome
 		public static readonly IntPtr taskbarButtonsWindowHandle;
 
 		private readonly Dictionary<IntPtr, LinkedList<Tuple<Workspace, Window>>> applications; // hWnd to a list of workspaces and windows
+		private readonly WindowBase[] topmostWindows;
 		private readonly HashMultiSet<IntPtr> hiddenApplications;
 		private readonly IntPtr getForegroundPrivilageAtom;
 		private readonly uint windawesomeThreadId = NativeMethods.GetCurrentThreadId();
@@ -151,6 +152,9 @@ namespace Windawesome
 
 			CurrentWorkspace = config.StartingWorkspaces.First(w => w.Monitor.screen.Primary);
 
+			topmostWindows = new WindowBase[config.Workspaces.Length];
+			Workspace.WindowActivatedEvent += h => topmostWindows[CurrentWorkspace.id - 1] = CurrentWorkspace.GetWindow(h) ?? new WindowBase(h);
+
 			// add workspaces to their corresponding monitors
 			monitors.ForEach(m => config.Workspaces.Where(w => w.Monitor == m).ForEach(m.AddWorkspace)); // n ^ 2 but hopefully fast enough
 
@@ -252,6 +256,7 @@ namespace Windawesome
 			{
 				workspace.windows.ForEach(w => windowsToHide.Add(w));
 				workspace.Initialize();
+				topmostWindows[workspace.id - 1] = workspace.GetWindows().FirstOrDefault(w => !NativeMethods.IsIconic(w.hWnd)) ?? new WindowBase(NativeMethods.shellWindow);
 			}
 			windowsToHide.ExceptWith(config.StartingWorkspaces.SelectMany(ws => ws.windows));
 			var winPosInfo = NativeMethods.BeginDeferWindowPos(windowsToHide.Count);
@@ -420,7 +425,7 @@ namespace Windawesome
 			Quit();
 		}
 
-		internal static bool IsAppWindow(IntPtr hWnd)
+		private static bool IsAppWindow(IntPtr hWnd)
 		{
 			return NativeMethods.IsWindowVisible(hWnd) &&
 				!NativeMethods.GetWindowStyleLongPtr(hWnd).HasFlag(NativeMethods.WS.WS_CHILD);
@@ -563,7 +568,7 @@ namespace Windawesome
 							switch (programRule.onWindowCreatedOnInactiveWorkspaceAction)
 							{
 								case OnWindowCreatedOnWorkspaceAction.MoveToTop:
-									workspace.topmostWindow = window;
+									topmostWindows[workspace.id - 1] = window;
 									break;
 							}
 						}
@@ -908,9 +913,38 @@ namespace Windawesome
 			CurrentWorkspace.WindowActivated(window.hWnd);
 		}
 
-		private static IntPtr DoForTopmostWindowForWorkspace(Workspace workspace, Action<WindowBase> action)
+		private IntPtr DoForTopmostWindowForWorkspace(Workspace workspace, Action<WindowBase> action)
 		{
-			var window = workspace.GetTopmostWindow();
+			var window = topmostWindows[workspace.id - 1];
+			if (window == null || !NativeMethods.IsWindowVisible(window.hWnd) || NativeMethods.IsIconic(window.hWnd))
+			{
+				NativeMethods.EnumWindows((hWnd, _) =>
+					{
+						if (!IsAppWindow(hWnd) || NativeMethods.IsIconic(hWnd))
+						{
+							return true;
+						}
+						if ((topmostWindows[workspace.id - 1] = workspace.GetWindow(hWnd)) != null)
+						{
+							// the workspace contains this window so make it the topmost one
+							return false;
+						}
+						if (IsAltTabWindow(hWnd) && !applications.ContainsKey(hWnd))
+						{
+							// the window is not a managed-by-another-visible-workspace one so make it the topmost one
+							topmostWindows[workspace.id - 1] = new WindowBase(hWnd);
+							return false;
+						}
+						return true;
+					}, IntPtr.Zero);
+
+				if (topmostWindows[workspace.id - 1] == null)
+				{
+					topmostWindows[workspace.id - 1] = new WindowBase(NativeMethods.shellWindow);
+				}
+			}
+
+			window = topmostWindows[workspace.id - 1];
 			action(window);
 
 			return window.hWnd;

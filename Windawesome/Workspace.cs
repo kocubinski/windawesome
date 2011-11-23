@@ -45,7 +45,6 @@ namespace Windawesome
 		internal int sharedWindowsCount;
 		internal readonly LinkedList<Window> windows; // all windows, sorted in tab-order, topmost window first
 
-		internal WindowBase topmostWindow;
 		private bool hasChanges;
 
 		private static int count;
@@ -402,8 +401,6 @@ namespace Windawesome
 
 		internal void WindowActivated(IntPtr hWnd)
 		{
-			topmostWindow = GetWindow(hWnd) ?? new WindowBase(hWnd);
-
 			DoWindowActivated(hWnd);
 		}
 
@@ -480,24 +477,6 @@ namespace Windawesome
 			return windows;
 		}
 
-		public WindowBase GetTopmostWindow()
-		{
-			if (topmostWindow == null || !NativeMethods.IsWindowVisible(topmostWindow.hWnd) ||
-				NativeMethods.IsIconic(topmostWindow.hWnd))
-			{
-				NativeMethods.EnumWindows((hWnd, _) =>
-					!Windawesome.IsAppWindow(hWnd) || NativeMethods.IsIconic(hWnd) ||
-						(topmostWindow = GetWindow(hWnd)) == null, IntPtr.Zero);
-
-				if (topmostWindow == null)
-				{
-					topmostWindow = new WindowBase(NativeMethods.shellWindow);
-				}
-			}
-
-			return topmostWindow;
-		}
-
 		internal void ToggleWindowFloating(Window window)
 		{
 			window.IsFloating = !window.IsFloating;
@@ -544,8 +523,6 @@ namespace Windawesome
 			{
 				windows.ToArray().ForEach(this.ShiftWindowToMainPosition); // n ^ 2!
 			}
-
-			topmostWindow = windows.FirstOrDefault(w => !NativeMethods.IsIconic(w.hWnd)) ?? new WindowBase(NativeMethods.shellWindow);
 		}
 
 		internal void RemoveFromSharedWindows(Window window)
