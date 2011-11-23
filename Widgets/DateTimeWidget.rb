@@ -8,7 +8,7 @@ class DateTimeWidget
 
 	def initialize string, back_color = nil, fore_color = nil, update_time = 30000, click = nil
 		@background_color = back_color || Color.from_argb(0xC0, 0xC0, 0xC0)
-		@foreground_color = fore_color || Color.from_argb(0x00, 0x00, 0x00)
+		@foreground_color = fore_color || Color.black
 		@string = string
 		@click = click
 
@@ -49,11 +49,7 @@ class DateTimeWidget
 	end
 
 	def reposition_controls left, right
-		if @is_left
-			@label.location = Point.new left, 0
-		else
-			@label.location = Point.new right - @label.width, 0
-		end
+		@label.location = @is_left ? Point.new(left, 0) : Point.new(right - @label.width, 0)
 	end
 
 	def get_left

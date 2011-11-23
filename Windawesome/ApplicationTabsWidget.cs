@@ -100,7 +100,7 @@ namespace Windawesome
 					panel = applications.First(t => t.Item1 == hWnd).Item2;
 					if (panel == currentlyHighlightedPanel)
 					{
-						// panel already current one, just fix colors because there might be newly created windows
+						// panel already current one, just fix colors because there might be newly created/destroyed windows
 						if (!showSingleApplicationTab && currentlyHighlightedPanel != null)
 						{
 							if (applications.Count == 1)

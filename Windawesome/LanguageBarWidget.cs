@@ -15,7 +15,7 @@ namespace Windawesome
 		private bool isLeft;
 		private readonly Color backgroundColor;
 		private readonly Color foregroundColor;
-		private readonly static StringBuilder stringBuilder = new StringBuilder(10);
+		private readonly static StringBuilder stringBuilder = new StringBuilder(85);
 
 		private delegate void InputLanguageChangedEventHandler(string language);
 		private static event InputLanguageChangedEventHandler InputLanguageChanged;
