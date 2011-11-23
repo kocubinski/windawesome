@@ -184,14 +184,6 @@ namespace Windawesome
 			}
 		}
 
-		private static void DoWindowActivated(IntPtr hWnd)
-		{
-			if (WindowActivatedEvent != null)
-			{
-				WindowActivatedEvent(hWnd);
-			}
-		}
-
 		private void DoWindowTitlebarToggled(Window window)
 		{
 			if (WindowTitlebarToggled != null)
@@ -401,7 +393,7 @@ namespace Windawesome
 
 		internal void WindowActivated(IntPtr hWnd)
 		{
-			DoWindowActivated(hWnd);
+			WindowActivatedEvent(hWnd);
 		}
 
 		internal void WindowCreated(Window window)

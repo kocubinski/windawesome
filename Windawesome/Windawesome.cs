@@ -1610,9 +1610,15 @@ namespace Windawesome
 					// HSHELL_WINDOWACTIVATED/HSHELL_RUDEAPPACTIVATED doesn't work for some windows like Digsby Buddy List
 					// EVENT_OBJECT_FOCUS doesn't work with Firefox on the other hand
 					case NativeMethods.EVENT.EVENT_SYSTEM_FOREGROUND:
-						if (!hiddenApplications.Contains(hWnd))
+						// the check for visibility is necessary because some windows are activated, i.e.
+						// EVENT_SYSTEM_FOREGROUND is sent for them, BEFORE they are shown. Then AddWindowToWorkspace
+						// could try to activate them or something, which is bad if they are still invisible
+
+						// this, however, is not good for unmanaged windows, which won't be activated because of
+						// AddWindowToWorkspace and their activation won't be noted when created
+						if (NativeMethods.IsWindowVisible(hWnd) && !hiddenApplications.Contains(hWnd))
 						{
-							if (hWnd != NativeMethods.shellWindow && NativeMethods.IsWindowVisible(hWnd) &&
+							if (hWnd != NativeMethods.shellWindow &&
 								!CurrentWorkspace.Monitor.temporarilyShownWindows.Contains(hWnd))
 							{
 								if (ApplicationsTryGetValue(hWnd, out list))
