@@ -20,11 +20,14 @@ namespace Windawesome
 		private bool isLeft;
 		private bool isShown;
 		private readonly bool flashWorkspaces;
-		private readonly Dictionary<IntPtr, Workspace> flashingWindows;
 
 		private static Windawesome windawesome;
 		private static Timer flashTimer;
+		private static Dictionary<IntPtr, Workspace> flashingWindows;
 		private static HashSet<Workspace> flashingWorkspaces;
+
+		private delegate void WorkFlashingStopped(Workspace workspace);
+		private static event WorkFlashingStopped OnWorkspaceFlashingStopped;
 
 		public WorkspacesWidget(Color[] normalForegroundColor = null, Color[] normalBackgroundColor = null,
 			Color? highlightedForegroundColor = null, Color? highlightedBackgroundColor = null,
@@ -58,12 +61,16 @@ namespace Windawesome
 			this.flashWorkspaces = flashWorkspaces;
 			if (flashWorkspaces)
 			{
-				flashingWindows = new Dictionary<IntPtr, Workspace>(3);
-
 				if (flashTimer == null)
 				{
 					flashTimer = new Timer { Interval = 500 };
+					flashingWindows = new Dictionary<IntPtr, Workspace>(3);
 					flashingWorkspaces = new HashSet<Workspace>();
+
+					Workspace.WorkspaceWindowRemoved += (_, w) => StopFlashingApplication(w.hWnd);
+					Workspace.WindowActivatedEvent += StopFlashingApplication;
+					Workspace.WorkspaceWindowRestored += (_, w) => StopFlashingApplication(w.hWnd);
+					Windawesome.WindowFlashing += OnWindowFlashing;
 				}
 			}
 		}
@@ -106,7 +113,7 @@ namespace Windawesome
 			}
 		}
 
-		private void OnWindowFlashing(LinkedList<Tuple<Workspace, Window>> list)
+		private static void OnWindowFlashing(LinkedList<Tuple<Workspace, Window>> list)
 		{
 			var hWnd = list.First.Value.Item2.hWnd;
 			var workspace = list.First.Value.Item1;
@@ -118,6 +125,24 @@ namespace Windawesome
 				if (flashingWorkspaces.Count == 1)
 				{
 					flashTimer.Start();
+				}
+			}
+		}
+
+		private static void StopFlashingApplication(IntPtr hWnd)
+		{
+			Workspace workspace;
+			if (flashingWindows.TryGetValue(hWnd, out workspace))
+			{
+				flashingWindows.Remove(hWnd);
+				if (flashingWindows.Values.All(w => w != workspace))
+				{
+					OnWorkspaceFlashingStopped(workspace);
+					flashingWorkspaces.Remove(workspace);
+					if (flashingWorkspaces.Count == 0)
+					{
+						flashTimer.Stop();
+					}
 				}
 			}
 		}
@@ -136,24 +161,6 @@ namespace Windawesome
 					{
 						workspaceLabels[flashingWorkspace.id - 1].BackColor = flashingBackgroundColor;
 						workspaceLabels[flashingWorkspace.id - 1].ForeColor = flashingForegroundColor;
-					}
-				}
-			}
-		}
-
-		private void StopFlashingApplication(IntPtr hWnd)
-		{
-			Workspace workspace;
-			if (flashingWindows.TryGetValue(hWnd, out workspace))
-			{
-				flashingWindows.Remove(hWnd);
-				if (flashingWindows.Values.All(w => w != workspace))
-				{
-					SetWorkspaceLabelColor(workspace);
-					flashingWorkspaces.Remove(workspace);
-					if (flashingWorkspaces.Count == 0)
-					{
-						flashTimer.Stop();
 					}
 				}
 			}
@@ -188,10 +195,7 @@ namespace Windawesome
 			if (flashWorkspaces)
 			{
 				flashTimer.Tick += OnTimerTick;
-				Workspace.WorkspaceWindowRemoved += (_, w) => StopFlashingApplication(w.hWnd);
-				Workspace.WindowActivatedEvent += StopFlashingApplication;
-				Workspace.WorkspaceWindowRestored += (_, w) => StopFlashingApplication(w.hWnd);
-				Windawesome.WindowFlashing += OnWindowFlashing;
+				OnWorkspaceFlashingStopped += SetWorkspaceLabelColor;
 			}
 
 			isShown = false;
