@@ -660,21 +660,7 @@ namespace Windawesome
 							var targetWindowThreadId = NativeMethods.GetWindowThreadProcessId(hWnd, IntPtr.Zero);
 							var successfullyAttached = NativeMethods.AttachThreadInput(foregroundWindowThreadId, targetWindowThreadId, true);
 
-							uint foregroundLockTimeout = 0;
-							NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_GETFOREGROUNDLOCKTIMEOUT,
-								0, ref foregroundLockTimeout, 0);
-							if (foregroundLockTimeout != 0)
-							{
-								uint zeroForegroundLockTimeout = 0;
-								NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_SETFOREGROUNDLOCKTIMEOUT,
-									0, ref zeroForegroundLockTimeout, 0);
-							}
 							successfullyChanged = TrySetForegroundWindow(hWnd);
-							if (foregroundLockTimeout != 0)
-							{
-								NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_SETFOREGROUNDLOCKTIMEOUT,
-									0, ref foregroundLockTimeout, 0);
-							}
 
 							if (successfullyAttached)
 							{
