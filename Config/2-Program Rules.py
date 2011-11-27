@@ -95,44 +95,14 @@ config.ProgramRules = [
 	# chat
 
 	ProgramRule(
-		className = "^TLoginForm.*", # Skype
-		rules = [ProgramRule.Rule(isFloating = True)]
-	),
-	ProgramRule(
-		className = "^tSkMainForm.*", # Skype
-		rules = [ProgramRule.Rule(workspace = 4, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
-	),
-	ProgramRule(
-		className = "^TConversationForm.*", # Skype
-		onWindowCreatedAction = OnWindowCreatedOrShownAction.HideWindow,
-		onWindowCreatedOnCurrentWorkspaceAction = OnWindowCreatedOnWorkspaceAction.PreserveTopmostWindow,
-		rules = [ProgramRule.Rule(workspace = 4, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
-	),
-	ProgramRule(
-		className = "^Miranda$",
-		displayName = "^Miranda IM$",
-		processName = "^miranda64$",
+		className = "^icoTrilly$",
 		onWindowCreatedAction = OnWindowCreatedOrShownAction.TemporarilyShowWindowOnCurrentWorkspace,
+		onHiddenWindowShownAction = OnWindowCreatedOrShownAction.TemporarilyShowWindowOnCurrentWorkspace,
 		rules = [ProgramRule.Rule(workspace = 4, isFloating = True)]
 	),
 	ProgramRule(
-		displayName = ": Message Session$",
-		processName = "^miranda64$",
-		onWindowCreatedAction = OnWindowCreatedOrShownAction.HideWindow,
-		onWindowCreatedOnCurrentWorkspaceAction = OnWindowCreatedOnWorkspaceAction.PreserveTopmostWindow,
-		rules = [ProgramRule.Rule(workspace = 4, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
-	),
-	ProgramRule(
-		className = "^wxWindowClassNR$", # digsby Buddy List
-		displayName = "^Buddy List$",
-		processName = "^digsby-app$",
-		customMatchingFunction = lambda hWnd: True,
-		onWindowCreatedAction = OnWindowCreatedOrShownAction.TemporarilyShowWindowOnCurrentWorkspace,
-		rules = [ProgramRule.Rule(workspace = 4, isFloating = True)]
-	),
-	ProgramRule(
-		className = "^wxWindowClass$", # digsby chat window
-		processName = "^digsby-app$",
+		className = "^ico.*",
+		processName = "^trillian$",
 		onWindowCreatedAction = OnWindowCreatedOrShownAction.HideWindow,
 		onWindowCreatedOnCurrentWorkspaceAction = OnWindowCreatedOnWorkspaceAction.PreserveTopmostWindow,
 		rules = [ProgramRule.Rule(workspace = 4, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
