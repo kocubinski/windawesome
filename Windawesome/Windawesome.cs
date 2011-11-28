@@ -172,7 +172,7 @@ namespace Windawesome
 			// a handler for the system shutting down/restarting
 			SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
 			SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
-			SystemEvents.SessionEnded += OnSessionEnded;
+			SystemEvents.SessionEnding += OnSessionEnding;
 
 			#region System Changes
 
@@ -297,7 +297,7 @@ namespace Windawesome
 		{
 			SystemEvents.UserPreferenceChanged -= OnUserPreferenceChanged;
 			SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
-			SystemEvents.SessionEnded -= OnSessionEnded;
+			SystemEvents.SessionEnding -= OnSessionEnding;
 
 			// unregister the shell events
 			NativeMethods.UnhookWinEvent(windowShownOrDestroyedWinEventHook);
@@ -420,7 +420,7 @@ namespace Windawesome
 			config.Workspaces.ForEach(ws => ws.Reposition());
 		}
 
-		private void OnSessionEnded(object sender, SessionEndedEventArgs e)
+		private void OnSessionEnding(object sender, SessionEndingEventArgs e)
 		{
 			Quit();
 		}

@@ -291,7 +291,6 @@ namespace Windawesome
 					WindowState = FormWindowState.Normal,
 					ClientSize = new Size(0, 0)
 				};
-			newForm.Closing += (_, ea) => ea.Cancel = true;
 
 			return newForm;
 		}
