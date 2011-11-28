@@ -359,18 +359,17 @@ using WPARAM = UIntPtr; // UINT_PTR
 
 		#region GetWindowText/GetClassName
 
+		private static readonly StringBuilder stringBuilder = new StringBuilder(257);
 		public static string GetText(HWND hWnd)
 		{
-			var sb = new StringBuilder(256);
-			GetWindowText(hWnd, sb, sb.Capacity);
-			return sb.ToString();
+			GetWindowText(hWnd, stringBuilder, stringBuilder.Capacity);
+			return stringBuilder.ToString();
 		}
 
 		public static string GetWindowClassName(HWND hWnd)
 		{
-			var sb = new StringBuilder(257);
-			GetClassName(hWnd, sb, sb.Capacity);
-			return sb.ToString();
+			GetClassName(hWnd, stringBuilder, stringBuilder.Capacity);
+			return stringBuilder.ToString();
 		}
 
 		[DllImport("user32.dll", CharSet = CharSet.Auto)]

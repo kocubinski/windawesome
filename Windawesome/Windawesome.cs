@@ -440,7 +440,7 @@ namespace Windawesome
 				if (workspacesWindowsList.First.Value.Item2.IsMatchOwnedWindow(hWnd))
 				{
 					var ownedWindows = workspacesWindowsList.First.Value.Item2.OwnedWindows;
-					if (ownedWindows.FindLast(hWnd) == null)
+					if (ownedWindows.Last.Value != hWnd)
 					{
 						ownedWindows.AddLast(hWnd);
 					}
