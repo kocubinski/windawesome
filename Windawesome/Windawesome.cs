@@ -893,6 +893,7 @@ namespace Windawesome
 			if (NativeMethods.IsIconic(window.hWnd) && WindowIsNotHung(window.hWnd))
 			{
 				// OpenIcon does not restore the window to its previous size (e.g. maximized)
+				// ShowWindow(SW_RESTORE) doesn't redraw some windows correctly (like TortoiseHG commit window)
 				RestoreApplication(window.hWnd);
 				System.Threading.Thread.Sleep(NativeMethods.minimizeRestoreDelay);
 			}
