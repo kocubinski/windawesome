@@ -893,6 +893,7 @@ namespace Windawesome
 			if (NativeMethods.IsIconic(window.hWnd) && WindowIsNotHung(window.hWnd))
 			{
 				// OpenIcon does not restore the window to its previous size (e.g. maximized)
+				// TODO: this doesn't seem to redraw the window in some cases (TortoiseHG commit window)
 				NativeMethods.ShowWindow(window.hWnd, NativeMethods.SW.SW_RESTORE);
 				System.Threading.Thread.Sleep(NativeMethods.minimizeRestoreDelay);
 			}
@@ -1113,15 +1114,6 @@ namespace Windawesome
 
 					FollowWindow(oldWorkspace, newWorkspace, follow, newWindow);
 				}
-			}
-		}
-
-		public void TemporarilyShowWindowOnCurrentWorkspace(Window window)
-		{
-			if (!NativeMethods.IsWindowVisible(window.hWnd))
-			{
-				CurrentWorkspace.Monitor.temporarilyShownWindows.Add(window.hWnd);
-				window.ShowAsync();
 			}
 		}
 
@@ -1523,16 +1515,25 @@ namespace Windawesome
 			}
 		}
 
+		public void TemporarilyShowWindowOnCurrentWorkspace(Window window)
+		{
+			if (!NativeMethods.IsWindowVisible(window.hWnd))
+			{
+				CurrentWorkspace.Monitor.temporarilyShownWindows.Add(window.hWnd);
+				window.ShowAsync();
+			}
+		}
+
 		public void DismissTemporarilyShownWindow(IntPtr hWnd)
 		{
 			LinkedList<Tuple<Workspace, Window>> list;
 			if (ApplicationsTryGetValue(hWnd, out list))
 			{
-				hWnd = list.First.Value.Item2.hWnd;
-				var monitor = monitors.FirstOrDefault(m => m.temporarilyShownWindows.Remove(hWnd));
+				var window = list.First.Value.Item2;
+				var monitor = monitors.FirstOrDefault(m => m.temporarilyShownWindows.Remove(window.hWnd));
 				if (monitor != null)
 				{
-					HideWindow(list.First.Value.Item2);
+					HideWindow(window);
 					if (monitor.CurrentVisibleWorkspace.IsCurrentWorkspace)
 					{
 						DoForTopmostWindowForWorkspace(CurrentWorkspace, ActivateWindow);
@@ -1604,12 +1605,14 @@ namespace Windawesome
 						// AddWindowToWorkspace and their activation won't be noted when created
 						if (NativeMethods.IsWindowVisible(hWnd) && !hiddenApplications.Contains(hWnd))
 						{
-							if (hWnd != NativeMethods.shellWindow &&
-								!CurrentWorkspace.Monitor.temporarilyShownWindows.Contains(hWnd))
+							if (hWnd != NativeMethods.shellWindow)
 							{
 								if (ApplicationsTryGetValue(hWnd, out list))
 								{
-									hWnd = WindowShownOrActivated(list);
+									if (!CurrentWorkspace.Monitor.temporarilyShownWindows.Contains(list.First.Value.Item2.hWnd))
+									{
+										hWnd = WindowShownOrActivated(list);
+									}
 								}
 								else if (AddWindowToWorkspace(hWnd))
 								{

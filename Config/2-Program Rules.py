@@ -97,7 +97,6 @@ config.ProgramRules = [
 	ProgramRule(
 		className = "^icoTrilly$",
 		onWindowCreatedAction = OnWindowCreatedOrShownAction.TemporarilyShowWindowOnCurrentWorkspace,
-		onHiddenWindowShownAction = OnWindowCreatedOrShownAction.TemporarilyShowWindowOnCurrentWorkspace,
 		rules = [ProgramRule.Rule(workspace = 4, isFloating = True)]
 	),
 	ProgramRule(
