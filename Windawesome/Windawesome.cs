@@ -893,11 +893,13 @@ namespace Windawesome
 			if (NativeMethods.IsIconic(window.hWnd) && WindowIsNotHung(window.hWnd))
 			{
 				// OpenIcon does not restore the window to its previous size (e.g. maximized)
-				// TODO: this doesn't seem to redraw the window in some cases (TortoiseHG commit window)
-				NativeMethods.ShowWindow(window.hWnd, NativeMethods.SW.SW_RESTORE);
+				RestoreApplication(window.hWnd);
 				System.Threading.Thread.Sleep(NativeMethods.minimizeRestoreDelay);
 			}
-			ForceForegroundWindow(window);
+			else
+			{
+				ForceForegroundWindow(window);
+			}
 			CurrentWorkspace.WindowActivated(window.hWnd);
 		}
 
