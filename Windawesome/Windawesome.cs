@@ -428,6 +428,7 @@ namespace Windawesome
 		private static bool IsAppWindow(IntPtr hWnd)
 		{
 			return NativeMethods.IsWindowVisible(hWnd) &&
+				!NativeMethods.GetWindowExStyleLongPtr(hWnd).HasFlag(NativeMethods.WS_EX.WS_EX_NOACTIVATE) &&
 				!NativeMethods.GetWindowStyleLongPtr(hWnd).HasFlag(NativeMethods.WS.WS_CHILD);
 		}
 

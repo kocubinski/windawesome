@@ -172,8 +172,8 @@ namespace Windawesome
 			var borderStyle = originalStyle & NativeMethods.WS.WS_SIZEBOX;
 
 			var borderExStyle = originalExStyle &
-				(NativeMethods.WS_EX.WS_EX_DLGMODALFRAME | NativeMethods.WS_EX.WS_EX_CLIENTEDGE |
-				NativeMethods.WS_EX.WS_EX_STATICEDGE | NativeMethods.WS_EX.WS_EX_WINDOWEDGE);
+				(NativeMethods.WS_EX.WS_EX_OVERLAPPEDWINDOW |
+				NativeMethods.WS_EX.WS_EX_DLGMODALFRAME | NativeMethods.WS_EX.WS_EX_STATICEDGE);
 
 			if (this.InAltTabAndTaskbar != State.AS_IS)
 			{

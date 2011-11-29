@@ -104,7 +104,7 @@ config.ProgramRules = [
 		processName = "^trillian$",
 		onWindowCreatedAction = OnWindowCreatedOrShownAction.HideWindow,
 		onWindowCreatedOnCurrentWorkspaceAction = OnWindowCreatedOnWorkspaceAction.PreserveTopmostWindow,
-		rules = [ProgramRule.Rule(workspace = 4, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
+		rules = [ProgramRule.Rule(workspace = 4)]
 	),
 
 	# terminals
@@ -151,7 +151,6 @@ config.ProgramRules = [
 	),
 	ProgramRule(
 		className = "^#32770$", # all dialogs
-		tryAgainAfter = 500,
 		rules = [ProgramRule.Rule(isFloating = True)] # should be floating
 	),
 	ProgramRule(
@@ -160,8 +159,7 @@ config.ProgramRules = [
 	),
 	ProgramRule(
 		styleNotContains = WS.WS_MAXIMIZEBOX,
-		tryAgainAfter = 300,
 		rules = [ProgramRule.Rule(isFloating = True)]
 	),
-	ProgramRule(tryAgainAfter = 300) # an all-catching rule in the end to manage all other windows
+	ProgramRule() # an all-catching rule in the end to manage all other windows
 ]
