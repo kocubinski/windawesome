@@ -90,7 +90,7 @@ namespace Windawesome
 				if (TrayIconVisible(trayIcon))
 				{
 					RepositionControls(left, right);
-					bar.DoWidgetControlsChanged(this, new PictureBox[0], new[] { pictureBox });
+					bar.DoWidgetControlsChanged(this, Enumerable.Empty<PictureBox>(), new[] { pictureBox });
 				}
 			}
 		}
@@ -104,11 +104,11 @@ namespace Windawesome
 				RepositionControls(left, right);
 				if (TrayIconVisible(trayIcon.Item1))
 				{
-					bar.DoWidgetControlsChanged(this, new PictureBox[0], new[] { trayIcon.Item2 });
+					bar.DoWidgetControlsChanged(this, Enumerable.Empty<PictureBox>(), new[] { trayIcon.Item2 });
 				}
 				else
 				{
-					bar.DoWidgetControlsChanged(this, new[] { trayIcon.Item2 }, new PictureBox[0]);
+					bar.DoWidgetControlsChanged(this, new[] { trayIcon.Item2 }, Enumerable.Empty<PictureBox>());
 				}
 			}
 		}
@@ -122,7 +122,7 @@ namespace Windawesome
 				icons.Remove(tuple);
 
 				RepositionControls(left, right);
-				bar.DoWidgetControlsChanged(this, new[] { trayIcon.Item2 }, new PictureBox[0]);
+				bar.DoWidgetControlsChanged(this, new[] { trayIcon.Item2 }, Enumerable.Empty<PictureBox>());
 			}
 		}
 
