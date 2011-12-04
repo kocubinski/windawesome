@@ -30,7 +30,6 @@ namespace Windawesome
 		private readonly IntPtr getForegroundPrivilageAtom;
 		private readonly uint windawesomeThreadId = NativeMethods.GetCurrentThreadId();
 
-		private readonly Tuple<NativeMethods.MOD, Keys> altEscHotkey = Tuple.Create(NativeMethods.MOD.MOD_ALT, Keys.Escape);
 		private readonly Dictionary<int, HandleMessageDelegate> messageHandlers;
 
 		private readonly NativeMethods.WinEventDelegate winEventDelegate;
@@ -1711,7 +1710,7 @@ namespace Windawesome
 			{
 				if (!TrySetForegroundWindow(forceForegroundWindow) && forceForegroundWindow != NativeMethods.shellWindow)
 				{
-					SendHotkey(altEscHotkey);
+					SendHotkey(Tuple.Create(NativeMethods.MOD.MOD_ALT, Keys.Escape));
 				}
 				forceForegroundWindow = IntPtr.Zero;
 			}
