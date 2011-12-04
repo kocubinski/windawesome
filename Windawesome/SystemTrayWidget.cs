@@ -62,7 +62,7 @@ namespace Windawesome
 			{
 				var pictureBox = CreatePictureBox(icon);
 				var toolTip = CreateToolTip(pictureBox, icon.tooltip);
-				icons[Tuple.Create((int) icon.hWnd, icon.id)] = new Tuple<SystemTray.TrayIcon, PictureBox, ToolTip>(icon, pictureBox, toolTip);
+				icons[Tuple.Create((int) icon.hWnd, icon.id)] = Tuple.Create(icon, pictureBox, toolTip);
 			}
 
 			if (showFullSystemTray)
@@ -73,7 +73,7 @@ namespace Windawesome
 				{
 					var pictureBox = CreatePictureBox(icon);
 					var toolTip = CreateToolTip(pictureBox, icon.tooltip);
-					icons[Tuple.Create((int) icon.hWnd, icon.id)] = new Tuple<SystemTray.TrayIcon, PictureBox, ToolTip>(icon, pictureBox, toolTip);
+					icons[Tuple.Create((int) icon.hWnd, icon.id)] = Tuple.Create(icon, pictureBox, toolTip);
 				}
 			}
 		}

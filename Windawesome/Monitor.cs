@@ -365,7 +365,7 @@ namespace Windawesome
 			if (matchingBar != null)
 			{
 				var matchingWorkspace = workspaces[matchingBar];
-				this.workspaces[workspace] = new Tuple<int, AppBarNativeWindow, AppBarNativeWindow>(matchingWorkspace.Item1, matchingWorkspace.Item2, matchingWorkspace.Item3);
+				this.workspaces[workspace] = Tuple.Create(matchingWorkspace.Item1, matchingWorkspace.Item2, matchingWorkspace.Item3);
 
 				return ;
 			}
@@ -398,7 +398,7 @@ namespace Windawesome
 				appBarBottomWindow = new AppBarNativeWindow(bottomBarsHeight, false);
 			}
 
-			this.workspaces[workspace] = new Tuple<int, AppBarNativeWindow, AppBarNativeWindow>(workspaceBarsEquivalentClass, appBarTopWindow, appBarBottomWindow);
+			this.workspaces[workspace] = Tuple.Create(workspaceBarsEquivalentClass, appBarTopWindow, appBarBottomWindow);
 		}
 
 		internal void RemoveWorkspace(Workspace workspace)
