@@ -62,7 +62,7 @@ namespace Windawesome
 			{
 				var pictureBox = CreatePictureBox(icon);
 				var toolTip = CreateToolTip(pictureBox, icon.tooltip);
-				icons[new Tuple<int, uint>((int) icon.hWnd, icon.id)] = new Tuple<SystemTray.TrayIcon, PictureBox, ToolTip>(icon, pictureBox, toolTip);
+				icons[Tuple.Create((int) icon.hWnd, icon.id)] = new Tuple<SystemTray.TrayIcon, PictureBox, ToolTip>(icon, pictureBox, toolTip);
 			}
 
 			if (showFullSystemTray)
@@ -73,7 +73,7 @@ namespace Windawesome
 				{
 					var pictureBox = CreatePictureBox(icon);
 					var toolTip = CreateToolTip(pictureBox, icon.tooltip);
-					icons[new Tuple<int, uint>((int) icon.hWnd, icon.id)] = new Tuple<SystemTray.TrayIcon, PictureBox, ToolTip>(icon, pictureBox, toolTip);
+					icons[Tuple.Create((int) icon.hWnd, icon.id)] = new Tuple<SystemTray.TrayIcon, PictureBox, ToolTip>(icon, pictureBox, toolTip);
 				}
 			}
 		}
@@ -84,7 +84,7 @@ namespace Windawesome
 			{
 				var trayIcon = new SystemTray.TrayIcon { hWnd = (IntPtr) iconData.hWnd, id = iconData.uID };
 				var pictureBox = CreatePictureBox(trayIcon);
-				var t = new Tuple<SystemTray.TrayIcon, PictureBox, ToolTip>(trayIcon, pictureBox, CreateToolTip(pictureBox, trayIcon.tooltip));
+				var t = Tuple.Create(trayIcon, pictureBox, CreateToolTip(pictureBox, trayIcon.tooltip));
 				UpdateIconData(t, iconData);
 				icons[tuple] = t;
 				if (TrayIconVisible(trayIcon))
@@ -213,7 +213,7 @@ namespace Windawesome
 		private static void TrayIconAdded(NativeMethods.NOTIFYICONDATA iconData)
 		{
 			// TODO: GUID not taken into account
-			var tuple = new Tuple<int, uint>(iconData.hWnd, iconData.uID);
+			var tuple = Tuple.Create(iconData.hWnd, iconData.uID);
 
 			// add to visible or to hidden icons
 			if (!Windawesome.isAtLeast7 || SystemTray.ContainsButton(SystemTray.trayHandle, (IntPtr) iconData.hWnd, iconData.uID))
@@ -228,12 +228,12 @@ namespace Windawesome
 
 		private static void TrayIconModified(NativeMethods.NOTIFYICONDATA iconData)
 		{
-			IconModified(iconData, new Tuple<int, uint>(iconData.hWnd, iconData.uID));
+			IconModified(iconData, Tuple.Create(iconData.hWnd, iconData.uID));
 		}
 
 		private static void TrayIconDeleted(NativeMethods.NOTIFYICONDATA iconData)
 		{
-			IconRemoved(new Tuple<int, uint>(iconData.hWnd, iconData.uID));
+			IconRemoved(Tuple.Create(iconData.hWnd, iconData.uID));
 		}
 
 		private static bool UpdateIconData(Tuple<SystemTray.TrayIcon, PictureBox, ToolTip> prevIconData, NativeMethods.NOTIFYICONDATA iconData)

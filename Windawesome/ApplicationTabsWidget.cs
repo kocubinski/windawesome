@@ -192,7 +192,7 @@ namespace Windawesome
 				var workspaceId = workspace.id - 1;
 				var newPanel = CreatePanel(window);
 
-				applicationPanels[workspaceId].AddFirst(new Tuple<IntPtr, Panel>(window.hWnd, newPanel));
+				applicationPanels[workspaceId].AddFirst(Tuple.Create(window.hWnd, newPanel));
 
 				if (isShown && workspace.IsWorkspaceVisible)
 				{

@@ -554,7 +554,7 @@ namespace Windawesome
 						is64BitProcess, style, exStyle, rule, programRule, menu);
 
 					var workspace = rule.workspace == 0 ? CurrentWorkspace : config.Workspaces[rule.workspace - 1];
-					list.AddLast(new Tuple<Workspace, Window>(workspace, window));
+					list.AddLast(Tuple.Create(workspace, window));
 
 					workspace.WindowCreated(window);
 
@@ -1085,8 +1085,8 @@ namespace Windawesome
 						}
 					}
 
-					list.Remove(new Tuple<Workspace, Window>(oldWorkspace, window));
-					list.AddFirst(new Tuple<Workspace, Window>(newWorkspace, window));
+					list.Remove(Tuple.Create(oldWorkspace, window));
+					list.AddFirst(Tuple.Create(newWorkspace, window));
 
 					FollowWindow(oldWorkspace, newWorkspace, follow, window);
 				}
@@ -1113,7 +1113,7 @@ namespace Windawesome
 						newWindow.ShowAsync();
 					}
 
-					list.AddFirst(new Tuple<Workspace, Window>(newWorkspace, newWindow));
+					list.AddFirst(Tuple.Create(newWorkspace, newWindow));
 					list.Where(t => ++t.Item2.WorkspacesCount == 2).ForEach(t => t.Item1.sharedWindowsCount++);
 
 					FollowWindow(oldWorkspace, newWorkspace, follow, newWindow);
@@ -1140,7 +1140,7 @@ namespace Windawesome
 					}
 					workspace.WindowDestroyed(window);
 
-					list.Remove(new Tuple<Workspace, Window>(workspace, window));
+					list.Remove(Tuple.Create(workspace, window));
 					list.Where(t => --t.Item2.WorkspacesCount == 1).ForEach(t => t.Item1.RemoveFromSharedWindows(t.Item2));
 
 					if (workspace.IsCurrentWorkspace && setForeground)
