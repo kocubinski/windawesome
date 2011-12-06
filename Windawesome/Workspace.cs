@@ -41,8 +41,8 @@ namespace Windawesome
 			get { return barsAtTop[Monitor.monitorIndex].Concat(barsAtBottom[Monitor.monitorIndex]); }
 		}
 
-		internal int hideFromAltTabWhenOnInactiveWorkspaceCount;
-		internal int sharedWindowsCount;
+		internal uint hideFromAltTabWhenOnInactiveWorkspaceCount;
+		internal uint sharedWindowsCount;
 		internal readonly LinkedList<Window> windows; // all windows, sorted in tab-order, topmost window first
 
 		private bool hasChanges;
@@ -209,7 +209,7 @@ namespace Windawesome
 		}
 
 		#endregion
-
+		
 		public Workspace(Monitor monitor, ILayout layout, IEnumerable<IBar> barsAtTop = null, IEnumerable<IBar> barsAtBottom = null,
 			string name = "", bool showWindowsTaskbar = false, bool repositionOnSwitchedTo = false)
 		{
@@ -306,12 +306,12 @@ namespace Windawesome
 
 		public void ChangeLayout(ILayout layout)
 		{
-			if (layout.LayoutName() != this.Layout.LayoutName())
+			if (layout.LayoutName() != Layout.LayoutName())
 			{
-				this.Layout.Dispose();
+				Layout.Dispose();
 				layout.Initialize(this);
-				var oldLayout = this.Layout;
-				this.Layout = layout;
+				var oldLayout = Layout;
+				Layout = layout;
 				Reposition();
 				DoWorkspaceLayoutChanged(this, oldLayout);
 			}
