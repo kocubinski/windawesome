@@ -2161,14 +2161,6 @@ using WPARAM = UIntPtr; // UINT_PTR
 			}
 		}
 
-		public static IEnumerable<T> Reverse<T>(this LinkedList<T> list)
-		{
-			for (var node = list.Last; node != null; node = node.Previous )
-			{
-				yield return node.Value;
-			}
-		}
-
 		#endregion
 	}
 }

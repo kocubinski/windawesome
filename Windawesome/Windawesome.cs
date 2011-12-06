@@ -631,7 +631,7 @@ namespace Windawesome
 
 		private void ForceForegroundWindow(WindowBase window)
 		{
-			var hWnd = window.GetLastActiveWindow();
+			var hWnd = NativeMethods.GetLastActivePopup(window.hWnd);
 
 			if (WindowIsNotHung(hWnd))
 			{

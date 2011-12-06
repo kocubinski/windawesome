@@ -1,17 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace Windawesome
 {
 	public class WindowBase
 	{
 		public readonly IntPtr hWnd;
-
-		public virtual IntPtr GetLastActiveWindow()
-		{
-			return NativeMethods.GetLastActivePopup(hWnd);
-		}
 
 		public WindowBase(IntPtr hWnd)
 		{
@@ -98,11 +92,6 @@ namespace Windawesome
 				return true;
 			}
 			return false;
-		}
-
-		public override IntPtr GetLastActiveWindow()
-		{
-			return NativeMethods.Reverse(ownedWindows).First(NativeMethods.IsWindowVisible);
 		}
 
 		internal Window(IntPtr hWnd, string className, string displayName, string processName, int workspacesCount, bool is64BitProcess,
