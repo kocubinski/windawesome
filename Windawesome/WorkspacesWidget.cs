@@ -245,7 +245,7 @@ namespace Windawesome
 			}
 			else
 			{
-				foreach (var label in workspaceLabels.Reverse())
+				foreach (var label in NativeMethods.Reverse(workspaceLabels))
 				{
 					right -= label.Width;
 					label.Location = new Point(right, 0);

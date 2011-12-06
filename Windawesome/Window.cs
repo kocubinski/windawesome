@@ -99,7 +99,7 @@ namespace Windawesome
 
 		public override IntPtr GetLastActiveWindow()
 		{
-			return ownedWindows.Reverse().First(NativeMethods.IsWindowVisible);
+			return NativeMethods.Reverse(ownedWindows).First(NativeMethods.IsWindowVisible);
 		}
 
 		internal Window(IntPtr hWnd, string className, string displayName, string processName, int workspacesCount, bool is64BitProcess,
