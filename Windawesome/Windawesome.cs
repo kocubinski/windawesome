@@ -631,7 +631,7 @@ namespace Windawesome
 
 		private void ForceForegroundWindow(WindowBase window)
 		{
-			var hWnd = NativeMethods.GetLastActivePopup(window.hWnd);
+			var hWnd = NativeMethods.GetLastActivePopup(window.rootOwner);
 
 			if (WindowIsNotHung(hWnd))
 			{
@@ -952,6 +952,18 @@ namespace Windawesome
 		#endregion
 
 		#region API
+
+		public static IntPtr GetRootOwner(IntPtr hWnd)
+		{
+			var result = hWnd;
+			hWnd = NativeMethods.GetWindow(hWnd, NativeMethods.GW.GW_OWNER);
+			while (hWnd != IntPtr.Zero && hWnd != result)
+			{
+				result = hWnd;
+				hWnd = NativeMethods.GetWindow(hWnd, NativeMethods.GW.GW_OWNER);
+			}
+			return result;
+		}
 
 		public bool TryGetManagedWindowForWorkspace(IntPtr hWnd, Workspace workspace,
 			out Window window, out LinkedList<Tuple<Workspace, Window>> list)

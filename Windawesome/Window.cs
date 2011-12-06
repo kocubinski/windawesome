@@ -6,10 +6,12 @@ namespace Windawesome
 	public class WindowBase
 	{
 		public readonly IntPtr hWnd;
+		public readonly IntPtr rootOwner;
 
 		public WindowBase(IntPtr hWnd)
 		{
 			this.hWnd = hWnd;
+			this.rootOwner = Windawesome.GetRootOwner(hWnd);
 		}
 
 		internal WindowBase(WindowBase window)
