@@ -88,7 +88,10 @@ namespace Windawesome
 		{
 			if (customOwnedWindowMatchingFunction(hWnd))
 			{
-				if (ownedWindows.Last.Value != hWnd)
+				// checking the whole list is necessary as otherwise hWnd could be added multiple times
+				// this happens, e.g., with Windows Media Player 12 - when it is shown, all its owned windows
+				// (which are dozens), are added again if it weren't for this check
+				if (ownedWindows.FindLast(hWnd) == null)
 				{
 					ownedWindows.AddLast(hWnd);
 				}
