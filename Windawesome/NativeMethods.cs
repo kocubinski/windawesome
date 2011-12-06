@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -2139,7 +2140,7 @@ using WPARAM = UIntPtr; // UINT_PTR
 
 		#region Extension Methods
 
-		public static void ForEach<T>(this System.Collections.Generic.IEnumerable<T> items, Action<T> action)
+		public static void ForEach<T>(this IEnumerable<T> items, Action<T> action)
 		{
 			foreach (var item in items)
 			{
@@ -2147,9 +2148,25 @@ using WPARAM = UIntPtr; // UINT_PTR
 			}
 		}
 
-		public static System.Collections.Generic.IEnumerable<T> Unless<T>(this System.Collections.Generic.IEnumerable<T> items, Predicate<T> predicate)
+		public static IEnumerable<T> Unless<T>(this IEnumerable<T> items, Predicate<T> predicate)
 		{
 			return items.Where(item => !predicate(item));
+		}
+
+		public static IEnumerable<T> Reverse<T>(this IList<T> list)
+		{
+			for (var i = list.Count - 1; i >= 0; i--)
+			{
+				yield return list[i];
+			}
+		}
+
+		public static IEnumerable<T> Reverse<T>(this LinkedList<T> list)
+		{
+			for (var node = list.Last; node != null; node = node.Previous )
+			{
+				yield return node.Value;
+			}
 		}
 
 		#endregion
