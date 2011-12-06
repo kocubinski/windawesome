@@ -437,16 +437,7 @@ namespace Windawesome
 			if (ApplicationsTryGetValue(hWnd, out workspacesWindowsList) &&
 				workspacesWindowsList.First.Value.Item2.hWnd != hWnd)
 			{
-				if (workspacesWindowsList.First.Value.Item2.IsMatchOwnedWindow(hWnd))
-				{
-					var ownedWindows = workspacesWindowsList.First.Value.Item2.OwnedWindows;
-					if (ownedWindows.Last.Value != hWnd)
-					{
-						ownedWindows.AddLast(hWnd);
-					}
-					return true;
-				}
-				return false;
+				return workspacesWindowsList.First.Value.Item2.AddToOwnedWindows(hWnd);
 			}
 
 			var className = NativeMethods.GetWindowClassName(hWnd);
@@ -844,7 +835,7 @@ namespace Windawesome
 			if (IsVisibleAndNotHung(window))
 			{
 				hiddenApplications.Add(window.hWnd);
-				window.OwnedWindows.ForEach(hWnd => NativeMethods.ShowWindow(hWnd, NativeMethods.SW.SW_HIDE));
+				window.GetOwnedWindows().ForEach(hWnd => NativeMethods.ShowWindow(hWnd, NativeMethods.SW.SW_HIDE));
 			}
 		}
 
@@ -855,7 +846,7 @@ namespace Windawesome
 			var showWindows = newWorkspace.windows;
 			foreach (var window in showWindows.Where(WindowIsNotHung))
 			{
-				winPosInfo = window.OwnedWindows.Aggregate(winPosInfo, (current, hWnd) =>
+				winPosInfo = window.GetOwnedWindows().Aggregate(winPosInfo, (current, hWnd) =>
 					NativeMethods.DeferWindowPos(current, hWnd, IntPtr.Zero, 0, 0, 0, 0,
 						NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE |
 						NativeMethods.SWP.SWP_NOSIZE | NativeMethods.SWP.SWP_NOZORDER |
@@ -872,7 +863,7 @@ namespace Windawesome
 			foreach (var window in hideWindows.Where(IsVisibleAndNotHung))
 			{
 				hiddenApplications.Add(window.hWnd);
-				winPosInfo = window.OwnedWindows.Aggregate(winPosInfo, (current, hWnd) =>
+				winPosInfo = window.GetOwnedWindows().Aggregate(winPosInfo, (current, hWnd) =>
 					NativeMethods.DeferWindowPos(current, hWnd, IntPtr.Zero, 0, 0, 0, 0,
 						NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE |
 						NativeMethods.SWP.SWP_NOSIZE | NativeMethods.SWP.SWP_NOZORDER |

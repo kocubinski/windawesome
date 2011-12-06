@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Windawesome
 {
@@ -50,42 +51,55 @@ namespace Windawesome
 		private readonly ProgramRule.CustomMatchingFunction customOwnedWindowMatchingFunction;
 
 		private readonly LinkedList<IntPtr> ownedWindows;
-		internal LinkedList<IntPtr> OwnedWindows
+
+		internal IEnumerable<IntPtr> GetOwnedWindows()
 		{
-			get
+			if (ownedWindows.Count == 1)
 			{
-				if (ownedWindows.Count > 1)
-				{
-					// handling of owned windows is done like that because Windows
-					// is inconsistent in sending messages about owned window hiding/destruction
-					// as of Windows 7 SP1
-					if (NativeMethods.IsWindowVisible(hWnd))
-					{
-						while (ownedWindows.Count > 1 && !NativeMethods.IsWindowVisible(ownedWindows.Last.Value))
-						{
-							ownedWindows.RemoveLast();
-						}
-					}
-					else
-					{
-						while (ownedWindows.Count > 1 && !NativeMethods.IsWindow(ownedWindows.Last.Value))
-						{
-							ownedWindows.RemoveLast();
-						}
-					}
-				}
 				return ownedWindows;
 			}
+
+			// handling of owned windows is done like that because Windows
+			// is inconsistent in sending messages about owned window hiding/destruction
+			// as of Windows 7 SP1
+			return NativeMethods.IsWindowVisible(hWnd) ?
+				GetAndRemoveWindows(NativeMethods.IsWindowVisible) :
+				GetAndRemoveWindows(NativeMethods.IsWindow);
+		}
+
+		private IEnumerable<IntPtr> GetAndRemoveWindows(Predicate<IntPtr> predicate)
+		{
+			for (var windowNode = ownedWindows.First; windowNode != null; windowNode = windowNode.Next)
+			{
+				if (!predicate(windowNode.Value))
+				{
+					var oldWindowNode = windowNode;
+					windowNode = windowNode.Previous;
+					ownedWindows.Remove(oldWindowNode);
+				}
+				else
+				{
+					yield return windowNode.Value;
+				}
+			}
+		}
+
+		internal bool AddToOwnedWindows(IntPtr hWnd)
+		{
+			if (customOwnedWindowMatchingFunction(hWnd))
+			{
+				if (ownedWindows.Last.Value != hWnd)
+				{
+					ownedWindows.AddLast(hWnd);
+				}
+				return true;
+			}
+			return false;
 		}
 
 		public override IntPtr GetLastActiveWindow()
 		{
-			return OwnedWindows.Last.Value;
-		}
-
-		internal bool IsMatchOwnedWindow(IntPtr hWnd)
-		{
-			return customOwnedWindowMatchingFunction(hWnd);
+			return ownedWindows.Reverse().First(NativeMethods.IsWindowVisible);
 		}
 
 		internal Window(IntPtr hWnd, string className, string displayName, string processName, int workspacesCount, bool is64BitProcess,
@@ -316,7 +330,7 @@ namespace Windawesome
 			{
 				this.Redraw();
 			}
-			OwnedWindows.ForEach(h => NativeMethods.ShowWindowAsync(h, NativeMethods.SW.SW_SHOWNA));
+			GetOwnedWindows().ForEach(h => NativeMethods.ShowWindowAsync(h, NativeMethods.SW.SW_SHOWNA));
 		}
 
 		internal void ShowWindowMenu()
