@@ -217,7 +217,9 @@ namespace Windawesome
 
 		private static bool DefaultOwnedWindowMatchingFunction(IntPtr hWnd)
 		{
-			return !NativeMethods.GetWindowExStyleLongPtr(hWnd).HasFlag(NativeMethods.WS_EX.WS_EX_TOOLWINDOW);
+			var exStyle = NativeMethods.GetWindowExStyleLongPtr(hWnd);
+			return !exStyle.HasFlag(NativeMethods.WS_EX.WS_EX_NOACTIVATE) &&
+				!exStyle.HasFlag(NativeMethods.WS_EX.WS_EX_TOOLWINDOW);
 		}
 
 		internal bool IsMatch(IntPtr hWnd, string cName, string dName, string pName, NativeMethods.WS style, NativeMethods.WS_EX exStyle)
