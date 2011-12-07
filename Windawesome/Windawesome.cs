@@ -715,31 +715,6 @@ namespace Windawesome
 
 		private readonly NativeMethods.INPUT[] input = new NativeMethods.INPUT[18];
 
-		private readonly NativeMethods.INPUT shiftKeyDown = new NativeMethods.INPUT(Keys.ShiftKey, 0);
-		private readonly NativeMethods.INPUT shiftKeyUp = new NativeMethods.INPUT(Keys.ShiftKey, NativeMethods.KEYEVENTF_KEYUP);
-		private readonly NativeMethods.INPUT leftShiftKeyDown = new NativeMethods.INPUT(Keys.LShiftKey, 0);
-		private readonly NativeMethods.INPUT leftShiftKeyUp = new NativeMethods.INPUT(Keys.LShiftKey, NativeMethods.KEYEVENTF_KEYUP);
-		private readonly NativeMethods.INPUT rightShiftKeyDown = new NativeMethods.INPUT(Keys.RShiftKey, 0);
-		private readonly NativeMethods.INPUT rightShiftKeyUp = new NativeMethods.INPUT(Keys.RShiftKey, NativeMethods.KEYEVENTF_KEYUP);
-
-		private readonly NativeMethods.INPUT leftWinKeyDown = new NativeMethods.INPUT(Keys.LWin, 0);
-		private readonly NativeMethods.INPUT leftWinKeyUp = new NativeMethods.INPUT(Keys.LWin, NativeMethods.KEYEVENTF_KEYUP);
-		private readonly NativeMethods.INPUT rightWinKeyDown = new NativeMethods.INPUT(Keys.RWin, 0);
-		private readonly NativeMethods.INPUT rightWinKeyUp = new NativeMethods.INPUT(Keys.RWin, NativeMethods.KEYEVENTF_KEYUP);
-
-		private readonly NativeMethods.INPUT controlKeyDown = new NativeMethods.INPUT(Keys.ControlKey, 0);
-		private readonly NativeMethods.INPUT controlKeyUp = new NativeMethods.INPUT(Keys.ControlKey, NativeMethods.KEYEVENTF_KEYUP);
-		private readonly NativeMethods.INPUT leftControlKeyDown = new NativeMethods.INPUT(Keys.LControlKey, 0);
-		private readonly NativeMethods.INPUT leftControlKeyUp = new NativeMethods.INPUT(Keys.LControlKey, NativeMethods.KEYEVENTF_KEYUP);
-		private readonly NativeMethods.INPUT rightControlKeyDown = new NativeMethods.INPUT(Keys.RControlKey, 0);
-		private readonly NativeMethods.INPUT rightControlKeyUp = new NativeMethods.INPUT(Keys.RControlKey, NativeMethods.KEYEVENTF_KEYUP);
-
-		private readonly NativeMethods.INPUT altKeyDown = new NativeMethods.INPUT(Keys.Menu, 0);
-		private readonly NativeMethods.INPUT altKeyUp = new NativeMethods.INPUT(Keys.Menu, NativeMethods.KEYEVENTF_KEYUP);
-		private readonly NativeMethods.INPUT leftAltKeyDown = new NativeMethods.INPUT(Keys.LMenu, 0);
-		private readonly NativeMethods.INPUT leftAltKeyUp = new NativeMethods.INPUT(Keys.LMenu, NativeMethods.KEYEVENTF_KEYUP);
-		private readonly NativeMethods.INPUT rightAltKeyDown = new NativeMethods.INPUT(Keys.RMenu, 0);
-		private readonly NativeMethods.INPUT rightAltKeyUp = new NativeMethods.INPUT(Keys.RMenu, NativeMethods.KEYEVENTF_KEYUP);
 		// sends the hotkey combination without disrupting the currently pressed modifiers
 		private void SendHotkey(Tuple<NativeMethods.MOD, Keys> hotkey)
 		{
@@ -750,38 +725,62 @@ namespace Windawesome
 			var leftShiftPressed = (NativeMethods.GetAsyncKeyState(Keys.LShiftKey) & 0x8000) == 0x8000;
 			var rightShiftPressed = (NativeMethods.GetAsyncKeyState(Keys.RShiftKey) & 0x8000) == 0x8000;
 
-			PressReleaseModifierKey(leftShiftPressed, rightShiftPressed, shiftShouldBePressed, shiftKeyDown, leftShiftKeyUp, rightShiftKeyUp, ref i);
+			PressReleaseModifierKey(leftShiftPressed, rightShiftPressed, shiftShouldBePressed,
+				new NativeMethods.INPUT(Keys.ShiftKey, 0),
+				new NativeMethods.INPUT(Keys.LShiftKey, NativeMethods.KEYEVENTF_KEYUP),
+				new NativeMethods.INPUT(Keys.RShiftKey, NativeMethods.KEYEVENTF_KEYUP), ref i);
 
 			var winShouldBePressed = hotkey.Item1.HasFlag(NativeMethods.MOD.MOD_WIN);
 			var leftWinPressed = (NativeMethods.GetAsyncKeyState(Keys.LWin) & 0x8000) == 0x8000;
 			var rightWinPressed = (NativeMethods.GetAsyncKeyState(Keys.RWin) & 0x8000) == 0x8000;
 
-			PressReleaseModifierKey(leftWinPressed, rightWinPressed, winShouldBePressed, leftWinKeyDown, leftWinKeyUp, rightWinKeyUp, ref i);
+			PressReleaseModifierKey(leftWinPressed, rightWinPressed, winShouldBePressed,
+				new NativeMethods.INPUT(Keys.LWin, 0),
+				new NativeMethods.INPUT(Keys.LWin, NativeMethods.KEYEVENTF_KEYUP),
+				new NativeMethods.INPUT(Keys.RWin, NativeMethods.KEYEVENTF_KEYUP), ref i);
 
 			var controlShouldBePressed = hotkey.Item1.HasFlag(NativeMethods.MOD.MOD_CONTROL);
 			var leftControlPressed = (NativeMethods.GetAsyncKeyState(Keys.LControlKey) & 0x8000) == 0x8000;
 			var rightControlPressed = (NativeMethods.GetAsyncKeyState(Keys.RControlKey) & 0x8000) == 0x8000;
 
-			PressReleaseModifierKey(leftControlPressed, rightControlPressed, controlShouldBePressed, controlKeyDown, leftControlKeyUp, rightControlKeyUp, ref i);
+			PressReleaseModifierKey(leftControlPressed, rightControlPressed, controlShouldBePressed,
+				new NativeMethods.INPUT(Keys.ControlKey, 0),
+				new NativeMethods.INPUT(Keys.LControlKey, NativeMethods.KEYEVENTF_KEYUP),
+				new NativeMethods.INPUT(Keys.RControlKey, NativeMethods.KEYEVENTF_KEYUP), ref i);
 
 			var altShouldBePressed = hotkey.Item1.HasFlag(NativeMethods.MOD.MOD_ALT);
 			var leftAltPressed = (NativeMethods.GetAsyncKeyState(Keys.LMenu) & 0x8000) == 0x8000;
 			var rightAltPressed = (NativeMethods.GetAsyncKeyState(Keys.RMenu) & 0x8000) == 0x8000;
 
-			PressReleaseModifierKey(leftAltPressed, rightAltPressed, altShouldBePressed, altKeyDown, leftAltKeyUp, rightAltKeyUp, ref i);
+			PressReleaseModifierKey(leftAltPressed, rightAltPressed, altShouldBePressed,
+				new NativeMethods.INPUT(Keys.Menu, 0),
+				new NativeMethods.INPUT(Keys.LMenu, NativeMethods.KEYEVENTF_KEYUP),
+				new NativeMethods.INPUT(Keys.RMenu, NativeMethods.KEYEVENTF_KEYUP), ref i);
 
 			// press and release key
 			input[i++] = new NativeMethods.INPUT(hotkey.Item2, 0);
 			input[i++] = new NativeMethods.INPUT(hotkey.Item2, NativeMethods.KEYEVENTF_KEYUP);
 
 			// revert changes to modifiers
-			PressReleaseModifierKey(leftAltPressed, rightAltPressed, altShouldBePressed, altKeyUp, leftAltKeyDown, rightAltKeyDown, ref i);
+			PressReleaseModifierKey(leftAltPressed, rightAltPressed, altShouldBePressed,
+				new NativeMethods.INPUT(Keys.Menu, NativeMethods.KEYEVENTF_KEYUP),
+				new NativeMethods.INPUT(Keys.LMenu, 0),
+				new NativeMethods.INPUT(Keys.RMenu, 0), ref i);
 
-			PressReleaseModifierKey(leftControlPressed, rightControlPressed, controlShouldBePressed, controlKeyUp, leftControlKeyDown, rightControlKeyDown, ref i);
+			PressReleaseModifierKey(leftControlPressed, rightControlPressed, controlShouldBePressed,
+				new NativeMethods.INPUT(Keys.ControlKey, NativeMethods.KEYEVENTF_KEYUP),
+				new NativeMethods.INPUT(Keys.LControlKey, 0),
+				new NativeMethods.INPUT(Keys.RControlKey, 0), ref i);
 
-			PressReleaseModifierKey(leftWinPressed, rightWinPressed, winShouldBePressed, leftWinKeyUp, leftWinKeyDown, rightWinKeyDown, ref i);
+			PressReleaseModifierKey(leftWinPressed, rightWinPressed, winShouldBePressed,
+				new NativeMethods.INPUT(Keys.LWin, NativeMethods.KEYEVENTF_KEYUP),
+				new NativeMethods.INPUT(Keys.LWin, 0),
+				new NativeMethods.INPUT(Keys.RWin, 0), ref i);
 
-			PressReleaseModifierKey(leftShiftPressed, rightShiftPressed, shiftShouldBePressed, shiftKeyUp, leftShiftKeyDown, rightShiftKeyDown, ref i);
+			PressReleaseModifierKey(leftShiftPressed, rightShiftPressed, shiftShouldBePressed,
+				new NativeMethods.INPUT(Keys.ShiftKey, NativeMethods.KEYEVENTF_KEYUP),
+				new NativeMethods.INPUT(Keys.LShiftKey, 0),
+				new NativeMethods.INPUT(Keys.RShiftKey, 0), ref i);
 
 			NativeMethods.SendInput(i, input, NativeMethods.INPUTSize);
 		}
