@@ -25,27 +25,27 @@ namespace Windawesome
 
 				bool IEqualityComparer<Subscription>.Equals(Subscription x, Subscription y)
 				{
-					var xAlt = x.modifiers & KeyModifiers.Alt;
-					var yAlt = y.modifiers & KeyModifiers.Alt;
-					if ((xAlt != KeyModifiers.None || yAlt != KeyModifiers.None) && (xAlt & yAlt) == 0)
+					if (((x.modifiers & KeyModifiers.Alt) != KeyModifiers.None ||
+							(y.modifiers & KeyModifiers.Alt) != KeyModifiers.None) &&
+						(x.modifiers & KeyModifiers.Alt & y.modifiers) == KeyModifiers.None)
 					{
 						return false;
 					}
-					var xControl = x.modifiers & KeyModifiers.Control;
-					var yControl = y.modifiers & KeyModifiers.Control;
-					if ((xControl != KeyModifiers.None || yControl != KeyModifiers.None) && (xControl & yControl) == 0)
+					if (((x.modifiers & KeyModifiers.Control) != KeyModifiers.None ||
+							(y.modifiers & KeyModifiers.Control) != KeyModifiers.None) &&
+						(x.modifiers & KeyModifiers.Control & y.modifiers) == KeyModifiers.None)
 					{
 						return false;
 					}
-					var xShift = x.modifiers & KeyModifiers.Shift;
-					var yShift = y.modifiers & KeyModifiers.Shift;
-					if ((xShift != KeyModifiers.None || yShift != KeyModifiers.None) && (xShift & yShift) == 0)
+					if (((x.modifiers & KeyModifiers.Shift) != KeyModifiers.None ||
+							(y.modifiers & KeyModifiers.Shift) != KeyModifiers.None) &&
+						(x.modifiers & KeyModifiers.Shift & y.modifiers) == KeyModifiers.None)
 					{
 						return false;
 					}
-					var xWin = x.modifiers & KeyModifiers.Win;
-					var yWin = y.modifiers & KeyModifiers.Win;
-					if ((xWin != KeyModifiers.None || yWin != KeyModifiers.None) && (xWin & yWin) == 0)
+					if (((x.modifiers & KeyModifiers.Win) != KeyModifiers.None ||
+							(y.modifiers & KeyModifiers.Win) != KeyModifiers.None) &&
+						(x.modifiers & KeyModifiers.Win & y.modifiers) == KeyModifiers.None)
 					{
 						return false;
 					}
