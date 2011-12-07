@@ -186,7 +186,7 @@ namespace Windawesome
 				}
 
 				var masterOrStackWindows = master ? this.windows.Take(masterAreaWindowsCount) : this.windows.Skip(masterAreaWindowsCount);
-				foreach (var window in masterOrStackWindows.Where(Windawesome.WindowIsNotHung))
+				foreach (var window in masterOrStackWindows.Where(Utilities.WindowIsNotHung))
 				{
 					// TODO: this doesn't work for ICQ 7.5's windows. MoveWindow works in Debug mode, but not in Release
 					winPosInfo = NativeMethods.DeferWindowPos(winPosInfo, window.hWnd, IntPtr.Zero,
@@ -299,7 +299,7 @@ namespace Windawesome
 			// restore any maximized windows - should not use SW_RESTORE as it activates the window
 			var hasMaximized = false;
 			foreach (var window in workspace.GetLayoutManagedWindows().
-				Where(w => NativeMethods.IsZoomed(w.hWnd) && Windawesome.WindowIsNotHung(w)))
+				Where(w => NativeMethods.IsZoomed(w.hWnd) && Utilities.WindowIsNotHung(w)))
 			{
 				hasMaximized = true;
 				NativeMethods.ShowWindow(window.hWnd, NativeMethods.SW.SW_SHOWNOACTIVATE);
@@ -327,7 +327,7 @@ namespace Windawesome
 		{
 			if (workspace.IsWorkspaceVisible || window.WorkspacesCount == 1)
 			{
-				if (NativeMethods.IsZoomed(window.hWnd) && Windawesome.WindowIsNotHung(window))
+				if (NativeMethods.IsZoomed(window.hWnd) && Utilities.WindowIsNotHung(window))
 				{
 					// restore if maximized - should not use SW_RESTORE as it activates the window
 					NativeMethods.ShowWindow(window.hWnd, NativeMethods.SW.SW_SHOWNOACTIVATE);

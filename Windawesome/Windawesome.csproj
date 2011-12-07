@@ -163,6 +163,7 @@
     <Compile Include="Bar.cs" />
     <Compile Include="Config.cs" />
     <Compile Include="CPUMonitorWidget.cs" />
+    <Compile Include="HashMultiSet.cs" />
     <Compile Include="IBar.cs" />
     <Compile Include="ILayout.cs" />
     <Compile Include="IPlugin.cs" />
@@ -172,6 +173,8 @@
     <Compile Include="LayoutWidget.cs" />
     <Compile Include="LoggerPlugin.cs" />
     <Compile Include="Monitor.cs" />
+    <Compile Include="SystemAndProcessInformation.cs" />
+    <Compile Include="SystemSettingsChanger.cs" />
     <Compile Include="SystemTrayWidget.cs" />
     <Compile Include="FloatingLayout.cs" />
     <Compile Include="FullScreenLayout.cs" />

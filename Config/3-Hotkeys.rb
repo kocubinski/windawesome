@@ -34,7 +34,7 @@ end
 
 # quit application
 subscribe modifiers.Alt, key.Q do
-	windawesome.quit_application Windawesome::NativeMethods.get_foreground_window
+	Windawesome::Utilities.quit_application Windawesome::NativeMethods.get_foreground_window
 end
 
 subscribe modifiers.Control | modifiers.Alt | modifiers.Shift, key.Q do
@@ -48,7 +48,7 @@ end
 
 # minimize application
 subscribe modifiers.Alt, key.A do
-	windawesome.minimize_application Windawesome::NativeMethods.get_foreground_window
+	Windawesome::Utilities.minimize_application Windawesome::NativeMethods.get_foreground_window
 end
 
 # maximize or restore application
@@ -56,9 +56,9 @@ subscribe modifiers.Alt, key.S do
 	window = Windawesome::NativeMethods.get_foreground_window
 	ws = Windawesome::NativeMethods.get_window_style_long_ptr.invoke window
 	if ws.has_flag Windawesome::NativeMethods::WS.WS_MAXIMIZE
-		windawesome.restore_application window
+		Windawesome::Utilities.restore_application window
 	elsif ws.has_flag Windawesome::NativeMethods::WS.WS_CAPTION and ws.has_flag Windawesome::NativeMethods::WS.WS_MAXIMIZEBOX
-		windawesome.maximize_application window
+		Windawesome::Utilities.maximize_application window
 	end
 end
 
@@ -74,27 +74,27 @@ end
 
 # start Explorer
 subscribe modifiers.Alt, key.E do
-	windawesome.run_application "C:\\Users\\Boris\\Desktop\\Downloads.lnk"
+	Windawesome::Utilities.run_application "C:\\Users\\Boris\\Desktop\\Downloads.lnk"
 end
 
 # start Hostile Takeover
 subscribe modifiers.Alt, key.H do
-	windawesome.run_application "C:\\Users\\Boris\\Downloads\\Hostile Takeover.txt"
+	Windawesome::Utilities.run_application "C:\\Users\\Boris\\Downloads\\Hostile Takeover.txt"
 end
 
 # start Foobar2000
 subscribe modifiers.Alt, key.W do
-	windawesome.run_application "C:\\Program Files (x86)\\foobar2000\\foobar2000.exe"
+	Windawesome::Utilities.run_application "C:\\Program Files (x86)\\foobar2000\\foobar2000.exe"
 end
 
 # start Cygwin's MinTTY shell
 subscribe modifiers.Alt | modifiers.Shift, key.Return do
-	windawesome.run_application "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\Cygwin\\Cygwin Terminal.lnk"
+	Windawesome::Utilities.run_application "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\Cygwin\\Cygwin Terminal.lnk"
 end
 
 # start Bitcomet
 subscribe modifiers.Alt, key.B do
-	windawesome.run_application "C:\\Program Files\\BitComet\\BitComet.exe"
+	Windawesome::Utilities.run_application "C:\\Program Files\\BitComet\\BitComet.exe"
 end
 
 # switch to flashing window

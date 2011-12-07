@@ -250,7 +250,7 @@ namespace Windawesome
 			this.styleNotContains = styleNotContains;
 			this.exStyleContains = exStyleContains;
 			this.exStyleNotContains = exStyleNotContains;
-			this.customMatchingFunction = customMatchingFunction ?? Windawesome.IsAltTabWindow;
+			this.customMatchingFunction = customMatchingFunction ?? Utilities.IsAltTabWindow;
 			this.customOwnedWindowMatchingFunction = customOwnedWindowMatchingFunction ?? DefaultOwnedWindowMatchingFunction;
 
 			this.isManaged = isManaged;

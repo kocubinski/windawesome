@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
@@ -115,7 +114,7 @@ namespace Windawesome
 			config.Plugins.ForEach(p => p.InitializePlugin(this));
 
 			// add all windows to their respective workspaces
-			NativeMethods.EnumWindows((hWnd, _) => (IsAppWindow(hWnd) && AddWindowToWorkspace(hWnd, finishedInitializing: false)) || true, IntPtr.Zero);
+			NativeMethods.EnumWindows((hWnd, _) => (Utilities.IsAppWindow(hWnd) && AddWindowToWorkspace(hWnd, finishedInitializing: false)) || true, IntPtr.Zero);
 
 			// add a handler for when the working area or screen rosolution changes as well as
 			// a handler for the system shutting down/restarting
@@ -144,7 +143,7 @@ namespace Windawesome
 			}
 			windowsToHide.ExceptWith(config.StartingWorkspaces.SelectMany(ws => ws.windows));
 			var winPosInfo = NativeMethods.BeginDeferWindowPos(windowsToHide.Count);
-			winPosInfo = windowsToHide.Where(WindowIsNotHung).Aggregate(winPosInfo, (current, w) =>
+			winPosInfo = windowsToHide.Where(Utilities.WindowIsNotHung).Aggregate(winPosInfo, (current, w) =>
 				NativeMethods.DeferWindowPos(current, w.hWnd, IntPtr.Zero, 0, 0, 0, 0,
 					NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE |
 					NativeMethods.SWP.SWP_NOSIZE | NativeMethods.SWP.SWP_NOZORDER |
@@ -236,13 +235,6 @@ namespace Windawesome
 			Quit();
 		}
 
-		private static bool IsAppWindow(IntPtr hWnd)
-		{
-			return NativeMethods.IsWindowVisible(hWnd) &&
-				!NativeMethods.GetWindowExStyleLongPtr(hWnd).HasFlag(NativeMethods.WS_EX.WS_EX_NOACTIVATE) &&
-				!NativeMethods.GetWindowStyleLongPtr(hWnd).HasFlag(NativeMethods.WS.WS_CHILD);
-		}
-
 		private bool AddWindowToWorkspace(IntPtr hWnd, bool firstTry = true, bool finishedInitializing = true)
 		{
 			LinkedList<Tuple<Workspace, Window>> workspacesWindowsList;
@@ -272,7 +264,7 @@ namespace Windawesome
 				if (programRule.tryAgainAfter >= 0 && firstTry && finishedInitializing)
 				{
 					System.Threading.Thread.Sleep(programRule.tryAgainAfter);
-					return IsAppWindow(hWnd) && AddWindowToWorkspace(hWnd, false);
+					return Utilities.IsAppWindow(hWnd) && AddWindowToWorkspace(hWnd, false);
 				}
 
 				IEnumerable<ProgramRule.Rule> matchingRules = programRule.rules;
@@ -438,14 +430,14 @@ namespace Windawesome
 
 			// add any application that was not added for some reason when it was created
 			NativeMethods.EnumWindows((hWnd, _) =>
-				(IsAppWindow(hWnd) && !applications.ContainsKey(hWnd) && AddWindowToWorkspace(hWnd)) || true, IntPtr.Zero);
+				(Utilities.IsAppWindow(hWnd) && !applications.ContainsKey(hWnd) && AddWindowToWorkspace(hWnd)) || true, IntPtr.Zero);
 		}
 
 		private void ForceForegroundWindow(WindowBase window)
 		{
 			var hWnd = NativeMethods.GetLastActivePopup(window.rootOwner);
 
-			if (WindowIsNotHung(hWnd))
+			if (Utilities.WindowIsNotHung(hWnd))
 			{
 				var foregroundWindow = NativeMethods.GetForegroundWindow();
 				if (foregroundWindow != hWnd)
@@ -455,7 +447,7 @@ namespace Windawesome
 					{
 						successfullyChanged = TrySetForegroundWindow(hWnd);
 					}
-					else if (WindowIsNotHung(foregroundWindow))
+					else if (Utilities.WindowIsNotHung(foregroundWindow))
 					{
 						var foregroundWindowThreadId = NativeMethods.GetWindowThreadProcessId(foregroundWindow, IntPtr.Zero);
 						if (NativeMethods.AttachThreadInput(this.windawesomeThreadId, foregroundWindowThreadId, true))
@@ -476,7 +468,7 @@ namespace Windawesome
 					if (!successfullyChanged)
 					{
 						this.forceForegroundWindow = hWnd;
-						this.SendHotkey(this.config.UniqueHotkey);
+						Utilities.SendHotkey(this.config.UniqueHotkey);
 					}
 				}
 				else
@@ -523,106 +515,6 @@ namespace Windawesome
 			return true;
 		}
 
-		#region SendHotkey
-
-		private readonly NativeMethods.INPUT[] input = new NativeMethods.INPUT[18];
-
-		// sends the hotkey combination without disrupting the currently pressed modifiers
-		private void SendHotkey(Tuple<NativeMethods.MOD, Keys> hotkey)
-		{
-			uint i = 0;
-
-			// press needed modifiers
-			var shiftShouldBePressed = hotkey.Item1.HasFlag(NativeMethods.MOD.MOD_SHIFT);
-			var leftShiftPressed = (NativeMethods.GetAsyncKeyState(Keys.LShiftKey) & 0x8000) == 0x8000;
-			var rightShiftPressed = (NativeMethods.GetAsyncKeyState(Keys.RShiftKey) & 0x8000) == 0x8000;
-
-			PressReleaseModifierKey(leftShiftPressed, rightShiftPressed, shiftShouldBePressed,
-				new NativeMethods.INPUT(Keys.ShiftKey, 0),
-				new NativeMethods.INPUT(Keys.LShiftKey, NativeMethods.KEYEVENTF_KEYUP),
-				new NativeMethods.INPUT(Keys.RShiftKey, NativeMethods.KEYEVENTF_KEYUP), ref i);
-
-			var winShouldBePressed = hotkey.Item1.HasFlag(NativeMethods.MOD.MOD_WIN);
-			var leftWinPressed = (NativeMethods.GetAsyncKeyState(Keys.LWin) & 0x8000) == 0x8000;
-			var rightWinPressed = (NativeMethods.GetAsyncKeyState(Keys.RWin) & 0x8000) == 0x8000;
-
-			PressReleaseModifierKey(leftWinPressed, rightWinPressed, winShouldBePressed,
-				new NativeMethods.INPUT(Keys.LWin, 0),
-				new NativeMethods.INPUT(Keys.LWin, NativeMethods.KEYEVENTF_KEYUP),
-				new NativeMethods.INPUT(Keys.RWin, NativeMethods.KEYEVENTF_KEYUP), ref i);
-
-			var controlShouldBePressed = hotkey.Item1.HasFlag(NativeMethods.MOD.MOD_CONTROL);
-			var leftControlPressed = (NativeMethods.GetAsyncKeyState(Keys.LControlKey) & 0x8000) == 0x8000;
-			var rightControlPressed = (NativeMethods.GetAsyncKeyState(Keys.RControlKey) & 0x8000) == 0x8000;
-
-			PressReleaseModifierKey(leftControlPressed, rightControlPressed, controlShouldBePressed,
-				new NativeMethods.INPUT(Keys.ControlKey, 0),
-				new NativeMethods.INPUT(Keys.LControlKey, NativeMethods.KEYEVENTF_KEYUP),
-				new NativeMethods.INPUT(Keys.RControlKey, NativeMethods.KEYEVENTF_KEYUP), ref i);
-
-			var altShouldBePressed = hotkey.Item1.HasFlag(NativeMethods.MOD.MOD_ALT);
-			var leftAltPressed = (NativeMethods.GetAsyncKeyState(Keys.LMenu) & 0x8000) == 0x8000;
-			var rightAltPressed = (NativeMethods.GetAsyncKeyState(Keys.RMenu) & 0x8000) == 0x8000;
-
-			PressReleaseModifierKey(leftAltPressed, rightAltPressed, altShouldBePressed,
-				new NativeMethods.INPUT(Keys.Menu, 0),
-				new NativeMethods.INPUT(Keys.LMenu, NativeMethods.KEYEVENTF_KEYUP),
-				new NativeMethods.INPUT(Keys.RMenu, NativeMethods.KEYEVENTF_KEYUP), ref i);
-
-			// press and release key
-			input[i++] = new NativeMethods.INPUT(hotkey.Item2, 0);
-			input[i++] = new NativeMethods.INPUT(hotkey.Item2, NativeMethods.KEYEVENTF_KEYUP);
-
-			// revert changes to modifiers
-			PressReleaseModifierKey(leftAltPressed, rightAltPressed, altShouldBePressed,
-				new NativeMethods.INPUT(Keys.Menu, NativeMethods.KEYEVENTF_KEYUP),
-				new NativeMethods.INPUT(Keys.LMenu, 0),
-				new NativeMethods.INPUT(Keys.RMenu, 0), ref i);
-
-			PressReleaseModifierKey(leftControlPressed, rightControlPressed, controlShouldBePressed,
-				new NativeMethods.INPUT(Keys.ControlKey, NativeMethods.KEYEVENTF_KEYUP),
-				new NativeMethods.INPUT(Keys.LControlKey, 0),
-				new NativeMethods.INPUT(Keys.RControlKey, 0), ref i);
-
-			PressReleaseModifierKey(leftWinPressed, rightWinPressed, winShouldBePressed,
-				new NativeMethods.INPUT(Keys.LWin, NativeMethods.KEYEVENTF_KEYUP),
-				new NativeMethods.INPUT(Keys.LWin, 0),
-				new NativeMethods.INPUT(Keys.RWin, 0), ref i);
-
-			PressReleaseModifierKey(leftShiftPressed, rightShiftPressed, shiftShouldBePressed,
-				new NativeMethods.INPUT(Keys.ShiftKey, NativeMethods.KEYEVENTF_KEYUP),
-				new NativeMethods.INPUT(Keys.LShiftKey, 0),
-				new NativeMethods.INPUT(Keys.RShiftKey, 0), ref i);
-
-			NativeMethods.SendInput(i, input, NativeMethods.INPUTSize);
-		}
-
-		private void PressReleaseModifierKey(
-			bool leftKeyPressed, bool rightKeyPressed, bool keyShouldBePressed,
-			NativeMethods.INPUT action, NativeMethods.INPUT leftAction, NativeMethods.INPUT rightAction, ref uint i)
-		{
-			if (keyShouldBePressed)
-			{
-				if (!leftKeyPressed && !rightKeyPressed)
-				{
-					input[i++] = action;
-				}
-			}
-			else
-			{
-				if (leftKeyPressed)
-				{
-					input[i++] = leftAction;
-				}
-				if (rightKeyPressed)
-				{
-					input[i++] = rightAction;
-				}
-			}
-		}
-
-		#endregion
-
 		private void FollowWindow(Workspace fromWorkspace, Workspace toWorkspace, bool follow, WindowBase window)
 		{
 			if (follow)
@@ -636,14 +528,9 @@ namespace Windawesome
 			}
 		}
 
-		private static bool IsVisibleAndNotHung(Window window)
-		{
-			return NativeMethods.IsWindowVisible(window.hWnd) && WindowIsNotHung(window.hWnd);
-		}
-
 		private void HideWindow(Window window)
 		{
-			if (IsVisibleAndNotHung(window))
+			if (Utilities.IsVisibleAndNotHung(window))
 			{
 				hiddenApplications.Add(window.hWnd);
 				window.GetOwnedWindows().ForEach(hWnd => NativeMethods.ShowWindow(hWnd, NativeMethods.SW.SW_HIDE));
@@ -655,7 +542,7 @@ namespace Windawesome
 			var winPosInfo = NativeMethods.BeginDeferWindowPos(newWorkspace.GetWindowsCount() + oldWorkspace.GetWindowsCount());
 
 			var showWindows = newWorkspace.windows;
-			foreach (var window in showWindows.Where(WindowIsNotHung))
+			foreach (var window in showWindows.Where(Utilities.WindowIsNotHung))
 			{
 				winPosInfo = window.GetOwnedWindows().Aggregate(winPosInfo, (current, hWnd) =>
 					NativeMethods.DeferWindowPos(current, hWnd, IntPtr.Zero, 0, 0, 0, 0,
@@ -671,7 +558,7 @@ namespace Windawesome
 			var hideWindows = oldWorkspace.sharedWindowsCount > 0 && newWorkspace.sharedWindowsCount > 0 ?
 				oldWorkspace.windows.Except(showWindows) : oldWorkspace.windows;
 			// if the window is not visible we shouldn't add it to hiddenApplications as EVENT_OBJECT_HIDE won't be sent
-			foreach (var window in hideWindows.Where(IsVisibleAndNotHung))
+			foreach (var window in hideWindows.Where(Utilities.IsVisibleAndNotHung))
 			{
 				hiddenApplications.Add(window.hWnd);
 				winPosInfo = window.GetOwnedWindows().Aggregate(winPosInfo, (current, hWnd) =>
@@ -692,11 +579,11 @@ namespace Windawesome
 
 		private void ActivateWindow(WindowBase window)
 		{
-			if (NativeMethods.IsIconic(window.hWnd) && WindowIsNotHung(window.hWnd))
+			if (NativeMethods.IsIconic(window.hWnd) && Utilities.WindowIsNotHung(window.hWnd))
 			{
 				// OpenIcon does not restore the window to its previous size (e.g. maximized)
 				// ShowWindow(SW_RESTORE) doesn't redraw some windows correctly (like TortoiseHG commit window)
-				RestoreApplication(window.hWnd);
+				Utilities.RestoreApplication(window.hWnd);
 				System.Threading.Thread.Sleep(NativeMethods.minimizeRestoreDelay);
 			}
 			else
@@ -713,7 +600,7 @@ namespace Windawesome
 			{
 				NativeMethods.EnumWindows((hWnd, _) =>
 					{
-						if (!IsAppWindow(hWnd) || NativeMethods.IsIconic(hWnd))
+						if (!Utilities.IsAppWindow(hWnd) || NativeMethods.IsIconic(hWnd))
 						{
 							return true;
 						}
@@ -722,7 +609,7 @@ namespace Windawesome
 							// the workspace contains this window so make it the topmost one
 							return false;
 						}
-						if ((IsAltTabWindow(hWnd) && !applications.ContainsKey(hWnd)) ||
+						if ((Utilities.IsAltTabWindow(hWnd) && !applications.ContainsKey(hWnd)) ||
 							workspace.Monitor.temporarilyShownWindows.Contains(hWnd))
 						{
 							// the window is not a managed-by-another-visible-workspace one so make it the topmost one
@@ -744,11 +631,6 @@ namespace Windawesome
 			return window.hWnd;
 		}
 
-		private static void MoveMouseToMiddleOf(Rectangle bounds)
-		{
-			NativeMethods.SetCursorPos((bounds.Left + bounds.Right) / 2, (bounds.Top + bounds.Bottom) / 2);
-		}
-
 		private bool ApplicationsTryGetValue(IntPtr hWnd, out LinkedList<Tuple<Workspace, Window>> list)
 		{
 			// return DoForSelfAndOwnersWhile(hWnd, h => !applications.TryGetValue(h, out list));
@@ -764,18 +646,6 @@ namespace Windawesome
 
 		#region API
 
-		public static IntPtr GetRootOwner(IntPtr hWnd)
-		{
-			var result = hWnd;
-			hWnd = NativeMethods.GetWindow(hWnd, NativeMethods.GW.GW_OWNER);
-			while (hWnd != IntPtr.Zero && hWnd != result)
-			{
-				result = hWnd;
-				hWnd = NativeMethods.GetWindow(hWnd, NativeMethods.GW.GW_OWNER);
-			}
-			return result;
-		}
-
 		public bool TryGetManagedWindowForWorkspace(IntPtr hWnd, Workspace workspace,
 			out Window window, out LinkedList<Tuple<Workspace, Window>> list)
 		{
@@ -790,70 +660,6 @@ namespace Windawesome
 			}
 			window = null;
 			return false;
-		}
-
-		// http://blogs.msdn.com/b/oldnewthing/archive/2007/10/08/5351207.aspx
-		// http://stackoverflow.com/questions/210504/enumerate-windows-like-alt-tab-does
-		public static bool IsAltTabWindow(IntPtr hWnd)
-		{
-			var exStyle = NativeMethods.GetWindowExStyleLongPtr(hWnd);
-			if (exStyle.HasFlag(NativeMethods.WS_EX.WS_EX_TOOLWINDOW) ||
-				NativeMethods.GetWindow(hWnd, NativeMethods.GW.GW_OWNER) != IntPtr.Zero)
-			{
-				return false;
-			}
-			if (exStyle.HasFlag(NativeMethods.WS_EX.WS_EX_APPWINDOW))
-			{
-				return true;
-			}
-
-			// Start at the root owner
-			var hWndTry = NativeMethods.GetAncestor(hWnd, NativeMethods.GA.GA_ROOTOWNER);
-			IntPtr oldHWnd;
-
-			// See if we are the last active visible popup
-			do
-			{
-				oldHWnd = hWndTry;
-				hWndTry = NativeMethods.GetLastActivePopup(hWndTry);
-			}
-			while (oldHWnd != hWndTry && !NativeMethods.IsWindowVisible(hWndTry));
-
-			return hWndTry == hWnd;
-		}
-
-		public static IntPtr DoForSelfAndOwnersWhile(IntPtr hWnd, Predicate<IntPtr> action)
-		{
-			while (hWnd != IntPtr.Zero && action(hWnd))
-			{
-				hWnd = NativeMethods.GetWindow(hWnd, NativeMethods.GW.GW_OWNER);
-			}
-			return hWnd;
-		}
-
-		public static bool WindowIsNotHung(Window window)
-		{
-			return WindowIsNotHung(window.hWnd);
-		}
-
-		public static bool WindowIsNotHung(IntPtr hWnd)
-		{
-			// IsHungAppWindow is not going to work, as it starts returning true 5 seconds after the window
-			// has hung - so if a SetWindowPos, e.g., is called on such a window, it may block forever, even
-			// though IsHungAppWindow returned false
-
-			// SendMessageTimeout with a small timeout will timeout for some programs which are heavy on
-			// computation and do not respond in time - like Visual Studio. A big timeout works, but if an
-			// application is really hung, then Windawesome is blocked for this number of milliseconds.
-			// That can be felt and is annoying. Perhaps the best scenario is:
-			// return !IsHungAppWindow && (SendMessageTimeout(with_big_timeout) || GetLastWin32Error)
-			// As this will not block forever at any point and it will only block the main thread for "with_big_timeout"
-			// milliseconds the first 5 seconds when a program is hung - after that IsHungAppWindow catches it
-			// immediately and returns. However, I decided that in most cases apps are not hung, so the overhead
-			// of calling IsHungAppWindow AND SendMessageTimeout is not worth.
-
-			return NativeMethods.SendMessageTimeout(hWnd, NativeMethods.WM_NULL, UIntPtr.Zero, IntPtr.Zero,
-				NativeMethods.SMTO.SMTO_ABORTIFHUNG | NativeMethods.SMTO.SMTO_BLOCK, 3000, IntPtr.Zero) != IntPtr.Zero;
 		}
 
 		public void RefreshWindawesome()
@@ -943,7 +749,7 @@ namespace Windawesome
 			{
 				if (window.WorkspacesCount == 1)
 				{
-					QuitApplication(window.hWnd);
+					Utilities.QuitApplication(window.hWnd);
 				}
 				else
 				{
@@ -1041,7 +847,7 @@ namespace Windawesome
 					{
 						if (config.MoveMouseOverMonitorsOnSwitch)
 						{
-							MoveMouseToMiddleOf(newWorkspace.Monitor.Bounds);
+							Utilities.MoveMouseToMiddleOf(newWorkspace.Monitor.Bounds);
 						}
 
 						// remove windows from ALT-TAB menu and Taskbar
@@ -1117,7 +923,7 @@ namespace Windawesome
 
 				if (CurrentWorkspace == workspace && config.MoveMouseOverMonitorsOnSwitch)
 				{
-					MoveMouseToMiddleOf(workspace.Monitor.Bounds);
+					Utilities.MoveMouseToMiddleOf(workspace.Monitor.Bounds);
 				}
 
 				// reposition the windows on the workspace
@@ -1198,21 +1004,6 @@ namespace Windawesome
 			}
 		}
 
-		public void RunApplication(string path, string arguments = "")
-		{
-			System.Threading.Tasks.Task.Factory.StartNew(() =>
-				{
-					if (SystemAndProcessInformation.isAtLeastVista && SystemAndProcessInformation.isRunningElevated)
-					{
-						NativeMethods.RunApplicationNonElevated(path, arguments); // TODO: this is not working on XP
-					}
-					else
-					{
-						System.Diagnostics.Process.Start(path, arguments);
-					}
-				});
-		}
-
 		public void RunOrShowApplication(string className, string path, string displayName = ".*", string processName = ".*", string arguments = "")
 		{
 			var classNameRegex = new System.Text.RegularExpressions.Regex(className, System.Text.RegularExpressions.RegexOptions.Compiled);
@@ -1227,28 +1018,8 @@ namespace Windawesome
 			}
 			else
 			{
-				RunApplication(path, arguments);
+				Utilities.RunApplication(path, arguments);
 			}
-		}
-
-		public void QuitApplication(IntPtr hWnd)
-		{
-			NativeMethods.SendNotifyMessage(hWnd, NativeMethods.WM_SYSCOMMAND, NativeMethods.SC_CLOSE, IntPtr.Zero);
-		}
-
-		public void MinimizeApplication(IntPtr hWnd)
-		{
-			NativeMethods.SendNotifyMessage(hWnd, NativeMethods.WM_SYSCOMMAND, NativeMethods.SC_MINIMIZE, IntPtr.Zero);
-		}
-
-		public void MaximizeApplication(IntPtr hWnd)
-		{
-			NativeMethods.SendNotifyMessage(hWnd, NativeMethods.WM_SYSCOMMAND, NativeMethods.SC_MAXIMIZE, IntPtr.Zero);
-		}
-
-		public void RestoreApplication(IntPtr hWnd)
-		{
-			NativeMethods.SendNotifyMessage(hWnd, NativeMethods.WM_SYSCOMMAND, NativeMethods.SC_RESTORE, IntPtr.Zero);
 		}
 
 		public void RegisterMessage(int message, HandleMessageDelegate targetHandler)
@@ -1261,74 +1032,6 @@ namespace Windawesome
 			else
 			{
 				messageHandlers[message] = targetHandler;
-			}
-		}
-
-		public void GetWindowSmallIconAsBitmap(IntPtr hWnd, Action<Bitmap> action)
-		{
-			IntPtr result;
-			NativeMethods.SendMessageTimeout(hWnd, NativeMethods.WM_GETICON, NativeMethods.ICON_SMALL,
-				IntPtr.Zero, NativeMethods.SMTO.SMTO_BLOCK, 500, out result);
-
-			if (result == IntPtr.Zero)
-			{
-				NativeMethods.SendMessageTimeout(hWnd, NativeMethods.WM_QUERYDRAGICON, UIntPtr.Zero,
-					IntPtr.Zero, NativeMethods.SMTO.SMTO_BLOCK, 500, out result);
-			}
-
-			if (result == IntPtr.Zero)
-			{
-				result = NativeMethods.GetClassLongPtr(hWnd, NativeMethods.GCL_HICONSM);
-			}
-
-			if (result == IntPtr.Zero)
-			{
-				System.Threading.Tasks.Task.Factory.StartNew(hWnd2 =>
-					{
-						Bitmap bitmap = null;
-						try
-						{
-							int processId;
-							NativeMethods.GetWindowThreadProcessId((IntPtr) hWnd2, out processId);
-							var processFileName = System.Diagnostics.Process.GetProcessById(processId).MainModule.FileName;
-
-							var info = new NativeMethods.SHFILEINFO();
-
-							NativeMethods.SHGetFileInfo(processFileName, 0, ref info,
-								Marshal.SizeOf(info), NativeMethods.SHGFI_ICON | NativeMethods.SHGFI_SMALLICON);
-
-							if (info.hIcon != IntPtr.Zero)
-							{
-								bitmap = new Bitmap(Bitmap.FromHicon(info.hIcon), SystemAndProcessInformation.smallIconSize);
-								NativeMethods.DestroyIcon(info.hIcon);
-							}
-							else
-							{
-								var icon = Icon.ExtractAssociatedIcon(processFileName);
-								if (icon != null)
-								{
-									bitmap = new Bitmap(icon.ToBitmap(), SystemAndProcessInformation.smallIconSize);
-								}
-							}
-						}
-						catch
-						{
-						}
-
-						return bitmap;
-					}, hWnd).ContinueWith(t => action(t.Result), System.Threading.Tasks.TaskScheduler.FromCurrentSynchronizationContext());
-			}
-			else
-			{
-				Bitmap bitmap = null;
-				try
-				{
-					bitmap = new Bitmap(Bitmap.FromHicon(result), SystemAndProcessInformation.smallIconSize);
-				}
-				catch
-				{
-				}
-				action(bitmap);
 			}
 		}
 
@@ -1372,7 +1075,7 @@ namespace Windawesome
 				switch (eventType)
 				{
 					case NativeMethods.EVENT.EVENT_OBJECT_SHOW:
-						if (IsAppWindow(hWnd))
+						if (Utilities.IsAppWindow(hWnd))
 						{
 							if (!applications.TryGetValue(hWnd, out list)) // if a new window has shown
 							{
@@ -1505,7 +1208,7 @@ namespace Windawesome
 							}
 							else if (list.First.Value.Item2.updateIcon)
 							{
-								GetWindowSmallIconAsBitmap(list.First.Value.Item2.hWnd, bitmap =>
+								Utilities.GetWindowSmallIconAsBitmap(list.First.Value.Item2.hWnd, bitmap =>
 									list.ForEach(t => DoWindowTitleOrIconChanged(t.Item1, t.Item2, null, bitmap)));
 							}
 						}
@@ -1524,7 +1227,7 @@ namespace Windawesome
 			{
 				if (!TrySetForegroundWindow(forceForegroundWindow) && forceForegroundWindow != NativeMethods.shellWindow)
 				{
-					SendHotkey(Tuple.Create(NativeMethods.MOD.MOD_ALT, Keys.Escape));
+					Utilities.SendHotkey(Tuple.Create(NativeMethods.MOD.MOD_ALT, Keys.Escape));
 				}
 				forceForegroundWindow = IntPtr.Zero;
 			}

@@ -7,7 +7,7 @@ namespace Windawesome
 
 		private void MaximizeWindow(Window window)
 		{
-			if (Windawesome.WindowIsNotHung(window))
+			if (Utilities.WindowIsNotHung(window))
 			{
 				var newMonitorBounds = workspace.Monitor.Bounds;
 				var newMonitorWorkingArea = workspace.Monitor.WorkingArea;

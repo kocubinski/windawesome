@@ -91,7 +91,7 @@ namespace Windawesome
 			pictureBox.Click += this.OnApplicationTabClick;
 			panel.Controls.Add(pictureBox);
 
-			windawesome.GetWindowSmallIconAsBitmap(window.hWnd, bitmap => pictureBox.Image = bitmap);
+			Utilities.GetWindowSmallIconAsBitmap(window.hWnd, bitmap => pictureBox.Image = bitmap);
 
 			var label = bar.CreateLabel(window.DisplayName, bar.GetBarHeight(), 0);
 			label.Click += this.OnApplicationTabClick;
@@ -109,7 +109,7 @@ namespace Windawesome
 				var applications = applicationPanels[bar.Monitor.CurrentVisibleWorkspace.id - 1];
 
 				if (applications.Count > 0 &&
-					(hWnd = Windawesome.DoForSelfAndOwnersWhile(hWnd, h => applications.All(t => t.Item1 != h))) != IntPtr.Zero)
+					(hWnd = Utilities.DoForSelfAndOwnersWhile(hWnd, h => applications.All(t => t.Item1 != h))) != IntPtr.Zero)
 				{
 					panel = applications.First(t => t.Item1 == hWnd).Item2;
 					if (panel == currentlyHighlightedPanel)

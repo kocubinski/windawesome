@@ -11,7 +11,7 @@ namespace Windawesome
 		public WindowBase(IntPtr hWnd)
 		{
 			this.hWnd = hWnd;
-			this.rootOwner = Windawesome.GetRootOwner(hWnd);
+			this.rootOwner = Utilities.GetRootOwner(hWnd);
 		}
 
 		internal WindowBase(WindowBase window)
