@@ -57,6 +57,20 @@ namespace Windawesome
 						left += eachWidth;
 					}
 				}
+
+				if (!showSingleApplicationTab && currentlyHighlightedPanel != null)
+				{
+					if (applicationPanels[workspaceId].Count == 1)
+					{
+						currentlyHighlightedPanel.ForeColor = normalForegroundColor;
+						currentlyHighlightedPanel.BackColor = normalBackgroundColor;
+					}
+					else
+					{
+						currentlyHighlightedPanel.ForeColor = highlightedForegroundColor;
+						currentlyHighlightedPanel.BackColor = highlightedBackgroundColor;
+					}
+				}
 			}
 		}
 
@@ -100,20 +114,6 @@ namespace Windawesome
 					panel = applications.First(t => t.Item1 == hWnd).Item2;
 					if (panel == currentlyHighlightedPanel)
 					{
-						// panel already current one, just fix colors because there might be newly created/destroyed windows
-						if (!showSingleApplicationTab && currentlyHighlightedPanel != null)
-						{
-							if (applications.Count == 1)
-							{
-								currentlyHighlightedPanel.ForeColor = normalForegroundColor;
-								currentlyHighlightedPanel.BackColor = normalBackgroundColor;
-							}
-							else
-							{
-								currentlyHighlightedPanel.ForeColor = highlightedForegroundColor;
-								currentlyHighlightedPanel.BackColor = highlightedBackgroundColor;
-							}
-						}
 						return ;
 					}
 				}
