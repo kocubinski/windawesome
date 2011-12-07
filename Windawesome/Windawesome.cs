@@ -18,11 +18,6 @@ namespace Windawesome
 		public delegate bool HandleMessageDelegate(ref Message m);
 
 		public static IntPtr HandleStatic { get; private set; }
-		public static readonly bool isRunningElevated;
-		public static readonly bool isAtLeastVista;
-		public static readonly bool isAtLeast7;
-		public static readonly Size smallIconSize;
-		public static readonly IntPtr taskbarButtonsWindowHandle;
 
 		private readonly Dictionary<IntPtr, LinkedList<Tuple<Workspace, Window>>> applications; // hWnd to a list of workspaces and windows
 		private readonly WindowBase[] topmostWindows;
@@ -80,20 +75,6 @@ namespace Windawesome
 		#endregion
 
 		#region Windawesome Construction, Initialization and Destruction
-
-		static Windawesome()
-		{
-			isAtLeastVista = Environment.OSVersion.Version.Major >= 6;
-			isAtLeast7 = isAtLeastVista && Environment.OSVersion.Version.Minor >= 1;
-
-			isRunningElevated = NativeMethods.IsCurrentProcessElevatedInRespectToShell();
-
-			smallIconSize = SystemInformation.SmallIconSize;
-
-			taskbarButtonsWindowHandle = Monitor.taskbarHandle;
-			taskbarButtonsWindowHandle = NativeMethods.FindWindowEx(taskbarButtonsWindowHandle, IntPtr.Zero, "ReBarWindow32", "");
-			taskbarButtonsWindowHandle = NativeMethods.FindWindowEx(taskbarButtonsWindowHandle, IntPtr.Zero, "MSTaskSwWClass", "Running Applications");
-		}
 
 		internal Windawesome()
 		{
@@ -1221,7 +1202,7 @@ namespace Windawesome
 		{
 			System.Threading.Tasks.Task.Factory.StartNew(() =>
 				{
-					if (isAtLeastVista && isRunningElevated)
+					if (SystemAndProcessInformation.isAtLeastVista && SystemAndProcessInformation.isRunningElevated)
 					{
 						NativeMethods.RunApplicationNonElevated(path, arguments); // TODO: this is not working on XP
 					}
@@ -1318,7 +1299,7 @@ namespace Windawesome
 
 							if (info.hIcon != IntPtr.Zero)
 							{
-								bitmap = new Bitmap(Bitmap.FromHicon(info.hIcon), smallIconSize);
+								bitmap = new Bitmap(Bitmap.FromHicon(info.hIcon), SystemAndProcessInformation.smallIconSize);
 								NativeMethods.DestroyIcon(info.hIcon);
 							}
 							else
@@ -1326,7 +1307,7 @@ namespace Windawesome
 								var icon = Icon.ExtractAssociatedIcon(processFileName);
 								if (icon != null)
 								{
-									bitmap = new Bitmap(icon.ToBitmap(), smallIconSize);
+									bitmap = new Bitmap(icon.ToBitmap(), SystemAndProcessInformation.smallIconSize);
 								}
 							}
 						}
@@ -1342,7 +1323,7 @@ namespace Windawesome
 				Bitmap bitmap = null;
 				try
 				{
-					bitmap = new Bitmap(Bitmap.FromHicon(result), smallIconSize);
+					bitmap = new Bitmap(Bitmap.FromHicon(result), SystemAndProcessInformation.smallIconSize);
 				}
 				catch
 				{

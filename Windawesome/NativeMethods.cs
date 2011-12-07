@@ -75,7 +75,7 @@ using WPARAM = UIntPtr; // UINT_PTR
 				}
 			}
 
-			NONCLIENTMETRICSSize = Marshal.SizeOf(typeof(NONCLIENTMETRICS)) - (Windawesome.isAtLeastVista ? 0 : 4);
+			NONCLIENTMETRICSSize = Marshal.SizeOf(typeof(NONCLIENTMETRICS)) - (SystemAndProcessInformation.isAtLeastVista ? 0 : 4);
 		}
 
 		// hooks stuff
@@ -950,7 +950,7 @@ using WPARAM = UIntPtr; // UINT_PTR
 
 				int processId;
 				GetWindowThreadProcessId(hWnd, out processId);
-				var processHandle = Windawesome.isAtLeastVista ?
+				var processHandle = SystemAndProcessInformation.isAtLeastVista ?
 					OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, processId) :
 					OpenProcess(PROCESS_QUERY_INFORMATION, false, processId);
 				if (processHandle != IntPtr.Zero)
@@ -1131,7 +1131,7 @@ using WPARAM = UIntPtr; // UINT_PTR
 				{
 					LONG shellProcessId;
 					GetWindowThreadProcessId(shellWindow, out shellProcessId);
-					var shellProcessHandle = Windawesome.isAtLeastVista ?
+					var shellProcessHandle = SystemAndProcessInformation.isAtLeastVista ?
 						OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, shellProcessId) :
 						OpenProcess(PROCESS_QUERY_INFORMATION, false, shellProcessId);
 
@@ -1140,7 +1140,7 @@ using WPARAM = UIntPtr; // UINT_PTR
 						HANDLE shellProcessTokenHandle;
 						if (OpenProcessToken(shellProcessHandle, TOKEN_QUERY, out shellProcessTokenHandle))
 						{
-							result = Windawesome.isAtLeastVista ?
+							result = SystemAndProcessInformation.isAtLeastVista ?
 								IsProcessElevated(currentProcessTokenHandle) && !IsProcessElevated(shellProcessTokenHandle) :
 								!TokenIsInAdministratorsGroup(shellProcessTokenHandle, authenticatedUsersSid);
 
@@ -1150,7 +1150,7 @@ using WPARAM = UIntPtr; // UINT_PTR
 						CloseHandle(shellProcessHandle);
 					}
 				}
-				else if (Windawesome.isAtLeastVista)
+				else if (SystemAndProcessInformation.isAtLeastVista)
 				{
 					result = IsProcessElevated(GetCurrentProcess());
 				}

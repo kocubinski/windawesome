@@ -76,9 +76,9 @@ namespace Windawesome
 			if (NativeMethods.RegisterGlobalShellHook(windawesome.Handle))
 			{
 				globalShellHookMessage = NativeMethods.RegisterWindowMessage("GLOBAL_SHELL_HOOK");
-				if (Windawesome.isAtLeastVista && Windawesome.isRunningElevated)
+				if (SystemAndProcessInformation.isAtLeastVista && SystemAndProcessInformation.isRunningElevated)
 				{
-					if (Windawesome.isAtLeast7)
+					if (SystemAndProcessInformation.isAtLeast7)
 					{
 						NativeMethods.ChangeWindowMessageFilterEx(windawesome.Handle, globalShellHookMessage, NativeMethods.MSGFLTEx.MSGFLT_ALLOW, IntPtr.Zero);
 					}
@@ -132,9 +132,9 @@ namespace Windawesome
 			NativeMethods.UnregisterGlobalShellHook();
 
 			// remove the message filters
-			if (Windawesome.isAtLeastVista && Windawesome.isRunningElevated)
+			if (SystemAndProcessInformation.isAtLeastVista && SystemAndProcessInformation.isRunningElevated)
 			{
-				if (Windawesome.isAtLeast7)
+				if (SystemAndProcessInformation.isAtLeast7)
 				{
 					NativeMethods.ChangeWindowMessageFilterEx(Windawesome.HandleStatic, globalShellHookMessage, NativeMethods.MSGFLTEx.MSGFLT_RESET, IntPtr.Zero);
 				}

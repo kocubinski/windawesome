@@ -43,7 +43,7 @@ namespace Windawesome
 
 		public SystemTrayWidget(bool showFullSystemTray = false)
 		{
-			this.showFullSystemTray = Windawesome.isAtLeast7 && showFullSystemTray;
+			this.showFullSystemTray = SystemAndProcessInformation.isAtLeast7 && showFullSystemTray;
 
 			icons = new Dictionary<Tuple<int, uint>, Tuple<SystemTray.TrayIcon, PictureBox, ToolTip>>(10);
 
@@ -58,7 +58,7 @@ namespace Windawesome
 		{
 			// theoretically one could broadcast a "TaskbarCreated" message so that windows resend their icons, but it doesn't work very well
 
-			foreach (var icon in SystemTray.GetButtons(SystemTray.trayHandle))
+			foreach (var icon in SystemTray.GetButtons(SystemAndProcessInformation.trayHandle))
 			{
 				var pictureBox = CreatePictureBox(icon);
 				var toolTip = CreateToolTip(pictureBox, icon.tooltip);
@@ -69,7 +69,7 @@ namespace Windawesome
 			{
 				HiddenIconAdded += OnIconAdded;
 
-				foreach (var icon in SystemTray.GetButtons(SystemTray.hiddenTrayHandle))
+				foreach (var icon in SystemTray.GetButtons(SystemAndProcessInformation.hiddenTrayHandle))
 				{
 					var pictureBox = CreatePictureBox(icon);
 					var toolTip = CreateToolTip(pictureBox, icon.tooltip);
@@ -216,7 +216,7 @@ namespace Windawesome
 			var tuple = Tuple.Create(iconData.hWnd, iconData.uID);
 
 			// add to visible or to hidden icons
-			if (!Windawesome.isAtLeast7 || SystemTray.ContainsButton(SystemTray.trayHandle, (IntPtr) iconData.hWnd, iconData.uID))
+			if (!SystemAndProcessInformation.isAtLeast7 || SystemTray.ContainsButton(SystemAndProcessInformation.trayHandle, (IntPtr) iconData.hWnd, iconData.uID))
 			{
 				IconAdded(iconData, tuple);
 			}
@@ -279,12 +279,12 @@ namespace Windawesome
 			try
 			{
 				var bitmap = Bitmap.FromHicon(trayIcon.iconHandle);
-				pictureBox.Image = new Bitmap(bitmap, Windawesome.smallIconSize);
+				pictureBox.Image = new Bitmap(bitmap, SystemAndProcessInformation.smallIconSize);
 			}
 			catch
 			{
 				trayIcon.iconHandle = Properties.Resources.Icon_missing.GetHicon();
-				pictureBox.Image = new Bitmap(Properties.Resources.Icon_missing, Windawesome.smallIconSize);
+				pictureBox.Image = new Bitmap(Properties.Resources.Icon_missing, SystemAndProcessInformation.smallIconSize);
 			}
 		}
 
@@ -300,9 +300,9 @@ namespace Windawesome
 			// system tray hook
 			if (NativeMethods.RegisterSystemTrayHook(windawesome.Handle))
 			{
-				if (Windawesome.isAtLeastVista && Windawesome.isRunningElevated)
+				if (SystemAndProcessInformation.isAtLeastVista && SystemAndProcessInformation.isRunningElevated)
 				{
-					if (Windawesome.isAtLeast7)
+					if (SystemAndProcessInformation.isAtLeast7)
 					{
 						NativeMethods.ChangeWindowMessageFilterEx(windawesome.Handle, NativeMethods.WM_COPYDATA, NativeMethods.MSGFLTEx.MSGFLT_ALLOW, IntPtr.Zero);
 					}
@@ -374,9 +374,9 @@ namespace Windawesome
 			SystemTray.Dispose();
 
 			// remove the message filters
-			if (Windawesome.isAtLeastVista && Windawesome.isRunningElevated)
+			if (SystemAndProcessInformation.isAtLeastVista && SystemAndProcessInformation.isRunningElevated)
 			{
-				if (Windawesome.isAtLeast7)
+				if (SystemAndProcessInformation.isAtLeast7)
 				{
 					NativeMethods.ChangeWindowMessageFilterEx(Windawesome.HandleStatic, NativeMethods.WM_COPYDATA, NativeMethods.MSGFLTEx.MSGFLT_RESET, IntPtr.Zero);
 				}
@@ -407,30 +407,20 @@ namespace Windawesome
 			private const uint TB_GETBUTTON = 0x417;
 			private const uint TB_BUTTONCOUNT = 0x418;
 
-			internal static readonly IntPtr trayHandle;
-			internal static readonly IntPtr hiddenTrayHandle;
-
-			private static readonly IntPtr TBBUTTONSize;
 			private static readonly IntPtr explorerProcessHandle;
 			private static readonly IntPtr buttonMemory;
 			private static readonly StringBuilder sb;
 
 			static SystemTray()
 			{
-				trayHandle = FindTrayHandle();
-				if (Windawesome.isAtLeast7)
-				{
-					hiddenTrayHandle = FindHiddenTrayHandle();
-				}
-
-				TBBUTTONSize = (IntPtr) Marshal.SizeOf(
+				var TBBUTTONSize = (IntPtr) Marshal.SizeOf(
 					Environment.Is64BitOperatingSystem ?
 						typeof(NativeMethods.TBBUTTON64.ButtonData) :
 						typeof(NativeMethods.TBBUTTON32.ButtonData));
 				sb = new StringBuilder(128);
 
 				int explorerPId;
-				NativeMethods.GetWindowThreadProcessId(trayHandle, out explorerPId);
+				NativeMethods.GetWindowThreadProcessId(SystemAndProcessInformation.trayHandle, out explorerPId);
 
 				explorerProcessHandle = NativeMethods.OpenProcess(NativeMethods.PROCESS_VM_OPERATION | NativeMethods.PROCESS_VM_READ, false, explorerPId);
 				if (explorerProcessHandle == IntPtr.Zero)
@@ -458,19 +448,6 @@ namespace Windawesome
 					}
 					NativeMethods.CloseHandle(explorerProcessHandle);
 				}
-			}
-
-			private static IntPtr FindTrayHandle()
-			{
-				var hWnd = NativeMethods.FindWindowEx(Monitor.taskbarHandle, IntPtr.Zero, "TrayNotifyWnd", null);
-				hWnd = NativeMethods.FindWindowEx(hWnd, IntPtr.Zero, "SysPager", null);
-				return NativeMethods.FindWindowEx(hWnd, IntPtr.Zero, "ToolbarWindow32", null);
-			}
-
-			private static IntPtr FindHiddenTrayHandle()
-			{
-				var hWnd = NativeMethods.FindWindow("NotifyIconOverflowWindow", null);
-				return NativeMethods.FindWindowEx(hWnd, IntPtr.Zero, "ToolbarWindow32", null);
 			}
 
 			private abstract class TrayIconData

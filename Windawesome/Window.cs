@@ -240,7 +240,7 @@ namespace Windawesome
 				(exStyle & ~NativeMethods.WS_EX.WS_EX_APPWINDOW) | NativeMethods.WS_EX.WS_EX_TOOLWINDOW);
 
 			// show/hide from Taskbar
-			NativeMethods.PostMessage(Windawesome.taskbarButtonsWindowHandle, NativeMethods.WM_SHELLHOOKMESSAGE,
+			NativeMethods.PostMessage(SystemAndProcessInformation.taskbarButtonsWindowHandle, NativeMethods.WM_SHELLHOOKMESSAGE,
 				(UIntPtr) (uint) (show ? NativeMethods.ShellEvents.HSHELL_WINDOWCREATED : NativeMethods.ShellEvents.HSHELL_WINDOWDESTROYED), hWnd);
 		}
 

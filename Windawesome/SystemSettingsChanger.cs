@@ -82,7 +82,7 @@ namespace Windawesome
 
 				// set the global border and padded border widths
 				if ((config.WindowBorderWidth >= 0 && originalNonClientMetrics.iBorderWidth != config.WindowBorderWidth) ||
-					(Windawesome.isAtLeastVista && config.WindowPaddedBorderWidth >= 0 && originalNonClientMetrics.iPaddedBorderWidth != config.WindowPaddedBorderWidth))
+					(SystemAndProcessInformation.isAtLeastVista && config.WindowPaddedBorderWidth >= 0 && originalNonClientMetrics.iPaddedBorderWidth != config.WindowPaddedBorderWidth))
 				{
 					var metrics = originalNonClientMetrics;
 					metrics.iBorderWidth = config.WindowBorderWidth;
@@ -147,7 +147,7 @@ namespace Windawesome
 
 				// revert the size of non-client area of windows
 				if ((config.WindowBorderWidth >= 0 && originalNonClientMetrics.iBorderWidth != config.WindowBorderWidth) ||
-					(Windawesome.isAtLeastVista && config.WindowPaddedBorderWidth >= 0 && originalNonClientMetrics.iPaddedBorderWidth != config.WindowPaddedBorderWidth))
+					(SystemAndProcessInformation.isAtLeastVista && config.WindowPaddedBorderWidth >= 0 && originalNonClientMetrics.iPaddedBorderWidth != config.WindowPaddedBorderWidth))
 				{
 					var metrics = originalNonClientMetrics;
 					NativeMethods.SystemParametersInfo(NativeMethods.SPI.SPI_SETNONCLIENTMETRICS, metrics.cbSize,

@@ -16,9 +16,6 @@ namespace Windawesome
 		public Rectangle Bounds { get; private set; }
 		public Rectangle WorkingArea { get; private set; }
 
-		public static readonly IntPtr taskbarHandle;
-		public static readonly IntPtr startButtonHandle;
-
 		internal readonly HashSet<IntPtr> temporarilyShownWindows;
 		private readonly Dictionary<Workspace, Tuple<int, AppBarNativeWindow, AppBarNativeWindow>> workspaces;
 
@@ -226,16 +223,10 @@ namespace Windawesome
 
 		static Monitor()
 		{
-			taskbarHandle = NativeMethods.FindWindow("Shell_TrayWnd", null);
-			if (Windawesome.isAtLeastVista)
-			{
-				startButtonHandle = NativeMethods.FindWindow("Button", "Start");
-			}
-
 			// this is because Windows shows the taskbar at random points when it is made to autohide
 			taskbarShownWinEventHook = NativeMethods.SetWinEventHook(NativeMethods.EVENT.EVENT_OBJECT_SHOW, NativeMethods.EVENT.EVENT_OBJECT_SHOW,
 				IntPtr.Zero, taskbarShownWinEventDelegate, 0,
-				NativeMethods.GetWindowThreadProcessId(taskbarHandle, IntPtr.Zero),
+				NativeMethods.GetWindowThreadProcessId(SystemAndProcessInformation.taskbarHandle, IntPtr.Zero),
 				NativeMethods.WINEVENT.WINEVENT_OUTOFCONTEXT | NativeMethods.WINEVENT.WINEVENT_SKIPOWNTHREAD);
 		}
 
@@ -303,7 +294,7 @@ namespace Windawesome
 		private static void TaskbarShownWinEventDelegate(IntPtr hWinEventHook, NativeMethods.EVENT eventType,
 			IntPtr hwnd, NativeMethods.OBJID idObject, int idChild, uint dwEventThread, uint dwmsEventTime)
 		{
-			if (NativeMethods.IsWindowVisible(taskbarHandle) != isWindowsTaskbarShown)
+			if (NativeMethods.IsWindowVisible(SystemAndProcessInformation.taskbarHandle) != isWindowsTaskbarShown)
 			{
 				ShowHideWindowsTaskbar(isWindowsTaskbarShown);
 			}
@@ -338,7 +329,7 @@ namespace Windawesome
 
 		internal static void ShowHideWindowsTaskbar(bool showWindowsTaskbar)
 		{
-			var appBarData = new NativeMethods.APPBARDATA(taskbarHandle);
+			var appBarData = new NativeMethods.APPBARDATA(SystemAndProcessInformation.taskbarHandle);
 			var state = (NativeMethods.ABS) (uint) NativeMethods.SHAppBarMessage(NativeMethods.ABM.ABM_GETSTATE, ref appBarData);
 
 			appBarData.lParam = (IntPtr) (showWindowsTaskbar ? state & ~NativeMethods.ABS.ABS_AUTOHIDE : state | NativeMethods.ABS.ABS_AUTOHIDE);
@@ -346,10 +337,10 @@ namespace Windawesome
 
 			var showHide = showWindowsTaskbar ? NativeMethods.SW.SW_SHOWNA : NativeMethods.SW.SW_HIDE;
 
-			NativeMethods.ShowWindow(taskbarHandle, showHide);
-			if (Windawesome.isAtLeastVista)
+			NativeMethods.ShowWindow(SystemAndProcessInformation.taskbarHandle, showHide);
+			if (SystemAndProcessInformation.isAtLeastVista)
 			{
-				NativeMethods.ShowWindow(startButtonHandle, showHide);
+				NativeMethods.ShowWindow(SystemAndProcessInformation.startButtonHandle, showHide);
 			}
 
 			isWindowsTaskbarShown = showWindowsTaskbar;

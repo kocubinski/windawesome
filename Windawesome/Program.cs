@@ -49,7 +49,7 @@ namespace Windawesome
 						"CLR: " + Environment.Version.ToString(3),
 						"64-bit OS: " + Environment.Is64BitOperatingSystem,
 						"64-bit process: " + Environment.Is64BitProcess,
-						"Elevated: " + Windawesome.isRunningElevated,
+						"Elevated: " + SystemAndProcessInformation.isRunningElevated,
 						ea.Exception.ToString(),
 						"Inner Exception:",
 						ea.Exception.InnerException != null ? ea.Exception.InnerException.ToString() : "none"
