@@ -278,6 +278,9 @@ namespace Windawesome
 
 		private void RestoreSharedWindowState(Window window, bool doNotShow)
 		{
+			// TODO: when a shared window is removed from its next to last workspace,
+			// if it was on a full-screen or the last one is on a full-screen layout,
+			// it is not repositioned correctly
 			window.Initialize();
 			if (ShouldSaveAndRestoreSharedWindowsPosition(window))
 			{
