@@ -17,6 +17,7 @@ namespace Windawesome
 		internal WindowBase(WindowBase window)
 		{
 			this.hWnd = window.hWnd;
+			this.rootOwner = window.rootOwner;
 		}
 	}
 
