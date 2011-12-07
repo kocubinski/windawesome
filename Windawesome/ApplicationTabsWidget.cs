@@ -10,8 +10,6 @@ namespace Windawesome
 	{
 		private static Windawesome windawesome;
 
-		// TODO: may use a single panel for each workspace which contains all the panels for the applications
-		// when changing a workspace, only the parent panel must be shown/hidden
 		private LinkedList<Tuple<IntPtr, Panel>>[] applicationPanels; // hWnd -> Panel
 		private Panel currentlyHighlightedPanel;
 		private bool[] mustResize;
