@@ -10,7 +10,7 @@ namespace Windawesome
 	{
 		private static Windawesome windawesome;
 
-		private LinkedList<Tuple<IntPtr, Panel>>[] applicationPanels; // hWnd -> Panel
+		private LinkedList<Tuple<IntPtr, Panel>>[] applicationPanels; // [(hWnd, Panel)]
 		private Panel currentlyHighlightedPanel;
 		private bool[] mustResize;
 		private int left, right;

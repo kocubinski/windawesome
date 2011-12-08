@@ -48,6 +48,7 @@ HideMouseWhenTyping - whether to hide the mouse cursor when typing. False by def
 FocusFollowsMouse - whether focus follows the mouse - i.e. the focused window is always the one under the mouse. False by default
 FocusFollowsMouseSetOnTop - whether the focused window under the mouse should be brought to the top of the Z order. Only works when FocusFollowsMouse is true. False by default
 MoveMouseOverMonitorsOnSwitch - whether to move the mouse to the middle of a screen whenever the workspace switched to is on a different monitor. False by default
+CheckForUpdates - if true (default), Windawesome will check for available updates on every startup
 UniqueHotkey - Windawesome uses this hotkey so it can switch to applications when you change workspaces (only if another method fails). Make sure you use a unique hotkey that is not in use by any other application. Windawesome will output a warning in a warnings.txt file if there is a problem registering this hotkey. The default one probably is fine (it is ALT+0)
 
 ====================================================================

@@ -25,12 +25,14 @@ namespace Windawesome
 		public bool FocusFollowsMouse { get; set; }
 		public bool FocusFollowsMouseSetOnTop { get; set; }
 		public bool MoveMouseOverMonitorsOnSwitch { get; set; }
+		public bool CheckForUpdates { get; set; }
 		public Tuple<NativeMethods.MOD, System.Windows.Forms.Keys> UniqueHotkey { get; set; }
 
 		internal Config()
 		{
 			this.WindowBorderWidth = -1;
 			this.WindowPaddedBorderWidth = -1;
+			this.CheckForUpdates = true;
 		}
 
 		internal void LoadConfiguration(Windawesome windawesome)

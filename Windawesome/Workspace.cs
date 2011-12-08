@@ -209,7 +209,7 @@ namespace Windawesome
 		}
 
 		#endregion
-		
+
 		public Workspace(Monitor monitor, ILayout layout, IEnumerable<IBar> barsAtTop = null, IEnumerable<IBar> barsAtBottom = null,
 			string name = "", bool showWindowsTaskbar = false, bool repositionOnSwitchedTo = false)
 		{

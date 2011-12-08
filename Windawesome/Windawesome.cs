@@ -174,6 +174,11 @@ namespace Windawesome
 			windowFocusedWinEventHook = NativeMethods.SetWinEventHook(NativeMethods.EVENT.EVENT_SYSTEM_FOREGROUND, NativeMethods.EVENT.EVENT_SYSTEM_FOREGROUND,
 				IntPtr.Zero, winEventDelegate, 0, 0,
 				NativeMethods.WINEVENT.WINEVENT_OUTOFCONTEXT | NativeMethods.WINEVENT.WINEVENT_SKIPOWNTHREAD);
+
+			if (config.CheckForUpdates)
+			{
+				UpdateChecker.CheckForUpdate();
+			}
 		}
 
 		public void Quit()
