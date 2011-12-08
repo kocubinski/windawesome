@@ -18,6 +18,8 @@ def onLayoutLabelClick():
 config.WindowBorderWidth = 1
 config.WindowPaddedBorderWidth = 0
 
+config.CheckForUpdates = False
+
 config.UniqueHotkey = Tuple[MOD, Keys](MOD.MOD_ALT, Keys.D0)
 
 config.Bars = Enumerable.ToArray[Bar]([
