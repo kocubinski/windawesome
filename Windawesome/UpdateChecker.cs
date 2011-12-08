@@ -50,11 +50,11 @@ namespace Windawesome
 									MessageBoxIcon.Question);
 								if (result == DialogResult.Yes)
 								{
-									System.Diagnostics.Process.Start(url);
+									Utilities.RunApplication(url);
 								}
 							}
 						}
-					});
+					}, TaskScheduler.FromCurrentSynchronizationContext());
 		}
 	}
 }
