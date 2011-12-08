@@ -243,10 +243,9 @@ namespace Windawesome
 		private bool AddWindowToWorkspace(IntPtr hWnd, bool firstTry = true, bool finishedInitializing = true)
 		{
 			LinkedList<Tuple<Workspace, Window>> workspacesWindowsList;
-			if (ApplicationsTryGetValue(hWnd, out workspacesWindowsList) &&
-				workspacesWindowsList.First.Value.Item2.hWnd != hWnd)
+			if (ApplicationsTryGetValue(hWnd, out workspacesWindowsList))
 			{
-				return workspacesWindowsList.First.Value.Item2.AddToOwnedWindows(hWnd);
+				return workspacesWindowsList.First.Value.Item2.hWnd != hWnd && workspacesWindowsList.First.Value.Item2.AddToOwnedWindows(hWnd);
 			}
 
 			var className = NativeMethods.GetWindowClassName(hWnd);
