@@ -256,10 +256,10 @@ namespace Windawesome
 			Initialize();
 		}
 
-		internal void ToggleShowHideWindowMenu()
+		internal bool ToggleShowHideWindowMenu()
 		{
 			ShowMenu = !ShowMenu;
-			ShowWindowMenu();
+			return ShowHideWindowMenu();
 		}
 
 		internal void Redraw()
@@ -328,12 +328,9 @@ namespace Windawesome
 			GetOwnedWindows().ForEach(h => NativeMethods.ShowWindowAsync(h, NativeMethods.SW.SW_SHOWNA));
 		}
 
-		internal void ShowWindowMenu()
+		internal bool ShowHideWindowMenu()
 		{
-			if (menu != IntPtr.Zero)
-			{
-				NativeMethods.SetMenu(this.hWnd, this.ShowMenu ? this.menu : IntPtr.Zero);
-			}
+			return menu != IntPtr.Zero && NativeMethods.SetMenu(this.hWnd, this.ShowMenu ? this.menu : IntPtr.Zero);
 		}
 
 		internal void RevertToInitialValues()

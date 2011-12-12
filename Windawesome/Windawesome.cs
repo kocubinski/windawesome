@@ -27,7 +27,7 @@ namespace Windawesome
 		private readonly Dictionary<int, HandleMessageDelegate> messageHandlers;
 
 		private readonly NativeMethods.WinEventDelegate winEventDelegate;
-		private readonly IntPtr windowShownOrDestroyedWinEventHook;
+		private readonly IntPtr windowShownWinEventHook;
 		private readonly IntPtr windowMinimizedOrRestoredWinEventHook;
 		private readonly IntPtr windowFocusedWinEventHook;
 
@@ -165,7 +165,7 @@ namespace Windawesome
 
 			// register some shell events
 			winEventDelegate = WinEventDelegate;
-			windowShownOrDestroyedWinEventHook = NativeMethods.SetWinEventHook(NativeMethods.EVENT.EVENT_OBJECT_DESTROY, NativeMethods.EVENT.EVENT_OBJECT_HIDE,
+			windowShownWinEventHook = NativeMethods.SetWinEventHook(NativeMethods.EVENT.EVENT_OBJECT_SHOW, NativeMethods.EVENT.EVENT_OBJECT_SHOW,
 				IntPtr.Zero, winEventDelegate, 0, 0,
 				NativeMethods.WINEVENT.WINEVENT_OUTOFCONTEXT | NativeMethods.WINEVENT.WINEVENT_SKIPOWNTHREAD);
 			windowMinimizedOrRestoredWinEventHook = NativeMethods.SetWinEventHook(NativeMethods.EVENT.EVENT_SYSTEM_MINIMIZESTART, NativeMethods.EVENT.EVENT_SYSTEM_MINIMIZEEND,
@@ -188,7 +188,7 @@ namespace Windawesome
 			SystemEvents.SessionEnding -= OnSessionEnding;
 
 			// unregister the shell events
-			NativeMethods.UnhookWinEvent(windowShownOrDestroyedWinEventHook);
+			NativeMethods.UnhookWinEvent(windowShownWinEventHook);
 			NativeMethods.UnhookWinEvent(windowMinimizedOrRestoredWinEventHook);
 			NativeMethods.UnhookWinEvent(windowFocusedWinEventHook);
 
@@ -376,7 +376,7 @@ namespace Windawesome
 
 				if (!programRule.showMenu)
 				{
-					list.First.Value.Item2.ShowWindowMenu();
+					list.First.Value.Item2.ShowHideWindowMenu();
 				}
 
 				if (finishedInitializing)
@@ -430,7 +430,7 @@ namespace Windawesome
 		private void RefreshApplicationsHash()
 		{
 			// remove all non-existent applications
-			applications.Keys.Unless(NativeMethods.IsWindow).ToArray().ForEach(h => RemoveApplicationFromAllWorkspaces(h, true));
+			applications.Keys.Unless(NativeMethods.IsWindow).ToArray().ForEach(RemoveApplicationFromAllWorkspaces);
 
 			// add any application that was not added for some reason when it was created
 			NativeMethods.EnumWindows((hWnd, _) =>
@@ -774,26 +774,25 @@ namespace Windawesome
 			}
 		}
 
-		public void RemoveApplicationFromAllWorkspaces(IntPtr hWnd, bool windowDestroyed) // sort of UnmanageWindow
+		public void RemoveApplicationFromAllWorkspaces(IntPtr hWnd) // sort of UnmanageWindow
 		{
 			LinkedList<Tuple<Workspace, Window>> list;
 			if (applications.TryGetValue(hWnd, out list))
 			{
+				var currentWorkspaceWindowsCount = CurrentWorkspace.GetWindowsCount();
 				list.ForEach(t => t.Item1.WindowDestroyed(t.Item2));
 				var window = list.First.Value.Item2;
-				if (!window.ShowMenu && window.menu != IntPtr.Zero)
+				if (!window.ShowMenu && window.menu != IntPtr.Zero && !window.ToggleShowHideWindowMenu())
 				{
-					if (windowDestroyed)
-					{
-						NativeMethods.DestroyMenu(window.menu);
-					}
-					else
-					{
-						window.ToggleShowHideWindowMenu();
-					}
+					NativeMethods.DestroyMenu(window.menu);
 				}
 				applications.Remove(hWnd);
 				monitors.ForEach(m => m.temporarilyShownWindows.Remove(hWnd));
+
+				if (CurrentWorkspace.GetWindowsCount() != currentWorkspaceWindowsCount)
+				{
+					DoForTopmostWindowForWorkspace(CurrentWorkspace, ActivateWindow);
+				}
 			}
 		}
 
@@ -1099,18 +1098,6 @@ namespace Windawesome
 							}
 						}
 						break;
-					// differentiating between hiding and destroying a window is nice - therefore HSHELL_WINDOWDESTROYED is not enough
-					case NativeMethods.EVENT.EVENT_OBJECT_DESTROY:
-						RemoveApplicationFromAllWorkspaces(hWnd, true);
-						hiddenApplications.RemoveAll(hWnd);
-						break;
-					case NativeMethods.EVENT.EVENT_OBJECT_HIDE:
-						if (hiddenApplications.Remove(hWnd) == HashMultiSet<IntPtr>.RemoveResult.NotFound)
-						{
-							// a window has been closed but it was hidden by the application rather than destroyed (e.g. ICQ 7.6 main window)
-							RemoveApplicationFromAllWorkspaces(hWnd, false);
-						}
-						break;
 					// these actually work (in contrast with HSHELL_GETMINRECT)
 					case NativeMethods.EVENT.EVENT_SYSTEM_MINIMIZESTART:
 						CurrentWorkspace.WindowMinimized(hWnd);
@@ -1198,6 +1185,12 @@ namespace Windawesome
 				LinkedList<Tuple<Workspace, Window>> list;
 				switch ((NativeMethods.ShellEvents) m.WParam)
 				{
+					case NativeMethods.ShellEvents.HSHELL_WINDOWDESTROYED:
+						if (hiddenApplications.Remove(m.LParam) == HashMultiSet<IntPtr>.RemoveResult.NotFound)
+						{
+							RemoveApplicationFromAllWorkspaces(m.LParam);
+						}
+						break;
 					case NativeMethods.ShellEvents.HSHELL_REDRAW:
 						if (applications.TryGetValue(m.LParam, out list))
 						{
