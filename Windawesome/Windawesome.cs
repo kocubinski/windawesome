@@ -583,7 +583,7 @@ namespace Windawesome
 
 		private void ActivateWindow(WindowBase window)
 		{
-			if (NativeMethods.IsIconic(window.hWnd) && Utilities.WindowIsNotHung(window.hWnd))
+			if (NativeMethods.IsIconic(window.hWnd))
 			{
 				// OpenIcon does not restore the window to its previous size (e.g. maximized)
 				// ShowWindow(SW_RESTORE) doesn't redraw some windows correctly (like TortoiseHG commit window)
