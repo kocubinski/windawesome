@@ -8,9 +8,6 @@ namespace Windawesome
 	{
 		private static Windawesome windawesome;
 
-		/// <summary>
-		/// The main entry point for the application.
-		/// </summary>
 		[STAThread]
 		static void Main()
 		{
@@ -22,6 +19,7 @@ namespace Windawesome
 					Application.EnableVisualStyles();
 					Application.SetCompatibleTextRenderingDefault(false);
 
+					Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
 					Application.ThreadException += OnApplicationThreadException;
 
 					windawesome = new Windawesome();
