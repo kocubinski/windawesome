@@ -55,6 +55,10 @@ namespace Windawesome
 
 			if (windawesome != null)
 			{
+				MessageBox.Show("An exception has occurred. Windawesome will now close. " +
+					"Please see the log file in the program directory and post an issue on the website " +
+					"if you think this is a bug.",
+					"Exception occurred");
 				windawesome.Quit();
 			}
 		}
