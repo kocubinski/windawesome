@@ -4,11 +4,6 @@ from Windawesome.NativeMethods import WS, WS_EX
 
 config.ProgramRules = [
 	ProgramRule(
-		className = "^cygwin/x X rl*$",
-		windowCreatedDelay = 200,
-		rules = [ProgramRule.Rule(workspace = 5)]
-	),
-	ProgramRule(
 		className = "^TApplication$",
 		displayName = "^Find and Run Robot$",
 		isManaged = False
@@ -70,26 +65,12 @@ config.ProgramRules = [
 		onWindowCreatedAction = OnWindowCreatedOrShownAction.HideWindow,
 		rules = [ProgramRule.Rule(workspace = 5, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
 	),
-	ProgramRule(
-		className = "^HwndWrapper\[DefaultDomain.*", # Visual Studio (Express)
-		onWindowCreatedAction = OnWindowCreatedOrShownAction.HideWindow,
-		rules = [ProgramRule.Rule(workspace = 5, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
-	),
-	ProgramRule(
-		className = "^OpusApp$",
-		displayName = ".*Microsoft Word Viewer$",
-		tryAgainAfter = 500
-	),
 
 	# media players
 
 	ProgramRule(
 		className = "^MediaPlayerClassicW$",
 		rules = [ProgramRule.Rule(workspace = 1)]
-	),
-	ProgramRule(
-		className = "^QuickTimePlayerMain$",
-		rules = [ProgramRule.Rule(workspace = 1, isFloating = True)]
 	),
 
 	# chat
@@ -104,6 +85,7 @@ config.ProgramRules = [
 		processName = "^trillian$",
 		onWindowCreatedAction = OnWindowCreatedOrShownAction.HideWindow,
 		onWindowCreatedOnCurrentWorkspaceAction = OnWindowCreatedOnWorkspaceAction.PreserveTopmostWindow,
+		onWindowCreatedOnInactiveWorkspaceAction = OnWindowCreatedOnWorkspaceAction.PreserveTopmostWindow,
 		rules = [ProgramRule.Rule(workspace = 4)]
 	),
 
@@ -118,10 +100,6 @@ config.ProgramRules = [
 		className = "^mintty$",
 		redrawDesktopOnWindowCreated = True,
 		rules = [ProgramRule.Rule(workspace = 3, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
-	),
-	ProgramRule(
-		className = "^ConsoleWindowClass$", # Interix terminal
-		rules = [ProgramRule.Rule(isFloating = True)]
 	),
 
 	# other
