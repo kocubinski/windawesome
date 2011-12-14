@@ -1,4 +1,4 @@
-from System.Drawing import Font, Color
+from System.Drawing import Color
 from System.Linq import Enumerable
 from Windawesome import ILayout, TileLayout, FullScreenLayout, FloatingLayout, IPlugin, Workspace
 from Windawesome import Bar, LayoutWidget, WorkspacesWidget, ApplicationTabsWidget, SystemTrayWidget, CpuMonitorWidget, LaptopBatteryMonitorWidget, LanguageBarWidget

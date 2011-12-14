@@ -1,5 +1,4 @@
-from System.Linq import Enumerable
-from Windawesome import Windawesome, ProgramRule, State, OnWindowCreatedOrShownAction, OnWindowCreatedOnWorkspaceAction, NativeMethods
+from Windawesome import Windawesome, ProgramRule, State, OnWindowCreatedOrShownAction, OnWindowCreatedOnWorkspaceAction
 from Windawesome.NativeMethods import WS, WS_EX
 
 config.ProgramRules = [
