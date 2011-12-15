@@ -304,7 +304,10 @@ namespace Windawesome
 									hiddenApplications.Add(hWnd);
 									NativeMethods.ShowWindow(hWnd, NativeMethods.SW.SW_HIDE);
 								}
-								DoForTopmostWindowForWorkspace(CurrentWorkspace, ActivateWindow);
+								if (NativeMethods.GetForegroundWindow() == hWnd)
+								{
+									DoForTopmostWindowForWorkspace(CurrentWorkspace, ActivateWindow);
+								}
 								break;
 						}
 					}
@@ -779,7 +782,6 @@ namespace Windawesome
 			LinkedList<Tuple<Workspace, Window>> list;
 			if (applications.TryGetValue(hWnd, out list))
 			{
-				var currentWorkspaceWindowsCount = CurrentWorkspace.GetWindowsCount();
 				list.ForEach(t => t.Item1.WindowDestroyed(t.Item2));
 				var window = list.First.Value.Item2;
 				if (!window.ShowMenu && window.menu != IntPtr.Zero && !window.ToggleShowHideWindowMenu())
@@ -789,8 +791,12 @@ namespace Windawesome
 				applications.Remove(hWnd);
 				monitors.ForEach(m => m.temporarilyShownWindows.Remove(hWnd));
 
-				if (CurrentWorkspace.GetWindowsCount() != currentWorkspaceWindowsCount)
+				if (topmostWindows[CurrentWorkspace.id - 1].hWnd == hWnd)
 				{
+					while (NativeMethods.GetForegroundWindow() == hWnd)
+					{
+						System.Threading.Thread.Sleep(20);
+					}
 					DoForTopmostWindowForWorkspace(CurrentWorkspace, ActivateWindow);
 				}
 			}
