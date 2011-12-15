@@ -362,7 +362,7 @@ namespace Windawesome
 					if (!workspace.IsCurrentWorkspace && !isMinimized)
 					{
 						if (hasWorkspaceZeroRule || hasCurrentWorkspaceRule ||
-							list.First.Value.Item1 != workspace ||
+							list.Count > 1 ||
 							programRule.onWindowCreatedAction == OnWindowCreatedOrShownAction.HideWindow ||
 							programRule.onWindowCreatedAction == OnWindowCreatedOrShownAction.TemporarilyShowWindowOnCurrentWorkspace)
 						{
@@ -390,14 +390,18 @@ namespace Windawesome
 						{
 							case OnWindowCreatedOrShownAction.SwitchToWindowsWorkspace:
 								SwitchToWorkspace(list.First.Value.Item1.id, false);
+								OnWindowCreatedOnCurrentWorkspace(hWnd, programRule);
 								break;
 							case OnWindowCreatedOrShownAction.MoveWindowToCurrentWorkspace:
 								ChangeApplicationToWorkspace(hWnd, CurrentWorkspace.id, matchingRules.First().workspace);
+								OnWindowCreatedOnCurrentWorkspace(hWnd, programRule);
 								break;
 						}
 					}
-
-					OnWindowCreatedOnCurrentWorkspace(hWnd, programRule);
+					else
+					{
+						OnWindowCreatedOnCurrentWorkspace(hWnd, programRule);
+					}
 				}
 			}
 
