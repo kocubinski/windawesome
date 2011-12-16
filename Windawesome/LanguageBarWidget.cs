@@ -37,7 +37,7 @@ namespace Windawesome
 			var keyboardLayout = NativeMethods.GetKeyboardLayout(
 				NativeMethods.GetWindowThreadProcessId(hWnd, IntPtr.Zero));
 
-			NativeMethods.LCIDToLocaleName((uint) (short) keyboardLayout.ToInt32(), stringBuilder,
+			NativeMethods.LCIDToLocaleName(unchecked((uint) (short) keyboardLayout.ToInt32()), stringBuilder,
 				stringBuilder.Capacity, 0);
 
 			return stringBuilder.ToString();
