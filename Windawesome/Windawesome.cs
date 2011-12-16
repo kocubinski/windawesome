@@ -27,7 +27,7 @@ namespace Windawesome
 		private readonly Dictionary<int, HandleMessageDelegate> messageHandlers;
 
 		private readonly NativeMethods.WinEventDelegate winEventDelegate;
-		private readonly IntPtr windowShownOrHiddenWinEventHook;
+		private readonly IntPtr windowDestroyedShownOrHiddenWinEventHook;
 		private readonly IntPtr windowMinimizedOrRestoredWinEventHook;
 		private readonly IntPtr windowFocusedWinEventHook;
 
@@ -165,7 +165,7 @@ namespace Windawesome
 
 			// register some shell events
 			winEventDelegate = WinEventDelegate;
-			windowShownOrHiddenWinEventHook = NativeMethods.SetWinEventHook(NativeMethods.EVENT.EVENT_OBJECT_SHOW, NativeMethods.EVENT.EVENT_OBJECT_HIDE,
+			windowDestroyedShownOrHiddenWinEventHook = NativeMethods.SetWinEventHook(NativeMethods.EVENT.EVENT_OBJECT_DESTROY, NativeMethods.EVENT.EVENT_OBJECT_HIDE,
 				IntPtr.Zero, winEventDelegate, 0, 0,
 				NativeMethods.WINEVENT.WINEVENT_OUTOFCONTEXT | NativeMethods.WINEVENT.WINEVENT_SKIPOWNTHREAD);
 			windowMinimizedOrRestoredWinEventHook = NativeMethods.SetWinEventHook(NativeMethods.EVENT.EVENT_SYSTEM_MINIMIZESTART, NativeMethods.EVENT.EVENT_SYSTEM_MINIMIZEEND,
@@ -188,7 +188,7 @@ namespace Windawesome
 			SystemEvents.SessionEnding -= OnSessionEnding;
 
 			// unregister the shell events
-			NativeMethods.UnhookWinEvent(windowShownOrHiddenWinEventHook);
+			NativeMethods.UnhookWinEvent(windowDestroyedShownOrHiddenWinEventHook);
 			NativeMethods.UnhookWinEvent(windowMinimizedOrRestoredWinEventHook);
 			NativeMethods.UnhookWinEvent(windowFocusedWinEventHook);
 
@@ -1105,7 +1105,15 @@ namespace Windawesome
 							}
 						}
 						break;
-					// this is needed because some windows like Outlook 2010 splash screen
+					// this is needed as some windows could be destroyed without being visible
+					case NativeMethods.EVENT.EVENT_OBJECT_DESTROY:
+						if (applications.TryGetValue(hWnd, out list))
+						{
+							RemoveApplicationFromAllWorkspaces(list);
+							hiddenApplications.RemoveAll(hWnd);
+						}
+						break;
+					// this is needed as some windows like Outlook 2010 splash screen
 					// do not send an HSHELL_WINDOWDESTROYED
 					case NativeMethods.EVENT.EVENT_OBJECT_HIDE:
 						if (applications.TryGetValue(hWnd, out list) &&
