@@ -29,9 +29,7 @@ using UINT = UInt32;
 using UINT_PTR = UIntPtr;
 using WPARAM = UIntPtr; // UINT_PTR
 
-#if !DEBUG
 	[System.Security.SuppressUnmanagedCodeSecurity]
-#endif
 	public static class NativeMethods
 	{
 		static NativeMethods()
