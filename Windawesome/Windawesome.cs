@@ -437,7 +437,8 @@ namespace Windawesome
 		private void RefreshApplicationsHash()
 		{
 			// remove all non-existent applications
-			applications.Keys.Unless(NativeMethods.IsWindow).ToArray().ForEach(RemoveApplicationFromAllWorkspaces);
+			applications.Values.Where(l => !NativeMethods.IsWindow(l.First.Value.Item2.hWnd)).
+				ToArray().ForEach(RemoveApplicationFromAllWorkspaces);
 
 			// add any application that was not added for some reason when it was created
 			NativeMethods.EnumWindows((hWnd, _) =>
@@ -781,28 +782,24 @@ namespace Windawesome
 			}
 		}
 
-		public void RemoveApplicationFromAllWorkspaces(IntPtr hWnd) // sort of UnmanageWindow
+		public void RemoveApplicationFromAllWorkspaces(LinkedList<Tuple<Workspace, Window>> list) // sort of UnmanageWindow
 		{
-			LinkedList<Tuple<Workspace, Window>> list;
-			if (applications.TryGetValue(hWnd, out list))
+			list.ForEach(t => t.Item1.WindowDestroyed(t.Item2));
+			var window = list.First.Value.Item2;
+			if (!window.ShowMenu && window.menu != IntPtr.Zero && !window.ToggleShowHideWindowMenu())
 			{
-				list.ForEach(t => t.Item1.WindowDestroyed(t.Item2));
-				var window = list.First.Value.Item2;
-				if (!window.ShowMenu && window.menu != IntPtr.Zero && !window.ToggleShowHideWindowMenu())
-				{
-					NativeMethods.DestroyMenu(window.menu);
-				}
-				applications.Remove(hWnd);
-				monitors.ForEach(m => m.temporarilyShownWindows.Remove(hWnd));
+				NativeMethods.DestroyMenu(window.menu);
+			}
+			applications.Remove(window.hWnd);
+			monitors.ForEach(m => m.temporarilyShownWindows.Remove(window.hWnd));
 
-				if (topmostWindows[CurrentWorkspace.id - 1].hWnd == hWnd)
+			if (topmostWindows[CurrentWorkspace.id - 1].hWnd == window.hWnd)
+			{
+				while (NativeMethods.GetForegroundWindow() == window.hWnd)
 				{
-					while (NativeMethods.GetForegroundWindow() == hWnd)
-					{
-						System.Threading.Thread.Sleep(20);
-					}
-					DoForTopmostWindowForWorkspace(CurrentWorkspace, ActivateWindow);
+					System.Threading.Thread.Sleep(20);
 				}
+				DoForTopmostWindowForWorkspace(CurrentWorkspace, ActivateWindow);
 			}
 		}
 
@@ -1111,9 +1108,10 @@ namespace Windawesome
 					// this is needed because some windows like Outlook 2010 splash screen
 					// do not send an HSHELL_WINDOWDESTROYED
 					case NativeMethods.EVENT.EVENT_OBJECT_HIDE:
-						if (hiddenApplications.Remove(hWnd) == HashMultiSet<IntPtr>.RemoveResult.NotFound)
+						if (applications.TryGetValue(hWnd, out list) &&
+							hiddenApplications.Remove(hWnd) == HashMultiSet<IntPtr>.RemoveResult.NotFound)
 						{
-							RemoveApplicationFromAllWorkspaces(hWnd);
+							RemoveApplicationFromAllWorkspaces(list);
 						}
 						break;
 					// these actually work (in contrast with HSHELL_GETMINRECT)
