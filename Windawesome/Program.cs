@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Windows.Forms;
+
+[assembly: RuntimeCompatibility(WrapNonExceptionThrows = true)]
 
 namespace Windawesome
 {
@@ -21,6 +24,7 @@ namespace Windawesome
 
 					Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
 					Application.ThreadException += OnApplicationThreadException;
+					AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
 
 					windawesome = new Windawesome();
 					Application.Run(new WindawesomeApplicationContext());
@@ -30,7 +34,17 @@ namespace Windawesome
 			}
 		}
 
-		private static void OnApplicationThreadException(object sender, System.Threading.ThreadExceptionEventArgs ea)
+		private static void OnApplicationThreadException(object sender, System.Threading.ThreadExceptionEventArgs e)
+		{
+			OnException(e.Exception);
+		}
+
+		private static void OnUnhandledException(object sender, UnhandledExceptionEventArgs e)
+		{
+			OnException(e.ExceptionObject as Exception);
+		}
+
+		private static void OnException(Exception e)
 		{
 			System.IO.File.AppendAllLines("log.txt", new[]
 				{
@@ -48,16 +62,16 @@ namespace Windawesome
 						"64-bit OS: " + Environment.Is64BitOperatingSystem,
 						"64-bit process: " + Environment.Is64BitProcess,
 						"Elevated: " + SystemAndProcessInformation.isRunningElevated,
-						ea.Exception.ToString(),
+						e.ToString(),
 						"Inner Exception:",
-						ea.Exception.InnerException != null ? ea.Exception.InnerException.ToString() : "none"
+						e.InnerException != null ? e.InnerException.ToString() : "none"
 					}));
 
 			if (windawesome != null)
 			{
 				MessageBox.Show("An exception has occurred. Windawesome will now close. " +
 					"Please see the log file in the program directory and post an issue on the website " +
-					"if you think this is a bug.",
+						"if you think this is a bug.",
 					"Exception occurred");
 				windawesome.Quit();
 			}
