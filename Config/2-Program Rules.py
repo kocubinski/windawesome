@@ -13,7 +13,6 @@ config.ProgramRules = [
 	),
 	ProgramRule(
 		className = "^MozillaWindowClass$",
-		updateIcon = False,
 		rules = [ProgramRule.Rule(workspace = 2)]
 	),
 	ProgramRule(
@@ -22,13 +21,16 @@ config.ProgramRules = [
 	),
 	ProgramRule(
 		className = "^CabinetWClass$", # Windows Explorer
+		updateIcon = True,
 		rules = [ProgramRule.Rule(workspace = 1)]
 	),
 	ProgramRule(
 		className = "^ExploreWClass$", # Windows Explorer
+		updateIcon = True,
 		rules = [ProgramRule.Rule(workspace = 1)]
 	),
 	ProgramRule(
+		className = "^wxWindowNR$",
 		displayName = ".*BitComet.*",
 		onWindowCreatedAction = OnWindowCreatedOrShownAction.HideWindow,
 		onHiddenWindowShownAction = OnWindowCreatedOrShownAction.HideWindow,
@@ -92,7 +94,6 @@ config.ProgramRules = [
 
 	ProgramRule(
 		className = "^Console_2_Main$",
-		updateIcon = False,
 		rules = [ProgramRule.Rule(workspace = 3)]
 	),
 	ProgramRule(

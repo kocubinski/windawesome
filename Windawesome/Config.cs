@@ -238,7 +238,7 @@ namespace Windawesome
 			CustomMatchingFunction customMatchingFunction = null, CustomMatchingFunction customOwnedWindowMatchingFunction = null,
 
 			bool isManaged = true, int tryAgainAfter = -1, int windowCreatedDelay = -1, bool redrawDesktopOnWindowCreated = false,
-			bool showMenu = true, bool updateIcon = true,
+			bool showMenu = true, bool updateIcon = false,
 			OnWindowCreatedOrShownAction onWindowCreatedAction = OnWindowCreatedOrShownAction.SwitchToWindowsWorkspace,
 			OnWindowCreatedOrShownAction onHiddenWindowShownAction = OnWindowCreatedOrShownAction.SwitchToWindowsWorkspace,
 			OnWindowCreatedOnWorkspaceAction onWindowCreatedOnCurrentWorkspaceAction = OnWindowCreatedOnWorkspaceAction.MoveToTop,
