@@ -66,7 +66,9 @@ namespace Windawesome
 
 		private IEnumerable<IntPtr> GetAndRemoveWindows(Predicate<IntPtr> predicate)
 		{
-			for (var windowNode = ownedWindows.First; windowNode != null; windowNode = windowNode.Next)
+			var windowNode = ownedWindows.First;
+			yield return windowNode.Value;
+			for (windowNode = windowNode.Next; windowNode != null; windowNode = windowNode.Next)
 			{
 				if (!predicate(windowNode.Value))
 				{
