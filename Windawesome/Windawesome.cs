@@ -635,9 +635,10 @@ namespace Windawesome
 				{
 					topmostWindows[workspace.id - 1] = new WindowBase(NativeMethods.shellWindow);
 				}
+
+				window = topmostWindows[workspace.id - 1];
 			}
 
-			window = topmostWindows[workspace.id - 1];
 			action(window);
 
 			return window.hWnd;
