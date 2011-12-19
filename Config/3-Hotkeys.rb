@@ -79,7 +79,7 @@ end
 
 # start Hostile Takeover
 subscribe modifiers.Alt, key.H do
-	Windawesome::Utilities.run_application "C:\\Users\\Boris\\Downloads\\Hostile Takeover.txt"
+	Windawesome::Utilities.run_application "C:\\Program Files (x86)\\Vim\\vim73\\gvim.exe", "\"C:\\Users\\Boris\\Downloads\\Hostile Takeover.txt\""
 end
 
 # start Foobar2000
