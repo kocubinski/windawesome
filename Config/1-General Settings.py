@@ -20,8 +20,6 @@ config.WindowPaddedBorderWidth = 0
 
 config.CheckForUpdates = False
 
-config.UniqueHotkey = Tuple[MOD, Keys](MOD.MOD_ALT, Keys.D0)
-
 config.Bars = Enumerable.ToArray[Bar]([
 	Bar(windawesome.monitors[0],
 		[WorkspacesWidget(), LayoutWidget(onClick = onLayoutLabelClick)],

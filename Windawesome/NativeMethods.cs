@@ -1275,16 +1275,6 @@ using WPARAM = UIntPtr; // UINT_PTR
 		[return: MarshalAs(UnmanagedType.Bool)]
 		public static extern bool SetCursorPos(int X, int Y);
 
-		#region GlobalAddAtom/GlobalDeleteAtom
-
-		[DllImport("kernel32.dll", CharSet = CharSet.Auto)]
-		public static extern ushort GlobalAddAtom([MarshalAs(UnmanagedType.LPTStr)] string atomName);
-
-		[DllImport("kernel32.dll")]
-		public static extern ushort GlobalDeleteAtom(ushort nAtom);
-
-		#endregion
-
 		#region Solution Native DLL functions
 
 		public delegate void RunApplicationNonElevatedDelegate(string path, string arguments);

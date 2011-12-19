@@ -21,7 +21,6 @@ namespace Windawesome
 		private readonly Dictionary<IntPtr, LinkedList<Tuple<Workspace, Window>>> applications; // hWnd to a list of workspaces and windows
 		private readonly WindowBase[] topmostWindows;
 		private readonly HashMultiSet<IntPtr> hiddenApplications;
-		private readonly IntPtr getForegroundPrivilageAtom;
 		private readonly uint windawesomeThreadId = NativeMethods.GetCurrentThreadId();
 
 		private readonly Dictionary<int, HandleMessageDelegate> messageHandlers;
@@ -30,8 +29,6 @@ namespace Windawesome
 		private readonly IntPtr windowDestroyedShownOrHiddenWinEventHook;
 		private readonly IntPtr windowMinimizedOrRestoredWinEventHook;
 		private readonly IntPtr windowFocusedWinEventHook;
-
-		private IntPtr forceForegroundWindow;
 
 		#region Events
 
@@ -101,7 +98,21 @@ namespace Windawesome
 			CurrentWorkspace = config.StartingWorkspaces.First(w => w.Monitor.screen.Primary);
 
 			topmostWindows = new WindowBase[config.Workspaces.Length];
-			Workspace.WindowActivatedEvent += h => topmostWindows[CurrentWorkspace.id - 1] = CurrentWorkspace.GetWindow(h) ?? new WindowBase(h);
+			Workspace.WindowActivatedEvent += h =>
+				{
+					// since Windows 7, the desktop could be a child of a "WorkerW" class window if
+					// the user is using a slideshow for the desktop background. This messes up stuff here
+					// as it is the one that gets activated when the user clicks on the desktop, not the Progman
+					// window. This is not nice, as we should activate Progman, not WorkerW, hence the check
+					if (SystemAndProcessInformation.isAtLeast7 && h == SystemAndProcessInformation.desktopHandle)
+					{
+						topmostWindows[CurrentWorkspace.id - 1] = new WindowBase(NativeMethods.shellWindow);
+					}
+					else
+					{
+						topmostWindows[CurrentWorkspace.id - 1] = CurrentWorkspace.GetWindow(h) ?? new WindowBase(h);
+					}
+				};
 
 			// add workspaces to their corresponding monitors
 			monitors.ForEach(m => config.Workspaces.Where(w => w.Monitor == m).ForEach(m.AddWorkspace)); // n ^ 2 but hopefully fast enough
@@ -123,15 +134,6 @@ namespace Windawesome
 			SystemEvents.SessionEnding += OnSessionEnding;
 
 			SystemSettingsChanger.ApplyChanges(config);
-
-			// register hotkey for forcing a foreground window
-			getForegroundPrivilageAtom = (IntPtr) NativeMethods.GlobalAddAtom("WindawesomeShortcutGetForegroundPrivilage");
-			if (!NativeMethods.RegisterHotKey(this.Handle, (ushort) getForegroundPrivilageAtom, config.UniqueHotkey.Item1, config.UniqueHotkey.Item2))
-			{
-				OutputWarning("There was a problem registering the unique hotkey! Probably this key-combination is in " +
-					"use by some other program! Please use a unique one, otherwise Windawesome will sometimes have a problem " +
-					"switching to windows as you change workspaces!");
-			}
 
 			// initialize all workspaces and hide windows not on StartingWorkspaces
 			var windowsToHide = new HashSet<Window>();
@@ -194,9 +196,6 @@ namespace Windawesome
 
 			// unregister shell hook
 			NativeMethods.DeregisterShellHookWindow(this.Handle);
-
-			NativeMethods.UnregisterHotKey(this.Handle, (ushort) getForegroundPrivilageAtom);
-			NativeMethods.GlobalDeleteAtom((ushort) getForegroundPrivilageAtom);
 
 			// dispose of Layouts
 			config.Workspaces.ForEach(ws => ws.Layout.Dispose());
@@ -424,16 +423,6 @@ namespace Windawesome
 			}
 		}
 
-		private static void OutputWarning(string warning)
-		{
-			System.IO.File.AppendAllLines("warnings.txt", new[]
-				{
-					"------------------------------------",
-					DateTime.Now.ToString(),
-					warning
-				});
-		}
-
 		private void RefreshApplicationsHash()
 		{
 			// remove all non-existent applications
@@ -454,10 +443,9 @@ namespace Windawesome
 				var foregroundWindow = NativeMethods.GetForegroundWindow();
 				if (foregroundWindow != hWnd)
 				{
-					var successfullyChanged = false;
 					if (foregroundWindow == IntPtr.Zero)
 					{
-						successfullyChanged = TrySetForegroundWindow(hWnd);
+						TrySetForegroundWindow(hWnd);
 					}
 					else if (Utilities.WindowIsNotHung(foregroundWindow))
 					{
@@ -467,7 +455,7 @@ namespace Windawesome
 							var targetWindowThreadId = NativeMethods.GetWindowThreadProcessId(hWnd, IntPtr.Zero);
 							var successfullyAttached = NativeMethods.AttachThreadInput(foregroundWindowThreadId, targetWindowThreadId, true);
 
-							successfullyChanged = TrySetForegroundWindow(hWnd);
+							TrySetForegroundWindow(hWnd);
 
 							if (successfullyAttached)
 							{
@@ -475,12 +463,6 @@ namespace Windawesome
 							}
 							NativeMethods.AttachThreadInput(this.windawesomeThreadId, foregroundWindowThreadId, false);
 						}
-					}
-
-					if (!successfullyChanged)
-					{
-						this.forceForegroundWindow = hWnd;
-						Utilities.SendHotkey(this.config.UniqueHotkey);
 					}
 				}
 				else
@@ -490,7 +472,7 @@ namespace Windawesome
 			}
 		}
 
-		private static bool TrySetForegroundWindow(IntPtr hWnd)
+		private static void TrySetForegroundWindow(IntPtr hWnd)
 		{
 			const int setForegroundTryCount = 5;
 			var count = 0;
@@ -499,15 +481,7 @@ namespace Windawesome
 				System.Threading.Thread.Sleep(10);
 			}
 
-			if (count == setForegroundTryCount)
-			{
-				System.Threading.Thread.Sleep(50);
-				if (NativeMethods.GetForegroundWindow() != hWnd)
-				{
-					return false;
-				}
-			}
-			else
+			if (count != setForegroundTryCount)
 			{
 				const int getForegroundTryCount = 20;
 				count = 0;
@@ -516,15 +490,8 @@ namespace Windawesome
 					System.Threading.Thread.Sleep(30);
 				}
 
-				if (count == getForegroundTryCount)
-				{
-					return false;
-				}
+				NativeMethods.BringWindowToTop(hWnd);
 			}
-
-			NativeMethods.BringWindowToTop(hWnd);
-
-			return true;
 		}
 
 		private void FollowWindow(Workspace fromWorkspace, Workspace toWorkspace, bool follow, WindowBase window)
@@ -1238,14 +1205,6 @@ namespace Windawesome
 						}
 						break;
 				}
-			}
-			else if (m.Msg == NativeMethods.WM_HOTKEY && m.WParam == this.getForegroundPrivilageAtom)
-			{
-				if (!TrySetForegroundWindow(forceForegroundWindow) && forceForegroundWindow != NativeMethods.shellWindow)
-				{
-					Utilities.SendHotkey(Tuple.Create(NativeMethods.MOD.MOD_ALT, Keys.Escape));
-				}
-				forceForegroundWindow = IntPtr.Zero;
 			}
 			else
 			{

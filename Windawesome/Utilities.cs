@@ -3,108 +3,11 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
-using System.Windows.Forms;
 
 namespace Windawesome
 {
 	public static class Utilities
 	{
-		private static readonly NativeMethods.INPUT[] input = new NativeMethods.INPUT[18];
-
-		// sends the hotkey combination without disrupting the currently pressed modifiers
-		public static void SendHotkey(Tuple<NativeMethods.MOD, Keys> hotkey)
-		{
-			uint i = 0;
-
-			// press needed modifiers
-			var shiftShouldBePressed = hotkey.Item1.HasFlag(NativeMethods.MOD.MOD_SHIFT);
-			var leftShiftPressed = (NativeMethods.GetAsyncKeyState(Keys.LShiftKey) & 0x8000) == 0x8000;
-			var rightShiftPressed = (NativeMethods.GetAsyncKeyState(Keys.RShiftKey) & 0x8000) == 0x8000;
-
-			PressReleaseModifierKey(leftShiftPressed, rightShiftPressed, shiftShouldBePressed,
-				new NativeMethods.INPUT(Keys.ShiftKey, 0),
-				new NativeMethods.INPUT(Keys.LShiftKey, NativeMethods.KEYEVENTF_KEYUP),
-				new NativeMethods.INPUT(Keys.RShiftKey, NativeMethods.KEYEVENTF_KEYUP), ref i);
-
-			var winShouldBePressed = hotkey.Item1.HasFlag(NativeMethods.MOD.MOD_WIN);
-			var leftWinPressed = (NativeMethods.GetAsyncKeyState(Keys.LWin) & 0x8000) == 0x8000;
-			var rightWinPressed = (NativeMethods.GetAsyncKeyState(Keys.RWin) & 0x8000) == 0x8000;
-
-			PressReleaseModifierKey(leftWinPressed, rightWinPressed, winShouldBePressed,
-				new NativeMethods.INPUT(Keys.LWin, 0),
-				new NativeMethods.INPUT(Keys.LWin, NativeMethods.KEYEVENTF_KEYUP),
-				new NativeMethods.INPUT(Keys.RWin, NativeMethods.KEYEVENTF_KEYUP), ref i);
-
-			var controlShouldBePressed = hotkey.Item1.HasFlag(NativeMethods.MOD.MOD_CONTROL);
-			var leftControlPressed = (NativeMethods.GetAsyncKeyState(Keys.LControlKey) & 0x8000) == 0x8000;
-			var rightControlPressed = (NativeMethods.GetAsyncKeyState(Keys.RControlKey) & 0x8000) == 0x8000;
-
-			PressReleaseModifierKey(leftControlPressed, rightControlPressed, controlShouldBePressed,
-				new NativeMethods.INPUT(Keys.ControlKey, 0),
-				new NativeMethods.INPUT(Keys.LControlKey, NativeMethods.KEYEVENTF_KEYUP),
-				new NativeMethods.INPUT(Keys.RControlKey, NativeMethods.KEYEVENTF_KEYUP), ref i);
-
-			var altShouldBePressed = hotkey.Item1.HasFlag(NativeMethods.MOD.MOD_ALT);
-			var leftAltPressed = (NativeMethods.GetAsyncKeyState(Keys.LMenu) & 0x8000) == 0x8000;
-			var rightAltPressed = (NativeMethods.GetAsyncKeyState(Keys.RMenu) & 0x8000) == 0x8000;
-
-			PressReleaseModifierKey(leftAltPressed, rightAltPressed, altShouldBePressed,
-				new NativeMethods.INPUT(Keys.Menu, 0),
-				new NativeMethods.INPUT(Keys.LMenu, NativeMethods.KEYEVENTF_KEYUP),
-				new NativeMethods.INPUT(Keys.RMenu, NativeMethods.KEYEVENTF_KEYUP), ref i);
-
-			// press and release key
-			input[i++] = new NativeMethods.INPUT(hotkey.Item2, 0);
-			input[i++] = new NativeMethods.INPUT(hotkey.Item2, NativeMethods.KEYEVENTF_KEYUP);
-
-			// revert changes to modifiers
-			PressReleaseModifierKey(leftAltPressed, rightAltPressed, altShouldBePressed,
-				new NativeMethods.INPUT(Keys.Menu, NativeMethods.KEYEVENTF_KEYUP),
-				new NativeMethods.INPUT(Keys.LMenu, 0),
-				new NativeMethods.INPUT(Keys.RMenu, 0), ref i);
-
-			PressReleaseModifierKey(leftControlPressed, rightControlPressed, controlShouldBePressed,
-				new NativeMethods.INPUT(Keys.ControlKey, NativeMethods.KEYEVENTF_KEYUP),
-				new NativeMethods.INPUT(Keys.LControlKey, 0),
-				new NativeMethods.INPUT(Keys.RControlKey, 0), ref i);
-
-			PressReleaseModifierKey(leftWinPressed, rightWinPressed, winShouldBePressed,
-				new NativeMethods.INPUT(Keys.LWin, NativeMethods.KEYEVENTF_KEYUP),
-				new NativeMethods.INPUT(Keys.LWin, 0),
-				new NativeMethods.INPUT(Keys.RWin, 0), ref i);
-
-			PressReleaseModifierKey(leftShiftPressed, rightShiftPressed, shiftShouldBePressed,
-				new NativeMethods.INPUT(Keys.ShiftKey, NativeMethods.KEYEVENTF_KEYUP),
-				new NativeMethods.INPUT(Keys.LShiftKey, 0),
-				new NativeMethods.INPUT(Keys.RShiftKey, 0), ref i);
-
-			NativeMethods.SendInput(i, input, NativeMethods.INPUTSize);
-		}
-
-		private static void PressReleaseModifierKey(
-			bool leftKeyPressed, bool rightKeyPressed, bool keyShouldBePressed,
-			NativeMethods.INPUT action, NativeMethods.INPUT leftAction, NativeMethods.INPUT rightAction, ref uint i)
-		{
-			if (keyShouldBePressed)
-			{
-				if (!leftKeyPressed && !rightKeyPressed)
-				{
-					input[i++] = action;
-				}
-			}
-			else
-			{
-				if (leftKeyPressed)
-				{
-					input[i++] = leftAction;
-				}
-				if (rightKeyPressed)
-				{
-					input[i++] = rightAction;
-				}
-			}
-		}
-
 		public static void MoveMouseToMiddleOf(Rectangle bounds)
 		{
 			NativeMethods.SetCursorPos((bounds.Left + bounds.Right) / 2, (bounds.Top + bounds.Bottom) / 2);

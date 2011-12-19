@@ -26,7 +26,6 @@ namespace Windawesome
 		public bool FocusFollowsMouseSetOnTop { get; set; }
 		public bool MoveMouseOverMonitorsOnSwitch { get; set; }
 		public bool CheckForUpdates { get; set; }
-		public Tuple<NativeMethods.MOD, System.Windows.Forms.Keys> UniqueHotkey { get; set; }
 
 		internal Config()
 		{
