@@ -427,7 +427,7 @@ namespace Windawesome
 		{
 			// remove all non-existent applications
 			applications.Values.Where(l => !NativeMethods.IsWindow(l.First.Value.Item2.hWnd)).
-				ToArray().ForEach(RemoveApplicationFromAllWorkspaces);
+				ToArray().ForEach(UnmanageWindow);
 
 			// add any application that was not added for some reason when it was created
 			NativeMethods.EnumWindows((hWnd, _) =>
@@ -622,6 +622,20 @@ namespace Windawesome
 			return list != null;
 		}
 
+		private void UnmanageWindow(LinkedList<Tuple<Workspace, Window>> list)
+		{
+			list.ForEach(t => t.Item1.WindowDestroyed(t.Item2));
+			var window = list.First.Value.Item2;
+			if (!window.ShowMenu && window.menu != IntPtr.Zero && !window.ToggleShowHideWindowMenu())
+			{
+				NativeMethods.DestroyMenu(window.menu);
+			}
+			applications.Remove(window.hWnd);
+			monitors.ForEach(m => m.temporarilyShownWindows.Remove(window.hWnd));
+
+			WaitAndActivateNextTopmost(window.hWnd);
+		}
+
 		private void WaitAndActivateNextTopmost(IntPtr hWnd)
 		{
 			if (topmostWindows[CurrentWorkspace.id - 1].hWnd == hWnd)
@@ -760,20 +774,6 @@ namespace Windawesome
 					}
 				}
 			}
-		}
-
-		public void RemoveApplicationFromAllWorkspaces(LinkedList<Tuple<Workspace, Window>> list) // sort of UnmanageWindow
-		{
-			list.ForEach(t => t.Item1.WindowDestroyed(t.Item2));
-			var window = list.First.Value.Item2;
-			if (!window.ShowMenu && window.menu != IntPtr.Zero && !window.ToggleShowHideWindowMenu())
-			{
-				NativeMethods.DestroyMenu(window.menu);
-			}
-			applications.Remove(window.hWnd);
-			monitors.ForEach(m => m.temporarilyShownWindows.Remove(window.hWnd));
-
-			WaitAndActivateNextTopmost(window.hWnd);
 		}
 
 		public void SwitchToWorkspace(int workspaceId, bool setForeground = true)
@@ -1082,7 +1082,7 @@ namespace Windawesome
 					case NativeMethods.EVENT.EVENT_OBJECT_DESTROY:
 						if (applications.TryGetValue(hWnd, out list))
 						{
-							RemoveApplicationFromAllWorkspaces(list);
+							UnmanageWindow(list);
 							hiddenApplications.RemoveAll(hWnd);
 						}
 						break;
@@ -1092,7 +1092,7 @@ namespace Windawesome
 						if (applications.TryGetValue(hWnd, out list) &&
 							hiddenApplications.Remove(hWnd) == HashMultiSet<IntPtr>.RemoveResult.NotFound)
 						{
-							RemoveApplicationFromAllWorkspaces(list);
+							UnmanageWindow(list);
 						}
 						break;
 					// these actually work (in contrast with HSHELL_GETMINRECT)
