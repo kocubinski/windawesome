@@ -622,6 +622,18 @@ namespace Windawesome
 			return list != null;
 		}
 
+		private void WaitAndActivateNextTopmost(IntPtr hWnd)
+		{
+			if (topmostWindows[CurrentWorkspace.id - 1].hWnd == hWnd)
+			{
+				while (NativeMethods.GetForegroundWindow() == hWnd)
+				{
+					System.Threading.Thread.Sleep(20);
+				}
+				DoForTopmostWindowForWorkspace(CurrentWorkspace, ActivateWindow);
+			}
+		}
+
 		#endregion
 
 		#region API
@@ -761,14 +773,7 @@ namespace Windawesome
 			applications.Remove(window.hWnd);
 			monitors.ForEach(m => m.temporarilyShownWindows.Remove(window.hWnd));
 
-			if (topmostWindows[CurrentWorkspace.id - 1].hWnd == window.hWnd)
-			{
-				while (NativeMethods.GetForegroundWindow() == window.hWnd)
-				{
-					System.Threading.Thread.Sleep(20);
-				}
-				DoForTopmostWindowForWorkspace(CurrentWorkspace, ActivateWindow);
-			}
+			WaitAndActivateNextTopmost(window.hWnd);
 		}
 
 		public void SwitchToWorkspace(int workspaceId, bool setForeground = true)
@@ -1093,6 +1098,7 @@ namespace Windawesome
 					// these actually work (in contrast with HSHELL_GETMINRECT)
 					case NativeMethods.EVENT.EVENT_SYSTEM_MINIMIZESTART:
 						CurrentWorkspace.WindowMinimized(hWnd);
+						WaitAndActivateNextTopmost(hWnd);
 						break;
 					case NativeMethods.EVENT.EVENT_SYSTEM_MINIMIZEEND:
 						CurrentWorkspace.WindowRestored(hWnd);
