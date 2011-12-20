@@ -43,23 +43,21 @@ namespace Windawesome
 			}
 
 			desktopHandle = NativeMethods.shellWindow;
-			if (isAtLeast7)
+			if (isAtLeast7 && NativeMethods.FindWindowEx(desktopHandle, IntPtr.Zero, "SHELLDLL_DefView", "") == IntPtr.Zero)
 			{
-				if (NativeMethods.FindWindowEx(desktopHandle, IntPtr.Zero, "SHELLDLL_DefView", "") == IntPtr.Zero)
-				{
-					var desktop = IntPtr.Zero;
-					NativeMethods.EnumWindows((hWnd, _) =>
+				var desktop = IntPtr.Zero;
+				NativeMethods.EnumWindows((hWnd, _) =>
+					{
+						if (NativeMethods.IsWindowVisible(hWnd) && NativeMethods.GetWindowClassName(hWnd) == "WorkerW" &&
+							NativeMethods.FindWindowEx(hWnd, IntPtr.Zero, "SHELLDLL_DefView", "") != IntPtr.Zero)
 						{
-							if (NativeMethods.IsWindowVisible(hWnd) && NativeMethods.GetWindowClassName(hWnd) == "WorkerW" &&
-								NativeMethods.FindWindowEx(hWnd, IntPtr.Zero, "SHELLDLL_DefView", "") != IntPtr.Zero)
-							{
-								desktop = hWnd;
-								return false;
-							}
-							return true;
-						}, IntPtr.Zero);
-					desktopHandle = desktop;
-				}
+							desktop = hWnd;
+							return false;
+						}
+						return true;
+					}, IntPtr.Zero);
+
+				desktopHandle = desktop;
 			}
 		}
 
