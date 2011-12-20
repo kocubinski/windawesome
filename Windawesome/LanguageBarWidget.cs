@@ -37,10 +37,21 @@ namespace Windawesome
 			var keyboardLayout = NativeMethods.GetKeyboardLayout(
 				NativeMethods.GetWindowThreadProcessId(hWnd, IntPtr.Zero));
 
-			NativeMethods.LCIDToLocaleName(unchecked((uint) (short) keyboardLayout.ToInt32()), stringBuilder,
-				stringBuilder.Capacity, 0);
+			var localeId = unchecked((uint) (short) keyboardLayout.ToInt32());
 
-			return stringBuilder.ToString();
+			if (SystemAndProcessInformation.isAtLeastVista)
+			{
+				NativeMethods.LCIDToLocaleName(localeId, stringBuilder,
+					stringBuilder.Capacity, 0);
+
+				return stringBuilder.ToString();
+			}
+
+			// XP doesn't have LCIDToLocaleName
+			NativeMethods.GetLocaleInfo(localeId, NativeMethods.LOCALE_SISO639LANGNAME, stringBuilder, stringBuilder.Capacity);
+			var languageName = stringBuilder.ToString();
+			NativeMethods.GetLocaleInfo(localeId, NativeMethods.LOCALE_SISO3166CTRYNAME, stringBuilder, stringBuilder.Capacity);
+			return languageName + "-" + stringBuilder;
 		}
 
 		private void SetNewLanguage(string language)

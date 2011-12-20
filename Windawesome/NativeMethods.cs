@@ -28,6 +28,7 @@ using SIZE_T = IntPtr;
 using UINT = UInt32;
 using UINT_PTR = UIntPtr;
 using WPARAM = UIntPtr; // UINT_PTR
+using LCID = UInt32; // DWORD
 
 	[System.Security.SuppressUnmanagedCodeSecurity]
 	public static class NativeMethods
@@ -928,7 +929,13 @@ using WPARAM = UIntPtr; // UINT_PTR
 		public static extern IntPtr GetKeyboardLayout(DWORD idThread);
 
 		[DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
-		public static extern int LCIDToLocaleName(uint Locale, [Optional, Out] StringBuilder lpName, int cchName, DWORD dwFlags);
+		public static extern int LCIDToLocaleName(LCID Locale, [Optional, Out] StringBuilder lpName, int cchName, DWORD dwFlags);
+
+		[DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
+		public static extern int GetLocaleInfo(LCID Locale, uint LCType, [Out] StringBuilder lpLCData, int cchData);
+
+		public const uint LOCALE_SISO639LANGNAME = 0x00000059;
+		public const uint LOCALE_SISO3166CTRYNAME = 0x0000005A;
 
 		#endregion
 
