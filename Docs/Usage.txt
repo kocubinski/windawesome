@@ -3,7 +3,7 @@ Windawesome
 
 http://windawesome.codeplex.com
 
-Windawesome (pronounced - contrary to what you would expect from the way it is written - Windows-om, not Wind-awesome) is a highly customizable dynamic window manager with multi-monitor support for Windows, which works on top of explorer.exe and NOT as a shell replacement. It is heavily inspired by Bug.n, but goes much furthur. Windawesome is (mostly) written in C# and is scriptable and pluggable in IronRuby, IronPython and any .NET language that compiles down to an assembly. Requires .NET Framework 4 Client Profile, Visual C++ 2010 Redistributable and IronRuby/IronPython DLLs. The main bundle comes with 3 configuration files (2 in Python, 1 in Ruby), 3 layouts (2 built-in and one as a C# DLL), a couple of Plugins and some Widgets, one of which is written in Ruby. Works with 32- and 64-bit versions of Windows XP, Vista and 7. Goes under the GNU General Public License version 2.
+Windawesome (pronounced - contrary to what you would expect from the way it is written - Windows-om, not Wind-awesome) is a highly customizable dynamic window manager with multi-monitor support for Windows, which works on top of explorer.exe and NOT as a shell replacement. It is heavily inspired by bug.n, but tries to go further. Windawesome is (mostly) written in C# and is scriptable and pluggable in IronRuby, IronPython and any .NET language that compiles down to an assembly. Requires .NET Framework 4 Client Profile, Visual C++ 2010 Redistributable and IronRuby/IronPython DLLs. The main bundle comes with 3 configuration files (2 in Python, 1 in Ruby), 3 layouts (2 built-in and one as a C# DLL), a couple of Plugins and some Widgets, one of which is written in Ruby. Works with 32- and 64-bit versions of Windows XP, Vista and 7. Goes under the GNU General Public License version 2.
 
 ====================================================================
 
@@ -49,7 +49,6 @@ FocusFollowsMouse - whether focus follows the mouse - i.e. the focused window is
 FocusFollowsMouseSetOnTop - whether the focused window under the mouse should be brought to the top of the Z order. Only works when FocusFollowsMouse is true. False by default
 MoveMouseOverMonitorsOnSwitch - whether to move the mouse to the middle of a screen whenever the workspace switched to is on a different monitor. False by default
 CheckForUpdates - if true (default), Windawesome will check for available updates on every startup
-UniqueHotkey - Windawesome uses this hotkey so it can switch to applications when you change workspaces (only if another method fails). Make sure you use a unique hotkey that is not in use by any other application. Windawesome will output a warning in a warnings.txt file if there is a problem registering this hotkey. The default one probably is fine (it is ALT+0)
 
 ====================================================================
 
