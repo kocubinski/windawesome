@@ -17,7 +17,7 @@ namespace Windawesome
 		private readonly Color foregroundColor;
 		private readonly static StringBuilder stringBuilder = new StringBuilder(85);
 
-		private delegate void InputLanguageChangedEventHandler(string language);
+		private delegate void InputLanguageChangedEventHandler(IntPtr hWnd);
 		private static event InputLanguageChangedEventHandler InputLanguageChanged;
 
 		public LanguageBarWidget(Color? backgroundColor = null, Color? foregroundColor = null)
@@ -28,7 +28,7 @@ namespace Windawesome
 
 		private static bool OnGlobalShellHookMessage(ref Message m)
 		{
-			InputLanguageChanged(GetWindowKeyboardLanguage(NativeMethods.GetForegroundWindow()));
+			InputLanguageChanged(NativeMethods.GetForegroundWindow());
 			return true;
 		}
 
@@ -41,9 +41,7 @@ namespace Windawesome
 
 			if (SystemAndProcessInformation.isAtLeastVista)
 			{
-				NativeMethods.LCIDToLocaleName(localeId, stringBuilder,
-					stringBuilder.Capacity, 0);
-
+				NativeMethods.LCIDToLocaleName(localeId, stringBuilder, stringBuilder.Capacity, 0);
 				return stringBuilder.ToString();
 			}
 
@@ -72,7 +70,7 @@ namespace Windawesome
 			}
 		}
 
-		private void OnWindowActivatedEvent(IntPtr hWnd)
+		private void SetNewLanguage(IntPtr hWnd)
 		{
 			if (bar.Monitor.CurrentVisibleWorkspace.IsCurrentWorkspace)
 			{
@@ -112,7 +110,7 @@ namespace Windawesome
 			label.ForeColor = foregroundColor;
 			label.TextAlign = ContentAlignment.MiddleCenter;
 
-			Workspace.WindowActivatedEvent += OnWindowActivatedEvent;
+			Workspace.WindowActivatedEvent += SetNewLanguage;
 			InputLanguageChanged += SetNewLanguage;
 		}
 
