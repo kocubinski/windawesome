@@ -83,6 +83,7 @@ config.ProgramRules = [
 	ProgramRule(
 		className = "^icoTrilly$",
 		onWindowCreatedAction = OnWindowCreatedOrShownAction.TemporarilyShowWindowOnCurrentWorkspace,
+		onWindowCreatedOnInactiveWorkspaceAction = OnWindowCreatedOnWorkspaceAction.PreserveTopmostWindow,
 		rules = [ProgramRule.Rule(workspace = 4, isFloating = True)]
 	),
 	ProgramRule(
