@@ -3,6 +3,10 @@ from Windawesome.NativeMethods import WS, WS_EX
 
 config.ProgramRules = [
 	ProgramRule(
+		className = "^cygwin/x X rl$",
+		rules = [ProgramRule.Rule(workspace = 5)]
+	),
+	ProgramRule(
 		className = "^TApplication$",
 		displayName = "^Find and Run Robot$",
 		isManaged = False
