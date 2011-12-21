@@ -15,7 +15,6 @@ namespace Windawesome
 		public static readonly IntPtr startButtonHandle;
 		public static readonly IntPtr trayHandle;
 		public static readonly IntPtr hiddenTrayHandle;
-		public static readonly IntPtr desktopHandle;
 
 		static SystemAndProcessInformation()
 		{
@@ -40,24 +39,6 @@ namespace Windawesome
 			if (isAtLeast7)
 			{
 				hiddenTrayHandle = FindHiddenTrayHandle();
-			}
-
-			desktopHandle = NativeMethods.shellWindow;
-			if (isAtLeast7 && NativeMethods.FindWindowEx(desktopHandle, IntPtr.Zero, "SHELLDLL_DefView", "") == IntPtr.Zero)
-			{
-				var desktop = IntPtr.Zero;
-				NativeMethods.EnumWindows((hWnd, _) =>
-					{
-						if (NativeMethods.IsWindowVisible(hWnd) && NativeMethods.GetWindowClassName(hWnd) == "WorkerW" &&
-							NativeMethods.FindWindowEx(hWnd, IntPtr.Zero, "SHELLDLL_DefView", "") != IntPtr.Zero)
-						{
-							desktop = hWnd;
-							return false;
-						}
-						return true;
-					}, IntPtr.Zero);
-
-				desktopHandle = desktop;
 			}
 		}
 

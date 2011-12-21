@@ -98,21 +98,7 @@ namespace Windawesome
 			CurrentWorkspace = config.StartingWorkspaces.First(w => w.Monitor.screen.Primary);
 
 			topmostWindows = new WindowBase[config.Workspaces.Length];
-			Workspace.WindowActivatedEvent += h =>
-				{
-					// since Windows 7, the desktop could be a child of a "WorkerW" class window if
-					// the user is using a slideshow for the desktop background. This messes up stuff here
-					// as it is the one that gets activated when the user clicks on the desktop, not the Progman
-					// window. This is not nice, as we should activate Progman, not WorkerW, hence the check
-					if (SystemAndProcessInformation.isAtLeast7 && h == SystemAndProcessInformation.desktopHandle)
-					{
-						topmostWindows[CurrentWorkspace.id - 1] = new WindowBase(NativeMethods.shellWindow);
-					}
-					else
-					{
-						topmostWindows[CurrentWorkspace.id - 1] = CurrentWorkspace.GetWindow(h) ?? new WindowBase(h);
-					}
-				};
+			Workspace.WindowActivatedEvent += h => topmostWindows[CurrentWorkspace.id - 1] = CurrentWorkspace.GetWindow(h) ?? new WindowBase(h);
 
 			// add workspaces to their corresponding monitors
 			monitors.ForEach(m => config.Workspaces.Where(w => w.Monitor == m).ForEach(m.AddWorkspace)); // n ^ 2 but hopefully fast enough
