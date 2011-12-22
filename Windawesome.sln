@@ -17,6 +17,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShortcutsManager", "Shortcu
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GlobalShellHook", "GlobalShellHook\GlobalShellHook.vcxproj", "{A16BB20E-4E10-4C13-9BF4-F945FCE4E87C}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{354EF524-746F-47B0-B9F8-4A9C0F2DE872}"
+	ProjectSection(SolutionItems) = preProject
+		app_version.xml = app_version.xml
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
