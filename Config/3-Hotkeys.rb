@@ -34,7 +34,8 @@ end
 
 # quit application
 subscribe modifiers.Alt, key.Q do
-	Windawesome::Utilities.quit_application Windawesome::NativeMethods.get_foreground_window
+	hWnd = Windawesome::NativeMethods.get_foreground_window
+	Windawesome::Utilities.quit_application hWnd if Windawesome::NativeMethods.get_window_class_name(hWnd) != "WorkerW"
 end
 
 subscribe modifiers.Control | modifiers.Alt | modifiers.Shift, key.Q do
