@@ -4,6 +4,7 @@ from Windawesome.NativeMethods import WS, WS_EX
 config.ProgramRules = [
 	ProgramRule(
 		className = "^cygwin/x X rl$",
+		windowCreatedDelay = 300,
 		rules = [ProgramRule.Rule(workspace = 5)]
 	),
 	ProgramRule(
