@@ -43,7 +43,8 @@ namespace Windawesome
 
 		internal uint hideFromAltTabWhenOnInactiveWorkspaceCount;
 		internal uint sharedWindowsCount;
-		internal readonly LinkedList<Window> windows; // all windows, sorted in tab-order
+
+		private readonly LinkedList<Window> windows; // all windows, sorted in tab-order
 
 		private bool hasChanges;
 
