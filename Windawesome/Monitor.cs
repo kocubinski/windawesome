@@ -47,7 +47,7 @@ namespace Windawesome
 				isTopMost = false;
 				edge = topBar ? NativeMethods.ABE.ABE_TOP : NativeMethods.ABE.ABE_BOTTOM;
 
-				this.CreateHandle(new CreateParams { Parent = NativeMethods.HWND_MESSAGE });
+				this.CreateHandle(new CreateParams { Parent = NativeMethods.HWND_MESSAGE, ClassName = "Message" });
 
 				callbackMessageNum = NativeMethods.WM_USER + count++;
 

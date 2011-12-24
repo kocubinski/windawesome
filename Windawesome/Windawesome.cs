@@ -80,7 +80,7 @@ namespace Windawesome
 
 			monitors = Screen.AllScreens.Select((_, i) => new Monitor(i)).ToArray();
 
-			this.CreateHandle(new CreateParams { Parent = NativeMethods.HWND_MESSAGE });
+			this.CreateHandle(new CreateParams { Parent = NativeMethods.HWND_MESSAGE, ClassName = "Message" });
 			HandleStatic = this.Handle;
 
 			config = new Config();
