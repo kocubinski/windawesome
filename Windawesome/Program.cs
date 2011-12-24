@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Windows.Forms;
 
 [assembly: RuntimeCompatibility(WrapNonExceptionThrows = true)]
@@ -15,10 +17,13 @@ namespace Windawesome
 		static void Main()
 		{
 			bool createdNew;
-			using (new System.Threading.Mutex(true, "{BCDA45B7-407E-43F3-82FB-D1F6D6D093FF}", out createdNew))
+			using (new Mutex(true, "{BCDA45B7-407E-43F3-82FB-D1F6D6D093FF}", out createdNew))
 			{
 				if (createdNew) // if the mutex was taken successfully, i.e. this is the first instance of the app running
 				{
+					Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.High;
+					Thread.CurrentThread.Priority = ThreadPriority.Highest;
+
 					Application.EnableVisualStyles();
 					Application.SetCompatibleTextRenderingDefault(false);
 
@@ -34,7 +39,7 @@ namespace Windawesome
 			}
 		}
 
-		private static void OnApplicationThreadException(object sender, System.Threading.ThreadExceptionEventArgs e)
+		private static void OnApplicationThreadException(object sender, ThreadExceptionEventArgs e)
 		{
 			OnException(e.Exception);
 		}
