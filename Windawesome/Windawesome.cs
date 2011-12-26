@@ -242,6 +242,7 @@ namespace Windawesome
 
 			using (var process = System.Diagnostics.Process.GetProcessById(processId))
 			{
+				// TODO: this line could throw an exception (as well as all others which use a Process instance)
 				var processName = process.ProcessName;
 
 				var programRule = config.ProgramRules.FirstOrDefault(r => r.IsMatch(hWnd, className, displayName, processName, style, exStyle));
