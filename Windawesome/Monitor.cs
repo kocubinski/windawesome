@@ -185,19 +185,13 @@ namespace Windawesome
 									var foregroundWindow = NativeMethods.GetForegroundWindow();
 									if (isTopMost && NativeMethods.GetWindowClassName(foregroundWindow) != "WorkerW")
 									{
-										int processId;
-										NativeMethods.GetWindowThreadProcessId(foregroundWindow, out processId);
-										var processName = System.Diagnostics.Process.GetProcessById(processId).ProcessName;
-										if (processName != "explorer")
-										{
-											var winPosInfo = NativeMethods.BeginDeferWindowPos(bars.Count());
-											winPosInfo = this.bars.Aggregate(winPosInfo, (current, bar) =>
-												NativeMethods.DeferWindowPos(current, bar.Handle, NativeMethods.HWND_BOTTOM, 0, 0, 0, 0,
-													NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE));
-											NativeMethods.EndDeferWindowPos(winPosInfo);
+										var winPosInfo = NativeMethods.BeginDeferWindowPos(bars.Count());
+										winPosInfo = this.bars.Aggregate(winPosInfo, (current, bar) =>
+											NativeMethods.DeferWindowPos(current, bar.Handle, NativeMethods.HWND_BOTTOM, 0, 0, 0, 0,
+												NativeMethods.SWP.SWP_NOACTIVATE | NativeMethods.SWP.SWP_NOMOVE | NativeMethods.SWP.SWP_NOSIZE));
+										NativeMethods.EndDeferWindowPos(winPosInfo);
 
-											isTopMost = false;
-										}
+										isTopMost = false;
 									}
 								}
 								break;
