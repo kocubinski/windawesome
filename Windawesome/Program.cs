@@ -29,7 +29,7 @@ namespace Windawesome
 
 					Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
 					Application.ThreadException += OnApplicationThreadException;
-					AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
+					AppDomain.CurrentDomain.UnhandledException += (_, e) => OnException(e.ExceptionObject as Exception);
 
 					windawesome = new Windawesome();
 					Application.Run(new WindawesomeApplicationContext());
@@ -42,11 +42,6 @@ namespace Windawesome
 		private static void OnApplicationThreadException(object sender, ThreadExceptionEventArgs e)
 		{
 			OnException(e.Exception);
-		}
-
-		private static void OnUnhandledException(object sender, UnhandledExceptionEventArgs e)
-		{
-			OnException(e.ExceptionObject as Exception);
 		}
 
 		private static void OnException(Exception e)
