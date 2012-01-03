@@ -21,12 +21,12 @@ namespace Windawesome
 			{
 				if (createdNew) // if the mutex was taken successfully, i.e. this is the first instance of the app running
 				{
-					Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.High;
-					Thread.CurrentThread.Priority = ThreadPriority.Highest;
+					SetPriorities();
 
 					Application.EnableVisualStyles();
 					Application.SetCompatibleTextRenderingDefault(false);
 
+					// set exception handling
 					Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
 					Application.ThreadException += OnApplicationThreadException;
 					AppDomain.CurrentDomain.UnhandledException += (_, e) => OnException(e.ExceptionObject as Exception);
@@ -36,6 +36,25 @@ namespace Windawesome
 
 					Application.ThreadException -= OnApplicationThreadException;
 				}
+			}
+		}
+
+		private static void SetPriorities()
+		{
+			Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.High;
+			Thread.CurrentThread.Priority = ThreadPriority.Highest;
+
+			if (SystemAndProcessInformation.isAtLeastVista)
+			{
+				var currentProcessHandle = NativeMethods.GetCurrentProcess();
+
+				var defaultMemoryPriority = NativeMethods.DefaultMemoryPriority;
+				NativeMethods.NtSetInformationProcess(currentProcessHandle, NativeMethods.ProcessInformationMemoryPriority,
+					ref defaultMemoryPriority, sizeof (uint));
+
+				var defaultIOPriority = NativeMethods.DefaultIOPriority;
+				NativeMethods.NtSetInformationProcess(currentProcessHandle, NativeMethods.ProcessInformationIOPriority,
+					ref defaultIOPriority, sizeof (uint));
 			}
 		}
 

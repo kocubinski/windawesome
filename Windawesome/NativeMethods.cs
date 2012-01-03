@@ -737,7 +737,7 @@ using LCID = UInt32; // DWORD
 
 		#region RedrawWindow
 
-		[Flags()]
+		[Flags]
 		public enum RDW : uint
 		{
 			/// <summary>
@@ -940,6 +940,18 @@ using LCID = UInt32; // DWORD
 		#endregion
 
 		// process and thread stuff
+
+		#region NtSetInformationProcess
+
+		[DllImport("ntdll.dll")]
+		public static extern LONG NtSetInformationProcess(HANDLE process, DWORD infoClass, ref DWORD data, uint dataSize);
+
+		public const DWORD ProcessInformationMemoryPriority = 0x27;
+		public const DWORD ProcessInformationIOPriority = 0x21;
+		public const DWORD DefaultMemoryPriority = 5;
+		public const DWORD DefaultIOPriority = 2;
+
+		#endregion
 
 		#region Is64BitProcess
 
@@ -1588,7 +1600,7 @@ using LCID = UInt32; // DWORD
 			NIM_DELETE = 2
 		}
 
-		public static readonly IntPtr SH_TRAY_DATA = NativeMethods.IntPtrOne;
+		public static readonly IntPtr SH_TRAY_DATA = IntPtrOne;
 		public const int WM_COPYDATA = 0x004A;
 
 		public enum TBSTATE : byte
