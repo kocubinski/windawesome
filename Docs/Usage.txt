@@ -86,7 +86,7 @@ onWindowCreatedOnInactiveWorkspaceAction - specifies what to do when a window is
 showOnWorkspacesCount - if > 0, the window is going to be shown on that number workspaces, starting from the first one. So if showOnWorkspacesCount == number of workspaces, then the window is shown on all workspace. Note this is different than not managing the window. Defaults to 0
 rules - a list of Rule objects. Defaults to a list with one Rule with all the defaults for it
 
-Whenever a new window is created, Windawesome tries to match it with any program rule in config.programRules. "className" through "customMatchingFunction", including, must all match. The FIRST matching rule is used, if any. I personally put an "all-catching" rule at the end to manage all windows without specific rules. After that, if a window is not managed, Windawesome does nothing more - which means you will see the window on every workspace and as a normal, floating window. Note that Windawesome will never switch to that window too.
+Whenever a new window is created, Windawesome tries to match it with any program rule in config.programRules. "className" through "customMatchingFunction", including, must all match. The FIRST matching rule is used, if any. I personally put an "all-catching" rule at the end to manage all windows without specific rules. After that, if a window is not managed, Windawesome does nothing more - which means you will see the window on every workspace and as a normal, floating window.
 
 ====================================================================
 
@@ -95,7 +95,6 @@ Each rule governs the specific settings for a Window on a particular Workspace
 
 workspace - the Workspace ID to put the window on (starting from 1). 0 means the current Workspace. Defaults to 0
 isFloating - whether the window is floating, i.e. the Layout shouldn't manage it. Defaults to false
-showInTabs - whether the window will show in Windawesome's Application Tabs Widget. Defaults to true
 titlebar - whether the window's titlebar is SHOWN, HIDDEN or AS_IS (the last one means that Windawesome will not do anything to the titlebar - do NOT use that if the window is shared, i.e. visible on two or more workspaces, if on any of the others it is not AS_IS). Defaults to AS_IS
 inAltTabAndTaskbar - whether the window is SHOWN, HIDDEN or AS_IS in Windows' taskbar and Alt-Tab menu. Defaults to AS_IS
 windowBorders - whether the window's border is SHOWN, HIDDEN or AS_IS (the last one means that Windawesome will not do anything to the border - do NOT use that if the window is shared, i.e. visible on two or more workspaces, if on any of the others it is not AS_IS). Defaults to AS_IS
@@ -214,7 +213,7 @@ This will remove the Windows standard behaviour of the Alt key which focuses key
 ====================================================================
 
 Known bugs/limitations:
-- Whenever a label's text is longer than the width, ellipsis show. However, then the text alignment changes to Top or something. This is a bug in the .NET Framework since version 2.0 and hasn't been fixed even in 4.0. Should be relatively easy to fix that by drawing one's own text, but I won't bother.
+- Whenever a label's text is longer than the width, ellipsis show. However, then the text alignment changes to Top or something. This is a bug in the .NET Framework since version 2.0 and hasn't been fixed even in 4.0.
 - There is a minor chance that the System Tray Widget is not going to work properly in some case. Let me know if that happens with the exact scenario.
 - Do not dock an application that is managed - when you change the workspace Windawesome will hide it but the working area will not reset. If you want to dock a window - make sure it is not managed.
 - Do not use the same shared window (i.e. a window that is on more than one workspace) on two or more workspaces which are shown at the same time on two or more monitors. This will not work as you expect it.
