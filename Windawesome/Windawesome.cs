@@ -562,7 +562,8 @@ namespace Windawesome
 		private IntPtr DoForTopmostWindowForWorkspace(Workspace workspace, Action<WindowBase> action)
 		{
 			var window = topmostWindows[workspace.id - 1];
-			if (window == null || !NativeMethods.IsWindowVisible(window.hWnd) || NativeMethods.IsIconic(window.hWnd))
+			if (window == null || !NativeMethods.IsWindowVisible(window.hWnd) || 
+                NativeMethods.IsIconic(window.hWnd))
 			{
 				NativeMethods.EnumWindows((hWnd, _) =>
 					{
@@ -763,9 +764,42 @@ namespace Windawesome
 			}
 		}
 
+        public void SwapWorkspace(int reqWorkspaceId)
+        {
+            var reqWorkspace = config.Workspaces[reqWorkspaceId - 1];
+            var curMonitorIdx = CurrentWorkspace.Monitor.monitorIndex;
+
+            if (reqWorkspace.IsWorkspaceVisible && reqWorkspaceId != CurrentWorkspace.id)
+            {
+                MoveWorkspaceToMonitor(CurrentWorkspace, reqWorkspace.Monitor);
+                MoveWorkspaceToMonitor(reqWorkspace, monitors[curMonitorIdx]);
+            }
+            else if (CurrentWorkspace.Monitor != reqWorkspace.Monitor)
+                MoveWorkspaceToMonitor(reqWorkspace, CurrentWorkspace.Monitor);
+            else
+                SwitchToWorkspace(reqWorkspaceId);
+        }
+
+        public void SwitchToNextMonitor()
+        {
+            var curInc = CurrentWorkspace.Monitor.monitorIndex + 1;
+            var nextMonitorIdx = curInc == monitors.Length ? 0 : curInc;
+            SwitchToWorkspace(config.Workspaces.Single(ws => ws.IsWorkspaceVisible && 
+                ws.Monitor.monitorIndex == nextMonitorIdx).id);
+        }
+
+        public void SwitchToPreviousMonitor()
+        {
+            var curDec = CurrentWorkspace.Monitor.monitorIndex - 1;
+            var prevMonitorIdx = curDec < 0  ? monitors.Length - 1 : curDec;
+            SwitchToWorkspace(config.Workspaces.Single(ws => ws.IsWorkspaceVisible && 
+                ws.Monitor.monitorIndex == prevMonitorIdx).id);
+        }
+
 		public void SwitchToWorkspace(int workspaceId, bool setForeground = true)
 		{
-			var newWorkspace = workspaceId == 0 ? CurrentWorkspace : config.Workspaces[workspaceId - 1];
+			var newWorkspace = workspaceId == 0 ? CurrentWorkspace : 
+                config.Workspaces[workspaceId - 1];
 			if (newWorkspace.id != CurrentWorkspace.id)
 			{
 				if (newWorkspace.IsWorkspaceVisible)
@@ -840,7 +874,8 @@ namespace Windawesome
 			}
 		}
 
-		public void MoveWorkspaceToMonitor(Workspace workspace, Monitor newMonitor, bool showOnNewMonitor = true, bool switchTo = true)
+		public void MoveWorkspaceToMonitor(Workspace workspace, Monitor newMonitor, 
+            bool showOnNewMonitor = true, bool switchTo = true)
 		{
 			var oldMonitor = workspace.Monitor;
 			if (oldMonitor != newMonitor && oldMonitor.Workspaces.Count() > 1)

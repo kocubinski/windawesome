@@ -126,10 +126,12 @@ namespace Windawesome
 			{
 				if (hook == IntPtr.Zero)
 				{
-					subscriptions = new Dictionary<Subscription, KeyboardEventHandler>(new Subscription.SubscriptionEqualityComparer());
+					subscriptions = new Dictionary<Subscription, KeyboardEventHandler>(
+                        new Subscription.SubscriptionEqualityComparer());
 
-					hook = NativeMethods.SetWindowsHookEx(NativeMethods.WH_KEYBOARD_LL, keyboardHookProcedure,
-						System.Diagnostics.Process.GetCurrentProcess().MainModule.BaseAddress, 0);
+					hook = NativeMethods.SetWindowsHookEx(NativeMethods.WH_KEYBOARD_LL, 
+                        keyboardHookProcedure, 
+                        System.Diagnostics.Process.GetCurrentProcess().MainModule.BaseAddress, 0);
 				}
 
 				var newSubscription = new Subscription(modifiers, key);

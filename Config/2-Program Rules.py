@@ -105,8 +105,9 @@ config.ProgramRules = [
 	ProgramRule(
 		className = "^mintty$",
 		redrawDesktopOnWindowCreated = True,
-		rules = [ProgramRule.Rule(workspace = 3, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
+		rules = [ProgramRule.Rule(workspace = 3, titlebar = State.HIDDEN, windowBorders = State.SHOWN)]
 	),
+		#rules = [ProgramRule.Rule(workspace = 3, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
 
 	# other
 

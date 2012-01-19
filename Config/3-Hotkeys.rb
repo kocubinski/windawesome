@@ -1,3 +1,6 @@
+# scope variables:
+# windawesome - Wandawsome object
+# config - Config objectj
 
 def subscribe(modifiers, key)
 	Windawesome::ShortcutsManager.subscribe modifiers, key, lambda {
@@ -74,9 +77,9 @@ subscribe modifiers.Alt, key.F do
 end
 
 # start Explorer
-subscribe modifiers.Alt, key.E do
-	Windawesome::Utilities.run_application "C:\\Users\\Boris\\Desktop\\Downloads.lnk"
-end
+#subscribe modifiers.Alt, key.E do
+#	Windawesome::Utilities.run_application "C:\\Users\\Boris\\Desktop\\Downloads.lnk"
+#end
 
 # start Hostile Takeover
 subscribe modifiers.Alt, key.H do
@@ -84,9 +87,9 @@ subscribe modifiers.Alt, key.H do
 end
 
 # start Foobar2000
-subscribe modifiers.Alt, key.W do
-	Windawesome::Utilities.run_application "C:\\Program Files (x86)\\foobar2000\\foobar2000.exe"
-end
+#subscribe modifiers.Alt, key.W do
+#	Windawesome::Utilities.run_application "C:\\Program Files (x86)\\foobar2000\\foobar2000.exe"
+#end
 
 # start Cygwin's MinTTY shell
 subscribe modifiers.Alt | modifiers.Shift, key.Return do
@@ -203,12 +206,15 @@ end
 
 # Workspaces stuff
 
+numMonitors = 2
+System::Console::WriteLine(config.workspaces.length)
+
 (1 .. config.workspaces.length).each do |i|
 	k = eval("key.D" + i.to_s)
 
 	subscribe modifiers.Alt, k do
-		windawesome.switch_to_workspace i
-	end
+        windawesome.swap_workspace(i)
+    end
 
 	subscribe modifiers.Alt | modifiers.Shift, k do
 		windawesome.change_application_to_workspace Windawesome::NativeMethods.get_foreground_window, i
@@ -217,4 +223,16 @@ end
 	subscribe modifiers.Control | modifiers.Alt | modifiers.Shift, k do
 		windawesome.add_application_to_workspace Windawesome::NativeMethods.get_foreground_window, i
 	end
+end
+
+subscribe modifiers.Alt, key.W do
+    windawesome.switch_to_previous_monitor
+end
+
+subscribe modifiers.Alt, key.E do
+    windawesome.switch_to_next_monitor
+end
+
+subscribe modifiers.Alt, key.Oemcomma do
+    windawesome.move_workspace_to_monitor windawesome.current_workspace, windawesome.monitors[1]
 end

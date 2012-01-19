@@ -17,8 +17,8 @@ def onLayoutLabelClick():
 
 config.WindowBorderWidth = 1
 config.WindowPaddedBorderWidth = 0
-
 config.CheckForUpdates = False
+config.MoveMouseOverMonitorsOnSwitch = True
 
 config.Bars = Enumerable.ToArray[Bar]([
 	Bar(windawesome.monitors[0],
@@ -41,13 +41,13 @@ config.Workspaces = Enumerable.ToArray[Workspace]([
 	Workspace(windawesome.monitors[0], FullScreenLayout(), [config.Bars[0]]),
 	Workspace(windawesome.monitors[0], TileLayout(masterAreaAxis = TileLayout.LayoutAxis.TopToBottom, masterAreaWindowsCount = 2, masterAreaFactor = 0.5), [config.Bars[0]], name = 'chat'),
 	Workspace(windawesome.monitors[0], FullScreenLayout(), [config.Bars[0]]),
-	Workspace(windawesome.monitors[0], FullScreenLayout(), [config.Bars[0]]),
-	Workspace(windawesome.monitors[0], FullScreenLayout(), [config.Bars[0]]),
+	Workspace(windawesome.monitors[1], FullScreenLayout(), [config.Bars[0]]),
+	Workspace(windawesome.monitors[1], FullScreenLayout(), [config.Bars[0]]),
 	Workspace(windawesome.monitors[0], FullScreenLayout(), [config.Bars[0]], name = 'mail'),
 	Workspace(windawesome.monitors[0], FullScreenLayout(), [config.Bars[0]], name = 'BC')
 ])
 
-config.StartingWorkspaces = [config.Workspaces[0]]
+config.StartingWorkspaces = [config.Workspaces[0], config.Workspaces[5]]
 
 config.Plugins = [
 	#LoggerPlugin(logWorkspaceSwitching = True, logWindowMinimization = True, logWindowRestoration = True,

@@ -134,7 +134,8 @@ namespace Windawesome
 				return null;
 			}
 
-			public static void LoadAll(Windawesome windawesome, Config config, IEnumerable<FileInfo> files)
+			public static void LoadAll(Windawesome windawesome, Config config, 
+                IEnumerable<FileInfo> files)
 			{
 				ScriptScope scope = null;
 				ScriptEngine previousLanguage = null;
