@@ -72,9 +72,9 @@ subscribe modifiers.Alt, key.Oemtilde do
 end
 
 # start Firefox
-subscribe modifiers.Alt, key.F do
-	windawesome.run_or_show_application "^MozillaWindowClass$", "C:\\Program Files (x86)\\Mozilla Firefox\\firefox.exe"
-end
+#subscribe modifiers.Alt, key.F do
+#	windawesome.run_or_show_application "^MozillaWindowClass$", "C:\\Program Files (x86)\\Mozilla Firefox\\firefox.exe"
+#end
 
 # start Explorer
 #subscribe modifiers.Alt, key.E do
@@ -97,8 +97,8 @@ subscribe modifiers.Alt | modifiers.Shift, key.Return do
 end
 
 # start Bitcomet
-subscribe modifiers.Alt, key.B do
-	Windawesome::Utilities.run_application "C:\\Program Files\\BitComet\\BitComet.exe"
+subscribe modifiers.Alt, key.P do
+	Windawesome::Utilities.run_application "D:\\programs\\cubit\\cubit.ahk", "D:\\programs\\cubit\\apps"
 end
 
 # switch to flashing window
@@ -107,9 +107,9 @@ subscribe modifiers.Alt, key.U do
 end
 
 # toggle window floating
-subscribe modifiers.Control | modifiers.Alt | modifiers.Shift, key.F do
-	windawesome.toggle_window_floating Windawesome::NativeMethods.get_foreground_window
-end
+#subscribe modifiers.Control | modifiers.Alt | modifiers.Shift, key.F do
+#	windawesome.toggle_window_floating Windawesome::NativeMethods.get_foreground_window
+#end
 
 # toggle window titlebar
 subscribe modifiers.Alt | modifiers.Shift, key.D do
@@ -133,15 +133,18 @@ end
 
 # Layout stuff
 
-subscribe modifiers.Alt | modifiers.Shift, key.T do # change layout to Tile
+#subscribe modifiers.Alt | modifiers.Shift, key.T do # change layout to Tile
+subscribe modifiers.Win, key.T do # change layout to Tile
 	windawesome.current_workspace.change_layout Windawesome::TileLayout.new
 end
 
-subscribe modifiers.Alt | modifiers.Shift, key.M do # change layout to Full Screen
+#subscribe modifiers.Alt | modifiers.Shift, key.M do # change layout to Full Screen
+subscribe modifiers.Win, key.M do # change layout to Full Screen
 	windawesome.current_workspace.change_layout Windawesome::FullScreenLayout.new
 end
 
-subscribe modifiers.Alt | modifiers.Shift, key.F do # change layout to Floating
+#subscribe modifiers.Alt | modifiers.Shift, key.F do # change layout to Floating
+subscribe modifiers.Win, key.F do # change layout to Floating
 	windawesome.current_workspace.change_layout Windawesome::FloatingLayout.new
 end
 
@@ -188,9 +191,9 @@ subscribe modifiers.Alt | modifiers.Shift, key.L do
 	windawesome.current_workspace.layout.toggle_layout_axis if windawesome.current_workspace.layout.layout_name == "Tile"
 end
 
-subscribe modifiers.Alt | modifiers.Shift, key.S do
-	windawesome.current_workspace.layout.toggle_stack_area_axis if windawesome.current_workspace.layout.layout_name == "Tile"
-end
+#subscribe modifiers.Alt | modifiers.Shift, key.S do
+#	windawesome.current_workspace.layout.toggle_stack_area_axis if windawesome.current_workspace.layout.layout_name == "Tile"
+#end
 
 subscribe modifiers.Control | modifiers.Alt | modifiers.Shift, key.S do
 	windawesome.current_workspace.layout.toggle_master_area_axis if windawesome.current_workspace.layout.layout_name == "Tile"

@@ -24,8 +24,10 @@ namespace Windawesome
 		private double masterAreaFactor;
 		private int masterAreaWindowsCount;
 
-		public TileLayout(LayoutAxis layoutAxis = LayoutAxis.LeftToRight, LayoutAxis masterAreaAxis = LayoutAxis.Monocle,
-			LayoutAxis stackAreaAxis = LayoutAxis.TopToBottom, double masterAreaFactor = 0.6, int masterAreaWindowsCount = 1)
+		public TileLayout(LayoutAxis layoutAxis = LayoutAxis.LeftToRight, 
+            LayoutAxis masterAreaAxis = LayoutAxis.Monocle, 
+            LayoutAxis stackAreaAxis = LayoutAxis.TopToBottom, double masterAreaFactor = 0.6, 
+            int masterAreaWindowsCount = 1)
 		{
 			this.layoutAxis = layoutAxis;
 			this.masterAreaAxis = masterAreaAxis;

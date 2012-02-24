@@ -18,11 +18,11 @@ config.ProgramRules = [
 	),
 	ProgramRule(
 		className = "^MozillaWindowClass$",
-		rules = [ProgramRule.Rule(workspace = 2)]
+		rules = [ProgramRule.Rule(workspace = 4, titlebar = State.HIDDEN)]
 	),
 	ProgramRule(
 		className = "^MozillaDialogClass$",
-		rules = [ProgramRule.Rule(workspace = 2, isFloating = True)]
+		rules = [ProgramRule.Rule(workspace = 4, isFloating = True)]
 	),
 	ProgramRule(
 		className = "^CabinetWClass$", # Windows Explorer
@@ -50,10 +50,10 @@ config.ProgramRules = [
 		className = "^rctrl_renwnd32$", # Outlook
 		rules = [ProgramRule.Rule(workspace = 8)]
 	),
-	ProgramRule(
-		className = "^{97E27FAA-C0B3-4b8e-A693-ED7881E99FC1}$", # foobar2000
-		rules = [ProgramRule.Rule(workspace = 7)]
-	),
+	#ProgramRule(
+	#	className = "^{97E27FAA-C0B3-4b8e-A693-ED7881E99FC1}$", # foobar2000
+	#	rules = [ProgramRule.Rule(workspace = 7)]
+	#),
 
 	# editors
 
@@ -146,5 +146,40 @@ config.ProgramRules = [
 		styleNotContains = WS.WS_MAXIMIZEBOX,
 		rules = [ProgramRule.Rule(isFloating = True)]
 	),
+
+# mtkoan
+	ProgramRule(
+            displayName = "^Arch.*VirtualBox : 2$",
+		    redrawDesktopOnWindowCreated = True,
+		    rules = [ProgramRule.Rule(workspace = 9, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
+	),
+	ProgramRule(
+            displayName = "^Arch.*VirtualBox : 1$",
+		    redrawDesktopOnWindowCreated = True,
+		    rules = [ProgramRule.Rule(workspace = 8, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
+	),
+	ProgramRule(
+            displayName = "^Arch.*VirtualBox$",
+		    redrawDesktopOnWindowCreated = True,
+		    rules = [ProgramRule.Rule(workspace = 8, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
+	),
+
+	ProgramRule(
+            displayName = "^emacs",
+		    redrawDesktopOnWindowCreated = True,
+		    rules = [ProgramRule.Rule(workspace = 2, titlebar = State.HIDDEN, windowBorders = State.HIDDEN)]
+	),
+
+	ProgramRule(
+        displayName = "^Git Gui",
+        isManaged = False
+	),
+
+	ProgramRule(
+        displayName = "^gitk",
+        isManaged = False
+	),
+
+
 	ProgramRule() # an all-catching rule in the end to manage all other windows
 ]

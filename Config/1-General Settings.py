@@ -18,7 +18,7 @@ def onLayoutLabelClick():
 config.WindowBorderWidth = 1
 config.WindowPaddedBorderWidth = 0
 config.CheckForUpdates = False
-config.MoveMouseOverMonitorsOnSwitch = True
+config.MoveMouseOverMonitorsOnSwitch = False
 
 config.Bars = Enumerable.ToArray[Bar]([
 	Bar(windawesome.monitors[0],
@@ -37,17 +37,21 @@ config.Bars = Enumerable.ToArray[Bar]([
 
 config.Workspaces = Enumerable.ToArray[Workspace]([
 	Workspace(windawesome.monitors[0], FloatingLayout(), [config.Bars[1]], name = 'main'),
-	Workspace(windawesome.monitors[0], FullScreenLayout(), [config.Bars[0]], name = 'web'),
-	Workspace(windawesome.monitors[0], FullScreenLayout(), [config.Bars[0]]),
-	Workspace(windawesome.monitors[0], TileLayout(masterAreaAxis = TileLayout.LayoutAxis.TopToBottom, masterAreaWindowsCount = 2, masterAreaFactor = 0.5), [config.Bars[0]], name = 'chat'),
-	Workspace(windawesome.monitors[0], FullScreenLayout(), [config.Bars[0]]),
-	Workspace(windawesome.monitors[1], FullScreenLayout(), [config.Bars[0]]),
-	Workspace(windawesome.monitors[1], FullScreenLayout(), [config.Bars[0]]),
-	Workspace(windawesome.monitors[0], FullScreenLayout(), [config.Bars[0]], name = 'mail'),
-	Workspace(windawesome.monitors[0], FullScreenLayout(), [config.Bars[0]], name = 'BC')
+	Workspace(windawesome.monitors[0], TileLayout(), [config.Bars[0]]),
+	Workspace(windawesome.monitors[0], TileLayout(), [config.Bars[0]]),
+	Workspace(windawesome.monitors[1], FullScreenLayout(), [config.Bars[0]], name = 'web'),
+	#Workspace(windawesome.monitors[0], TileLayout(masterAreaAxis = TileLayout.LayoutAxis.TopToBottom, masterAreaWindowsCount = 2, masterAreaFactor = 0.5), [config.Bars[0]], name = 'chat'),
+	Workspace(windawesome.monitors[0], FullScreenLayout(), [config.Bars[0]], name = 'dev'),
+	Workspace(windawesome.monitors[0], TileLayout(), [config.Bars[0]]),
+	Workspace(windawesome.monitors[0], TileLayout(), [config.Bars[0]]),
+	Workspace(windawesome.monitors[0], FullScreenLayout() ),
+	Workspace(windawesome.monitors[0], FullScreenLayout() )
+	#Workspace(windawesome.monitors[0], FullScreenLayout(), [config.Bars[0]]),
+	#Workspace(windawesome.monitors[0], FullScreenLayout(), [config.Bars[0]])
 ])
 
-config.StartingWorkspaces = [config.Workspaces[0], config.Workspaces[5]]
+config.StartingWorkspaces = [config.Workspaces[0], config.Workspaces[3]]
+#config.StartingWorkspaces = [config.Workspaces[0]]
 
 config.Plugins = [
 	#LoggerPlugin(logWorkspaceSwitching = True, logWindowMinimization = True, logWindowRestoration = True,

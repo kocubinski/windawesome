@@ -764,36 +764,38 @@ namespace Windawesome
 			}
 		}
 
-        public void SwapWorkspace(int reqWorkspaceId)
+        public void SwapWorkspace(int requestedWorkspaceId)
         {
-            var reqWorkspace = config.Workspaces[reqWorkspaceId - 1];
-            var curMonitorIdx = CurrentWorkspace.Monitor.monitorIndex;
+            var requestedWorkspace = config.Workspaces[requestedWorkspaceId - 1];
+            var currentMonitorIndex = CurrentWorkspace.Monitor.monitorIndex;
 
-            if (reqWorkspace.IsWorkspaceVisible && reqWorkspaceId != CurrentWorkspace.id)
+            if (requestedWorkspace.IsWorkspaceVisible && requestedWorkspaceId != CurrentWorkspace.id)
             {
-                MoveWorkspaceToMonitor(CurrentWorkspace, reqWorkspace.Monitor);
-                MoveWorkspaceToMonitor(reqWorkspace, monitors[curMonitorIdx]);
+                MoveWorkspaceToMonitor(CurrentWorkspace, requestedWorkspace.Monitor);
+                MoveWorkspaceToMonitor(requestedWorkspace, monitors[currentMonitorIndex]);
             }
-            else if (CurrentWorkspace.Monitor != reqWorkspace.Monitor)
-                MoveWorkspaceToMonitor(reqWorkspace, CurrentWorkspace.Monitor);
+            else if (CurrentWorkspace.Monitor != requestedWorkspace.Monitor)
+            {
+                MoveWorkspaceToMonitor(requestedWorkspace, CurrentWorkspace.Monitor);
+            }
             else
-                SwitchToWorkspace(reqWorkspaceId);
+            {
+                SwitchToWorkspace(requestedWorkspaceId);
+            }
         }
 
         public void SwitchToNextMonitor()
         {
-            var curInc = CurrentWorkspace.Monitor.monitorIndex + 1;
-            var nextMonitorIdx = curInc == monitors.Length ? 0 : curInc;
-            SwitchToWorkspace(config.Workspaces.Single(ws => ws.IsWorkspaceVisible && 
-                ws.Monitor.monitorIndex == nextMonitorIdx).id);
+            var currentIndexInc = CurrentWorkspace.Monitor.monitorIndex + 1;
+            var nextMonitorIndex = currentIndexInc == monitors.Length ? 0 : currentIndexInc;
+            SwitchToWorkspace(monitors[nextMonitorIndex].CurrentVisibleWorkspace.id);
         }
 
         public void SwitchToPreviousMonitor()
         {
-            var curDec = CurrentWorkspace.Monitor.monitorIndex - 1;
-            var prevMonitorIdx = curDec < 0  ? monitors.Length - 1 : curDec;
-            SwitchToWorkspace(config.Workspaces.Single(ws => ws.IsWorkspaceVisible && 
-                ws.Monitor.monitorIndex == prevMonitorIdx).id);
+            var currentIndexDec = CurrentWorkspace.Monitor.monitorIndex - 1;
+            var previousMonitorIndex = currentIndexDec < 0  ? monitors.Length - 1 : currentIndexDec;
+            SwitchToWorkspace(monitors[previousMonitorIndex].CurrentVisibleWorkspace.id);
         }
 
 		public void SwitchToWorkspace(int workspaceId, bool setForeground = true)
